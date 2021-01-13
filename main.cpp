@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 	}
 
 #ifndef EXTERNAL_IO
-	parallel.initialize(n,m);
+	parallel.initialize(MPI_COMM_WORLD,n,m);
 #else
 	if (!io_size || !io_group_size)
 	{
