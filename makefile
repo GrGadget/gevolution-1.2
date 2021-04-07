@@ -1,8 +1,8 @@
 # programming environment
 COMPILER     := mpic++
-INCLUDE      := # add the path to LATfield2 and other libraries (if necessary)
-LIB          := -lfftw3 -lm -lhdf5 -lgsl -lgslcblas
-HPXCXXLIB    := -lhealpix_cxx -lcfitsio
+INCLUDE      := $(shell pkg-config --cflags latfield fftw3 hdf5 gsl)
+LIB          := $(shell pkg-config --libs fftw3 hdf5 gsl)
+HPXCXXLIB    := $(shell pkg-config --libs --cflags healpix)
 
 # target and source
 EXEC         := gevolution
