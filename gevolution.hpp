@@ -31,7 +31,9 @@
 #define Cplx Imag
 #endif
 
-using namespace std;
+// using namespace std;
+#include <vector>
+#include <cmath>
 using namespace LATfield2;
 
 
@@ -500,49 +502,42 @@ void projectFTtensor(Field<Cplx> & SijFT, Field<Cplx> & hijFT)
 
 void solveModifiedPoissonFT(Field<Cplx> & sourceFT, Field<Cplx> & potFT, Real coeff, const Real modif = 0.)
 {
+	const double pi = std::acos(-1.0);
 	const int linesize = potFT.lattice().size(1);
-	Real * gridk2;
-	Real * sinc;
+	std::vector<Real> gridk2(linesize), sinc(linesize);
 	rKSite k(potFT.lattice());
 	
-	gridk2 = (Real *) malloc(linesize * sizeof(Real));
-	sinc = (Real *) malloc(linesize * sizeof(Real));
-	
-	//coeff /= -((long) linesize * (long) linesize * (long) linesize);
-	coeff *= -1;
+	coeff /= -((long) linesize * (long) linesize * (long) linesize);
 	
 	for (int i = 0; i < linesize; i++)
 	{
-		gridk2[i] = 2. * M_PI * (Real) i ;
+		// gridk2[i] = 2. * M_PI * (Real) i ;
+		// gridk2[i] *= gridk2[i];
+		// 
+		// Real fase = M_PI * ((Real) i) / linesize;
+		// if(i>0)
+		// 	sinc[i] = fase/sin(fase);
+		// else
+		// 	sinc[i]=1;
+		// sinc[i] = sinc[i]*sinc[i]; // CIC correction
+		gridk2[i] = 2. * linesize * std::sin( i * pi / linesize  ) ;
 		gridk2[i] *= gridk2[i];
 		
-		Real fase = M_PI * (Real) i / linesize;
-		if(i>0)
-			sinc[i] = fase/sin(fase);
-		else
-			sinc[i]=1;
-		sinc[i] *= sinc[i]; // CIC correction
+		sinc[i] = 1;
 	}
 	
-	k.first();
-	if (k.coord(0) == 0 && k.coord(1) == 0 && k.coord(2) == 0)
+	
+	for (k.first(); k.test(); k.next())
 	{
-		if (modif == 0.)
+		if (k.coord(0) == 0 && k.coord(1) == 0 && k.coord(2) == 0)
 			potFT(k) = Cplx(0.,0.);
 		else
-			potFT(k) = sourceFT(k) * coeff / modif;
-		potFT(k) *= sinc[k.coord(0)]*sinc[k.coord(1)]*sinc[k.coord(2)];
-		k.next();
+		{
+			potFT(k) = sourceFT(k) * coeff / 
+				(gridk2.at(k.coord(0)) + gridk2.at(k.coord(1)) + gridk2.at(k.coord(2)));
+			potFT(k) *= sinc.at(k.coord(0))*sinc.at(k.coord(1))*sinc.at(k.coord(2));
+		}
 	}
-	
-	for (; k.test(); k.next())
-	{
-		potFT(k) = sourceFT(k) * coeff / (gridk2[k.coord(0)] + gridk2[k.coord(1)] + gridk2[k.coord(2)] + modif);
-		potFT(k) *= sinc[k.coord(0)]*sinc[k.coord(1)]*sinc[k.coord(2)];
-	}
-	
-	free(gridk2);
-	free(sinc);
 }
 #endif
 
