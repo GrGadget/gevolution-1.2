@@ -32,6 +32,7 @@
 //
 //////////////////////////
 
+#include "version.h"
 #include <stdlib.h>
 #include <set>
 #include <vector>
@@ -68,6 +69,7 @@ using namespace LATfield2;
 
 int main(int argc, char **argv)
 {
+    MPI_Init(NULL,NULL);
 #ifdef BENCHMARK
 	//benchmarking variables
 	double ref_time, ref2_time, cycle_start_time;
@@ -166,6 +168,7 @@ int main(int argc, char **argv)
 	COUT << "  _   _      _         __ ,  _" << endl;
 	COUT << " (_| (-' \\/ (_) (_ (_| (  ( (_) /\\/	version 1.2         running on " << n*m << " cores." << endl;
 	COUT << "  -'" << endl << COLORTEXT_RESET << endl;
+	COUT << "Version date: " GIT_DATE "\n" "Commit: " GIT_COMMIT "\n\n";
 	
 	if (settingsfile == NULL)
 	{
