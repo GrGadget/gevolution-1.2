@@ -501,19 +501,27 @@ void projectFTtensor(Field<Cplx> & SijFT, Field<Cplx> & hijFT)
 void solveModifiedPoissonFT(Field<Cplx> & sourceFT, Field<Cplx> & potFT, Real coeff, const Real modif = 0.)
 {
 	const int linesize = potFT.lattice().size(1);
-	int i;
 	Real * gridk2;
 	Real * sinc;
 	rKSite k(potFT.lattice());
 	
 	gridk2 = (Real *) malloc(linesize * sizeof(Real));
+	sinc = (Real *) malloc(linesize * sizeof(Real));
 	
-	coeff /= -((long) linesize * (long) linesize * (long) linesize);
+	//coeff /= -((long) linesize * (long) linesize * (long) linesize);
+	coeff *= -1;
 	
-	for (i = 0; i < linesize; i++)
+	for (int i = 0; i < linesize; i++)
 	{
-		gridk2[i] = 2. * (Real) linesize * sin(M_PI * (Real) i / (Real) linesize);
+		gridk2[i] = 2. * M_PI * (Real) i ;
 		gridk2[i] *= gridk2[i];
+		
+		Real fase = M_PI * (Real) i / linesize;
+		if(i>0)
+			sinc[i] = fase/sin(fase);
+		else
+			sinc[i]=1;
+		sinc[i] *= sinc[i]; // CIC correction
 	}
 	
 	k.first();
@@ -523,15 +531,18 @@ void solveModifiedPoissonFT(Field<Cplx> & sourceFT, Field<Cplx> & potFT, Real co
 			potFT(k) = Cplx(0.,0.);
 		else
 			potFT(k) = sourceFT(k) * coeff / modif;
+		potFT(k) *= sinc[k.coord(0)]*sinc[k.coord(1)]*sinc[k.coord(2)];
 		k.next();
 	}
 	
 	for (; k.test(); k.next())
 	{
 		potFT(k) = sourceFT(k) * coeff / (gridk2[k.coord(0)] + gridk2[k.coord(1)] + gridk2[k.coord(2)] + modif);
+		potFT(k) *= sinc[k.coord(0)]*sinc[k.coord(1)]*sinc[k.coord(2)];
 	}
 	
 	free(gridk2);
+	free(sinc);
 }
 #endif
 
