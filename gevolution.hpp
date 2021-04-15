@@ -514,16 +514,15 @@ void solveModifiedPoissonFT(Field<Cplx> & sourceFT, Field<Cplx> & potFT, Real co
 		// gridk2[i] = 2. * M_PI * (Real) i ;
 		// gridk2[i] *= gridk2[i];
 		// 
-		// Real fase = M_PI * ((Real) i) / linesize;
-		// if(i>0)
-		// 	sinc[i] = fase/sin(fase);
-		// else
-		// 	sinc[i]=1;
-		// sinc[i] = sinc[i]*sinc[i]; // CIC correction
 		gridk2[i] = 2. * linesize * std::sin( i * pi / linesize  ) ;
 		gridk2[i] *= gridk2[i];
 		
-		sinc[i] = 1;
+		Real fase = M_PI * ((Real) i) / linesize;
+		if(i>0)
+			sinc[i] = fase/sin(fase);
+		else
+			sinc[i]=1;
+		sinc[i] = sinc[i]*sinc[i]; // CIC correction p=2
 	}
 	
 	
