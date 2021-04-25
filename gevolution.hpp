@@ -506,23 +506,32 @@ void solveModifiedPoissonFT(Field<Cplx> & sourceFT, Field<Cplx> & potFT, Real co
 	const int linesize = potFT.lattice().size(1);
 	std::vector<Real> gridk2(linesize), sinc(linesize);
 	rKSite k(potFT.lattice());
+    
+    auto wrap = [linesize](int k){ return k<linesize/2 ? k : k-linesize;  };
 	
 	coeff /= -((long) linesize * (long) linesize * (long) linesize);
 	
 	for (int i = 0; i < linesize; i++)
 	{
-		// gridk2[i] = 2. * M_PI * (Real) i ;
-		// gridk2[i] *= gridk2[i];
-		// 
-		gridk2[i] = 2. * linesize * std::sin( i * pi / linesize  ) ;
-		gridk2[i] *= gridk2[i];
-		
-		Real fase = M_PI * ((Real) i) / linesize;
-		if(i>0)
-			sinc[i] = fase/sin(fase);
-		else
-			sinc[i]=1;
-		sinc[i] = sinc[i]*sinc[i]; // CIC correction p=2
+        #ifdef EXACT_POISSON_SOLVER
+        
+        gridk2[i] = 2. * pi * (Real) wrap(i);
+        gridk2[i] *= gridk2[i];
+        
+        Real fase = pi * ((Real) wrap(i)) / linesize;
+        if(i>0)
+            sinc[i] = fase/sin(fase);
+        else
+            sinc[i]=1;
+        sinc[i] = sinc[i]*sinc[i]; // CIC correction p=2
+        
+        #else // Finite differences Poisson solver
+        
+        gridk2[i] = 2. * linesize * std::sin( i * pi / linesize  ) ;
+        gridk2[i] *= gridk2[i];
+        sinc[i]=1;
+        
+        #endif
 	}
 	
 	
