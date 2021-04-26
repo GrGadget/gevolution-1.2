@@ -32,6 +32,10 @@
 //
 //////////////////////////
 
+#include <boost/mpi/environment.hpp>
+#include <boost/mpi/communicator.hpp>
+namespace mpi = boost::mpi;
+
 #include "version.h"
 #include <stdlib.h>
 #include <set>
@@ -67,9 +71,13 @@
 using namespace std;
 using namespace LATfield2;
 
+
+
+
 int main(int argc, char **argv)
 {
-    MPI_Init(NULL,NULL);
+    mpi::environment env;
+    mpi::communicator world;
 #ifdef BENCHMARK
 	//benchmarking variables
 	double ref_time, ref2_time, cycle_start_time;
@@ -151,7 +159,7 @@ int main(int argc, char **argv)
 	}
 
 #ifndef EXTERNAL_IO
-	parallel.initialize(MPI_COMM_WORLD,n,m);
+	parallel.initialize(world,n,m);
 #else
 	if (!io_size || !io_group_size)
 	{

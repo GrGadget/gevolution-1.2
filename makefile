@@ -2,7 +2,11 @@
 COMPILER     := mpic++
 INCLUDE      := $(shell pkg-config --cflags latfield fftw3 hdf5 gsl)
 LIB          := $(shell pkg-config --libs fftw3 hdf5 gsl)
-HPXCXXLIB    := $(shell pkg-config --libs --cflags healpix)
+# HPXCXXLIB    := $(shell pkg-config --libs --cflags healpix)
+
+# Boost
+INCLUDE      += -I${BOOST_ROOT}/include
+LIB          += -L${BOOST_ROOT}/lib -lboost_mpi
 
 # target and source
 EXEC         := gevolution
