@@ -213,7 +213,8 @@ int main(int argc, char **argv)
 	Lattice latFT;
 	latFT.initializeRealFFT(lat,0);
 	
-	Particles_gevolution<part_simple,part_simple_info,part_simple_dataType> pcls_cdm;
+	Particles_gevolution<part_simple,part_simple_info,part_simple_dataType> 
+        pcls_cdm(MPI_COMM_WORLD,"forces.txt");
 	Particles_gevolution<part_simple,part_simple_info,part_simple_dataType> pcls_b;
 	Particles_gevolution<part_simple,part_simple_info,part_simple_dataType> pcls_ncdm[MAX_PCL_SPECIES-2];
 	Field<Real> * update_cdm_fields[3];

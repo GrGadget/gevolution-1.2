@@ -745,7 +745,8 @@ Real update_q_Newton(double dtau, double dx, part_simple * part, double * ref_di
 	Real v2 = 0.;
 	for (int i=0;i<3;i++)
 	{
-		(*part).vel[i] -= dtau * params[0] * gradpsi[i] / dx;
+        Real force = -params[0]*gradpsi[i]/dx;
+		(*part).vel[i] += dtau * force;
 		v2 += (*part).vel[i] * (*part).vel[i];
 	}
 	

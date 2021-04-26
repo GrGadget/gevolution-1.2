@@ -20,7 +20,52 @@ using namespace LATfield2;
 template <typename part, typename part_info, typename part_dataType>
 class Particles_gevolution: public Particles<part, part_info, part_dataType>
 {
+    MPI_COMM com;
+    bool debug{false};
+    const int root{0};
+    std::ofstream debug_file;
+    std::stringstream debug_stream;
+
 	public:
+        Particles_gevolution()
+        {}
+        Particles_gevolution(MPI_COMM _com,std::string fname): 
+            com{com}, debug{true}
+        {
+            int rank{};
+            MPI_Comm_rank(&rank,com);
+            if(rank==root)
+            {
+                ofstream.open(fname);
+            }
+        }
+        void flush()
+        {
+            int rank,npro;
+            MPI_Comm_rank(&rank,com);
+            MPI_Comm_size(&npro,com);
+            
+            std::stringstream buff;
+            
+            for(int i=0;i<npro;++i)
+            {
+                // mpi non-block send from i to root
+                // i sends debug_stream
+                // root receives buff
+                
+                if(rank==root)
+                {
+                    // print buff into debug_file
+                }
+                // mpi barrier
+            }
+        }
+        ~Particles_gevolution()
+        {
+            // Warning! Latfield Particles<> does not have virtual destructor
+            if(debug) flush();
+        }
+    
 		void saveGadget2(string filename, gadget2_header & hdr, const int tracer_factor = 1, double dtau_pos = 0., double dtau_vel = 0., Field<Real> * phi = NULL);
 		void saveGadget2(string filename, gadget2_header & hdr, lightcone_geometry & lightcone, double dist, double dtau, double dtau_old, double dadtau, double vertex[MAX_INTERSECTS][3], const int vertexcount, set<long> & IDbacklog, set<long> & IDprelog, Field<Real> * phi, const int tracer_factor = 1);
 		void loadGadget2(string filename, gadget2_header & hdr);
