@@ -68,6 +68,7 @@ namespace mpi = boost::mpi;
 #include "velocity.hpp"
 #endif
 
+#include "debugger.hpp"
 using namespace std;
 using namespace LATfield2;
 
@@ -78,6 +79,8 @@ int main(int argc, char **argv)
 {
     mpi::environment env;
     mpi::communicator world;
+    gevolution::Debugger = new gevolution::debugger_t(world,"forcetest.txt");
+    
 #ifdef BENCHMARK
 	//benchmarking variables
 	double ref_time, ref2_time, cycle_start_time;
@@ -221,8 +224,7 @@ int main(int argc, char **argv)
 	Lattice latFT;
 	latFT.initializeRealFFT(lat,0);
 	
-	Particles_gevolution<part_simple,part_simple_info,part_simple_dataType> 
-        pcls_cdm(MPI_COMM_WORLD,"forces.txt");
+	Particles_gevolution<part_simple,part_simple_info,part_simple_dataType> pcls_cdm;
 	Particles_gevolution<part_simple,part_simple_info,part_simple_dataType> pcls_b;
 	Particles_gevolution<part_simple,part_simple_info,part_simple_dataType> pcls_ncdm[MAX_PCL_SPECIES-2];
 	Field<Real> * update_cdm_fields[3];
@@ -376,9 +378,10 @@ int main(int argc, char **argv)
 	}
 	if (numparam > 0) free(params);
 #endif
-
-	while (true)    // main loop
+    
+	while(true)    // main loop
 	{
+        if(cycle>0)break; // only one timestep
 #ifdef BENCHMARK		
 		cycle_start_time = MPI_Wtime();
 #endif
@@ -748,9 +751,11 @@ int main(int argc, char **argv)
 				f_params[0] = tmp;
 				f_params[1] = tmp * tmp * sim.numpts;
 				if (sim.gr_flag > 0)
-					maxvel[i+1+sim.baryon_flag] = pcls_ncdm[i].updateVel(update_q, (dtau + dtau_old) / 2. / numsteps_ncdm[i], update_ncdm_fields, (1. / a < ic.z_relax + 1. ? 3 : 2), f_params);
+					maxvel[i+1+sim.baryon_flag] =
+                    pcls_ncdm[i].updateVel(update_q, (dtau + dtau_old) / 2. / numsteps_ncdm[i], update_ncdm_fields, (1. / a < ic.z_relax + 1. ? 3 : 2), f_params);
 				else
-					maxvel[i+1+sim.baryon_flag] = pcls_ncdm[i].updateVel(update_q_Newton, (dtau + dtau_old) / 2. / numsteps_ncdm[i], update_ncdm_fields, ((sim.radiation_flag + sim.fluid_flag > 0 && a < 1. / (sim.z_switch_linearchi + 1.)) ? 2 : 1), f_params);
+					maxvel[i+1+sim.baryon_flag] =
+                    pcls_ncdm[i].updateVel(update_q_Newton, (dtau + dtau_old) / 2. / numsteps_ncdm[i], update_ncdm_fields, ((sim.radiation_flag + sim.fluid_flag > 0 && a < 1. / (sim.z_switch_linearchi + 1.)) ? 2 : 1), f_params);
 
 #ifdef BENCHMARK
 				update_q_count++;
@@ -790,6 +795,7 @@ int main(int argc, char **argv)
 			if (sim.baryon_flag)
 				maxvel[1] = pcls_b.updateVel(update_q_Newton, (dtau + dtau_old) / 2., update_b_fields, ((sim.radiation_flag + sim.fluid_flag > 0 && a < 1. / (sim.z_switch_linearchi + 1.)) ? 2 : 1), f_params);
 		}
+        gevolution::Debugger->flush();
 
 #ifdef BENCHMARK
 		update_q_count++;
@@ -934,7 +940,7 @@ int main(int argc, char **argv)
 		ioserver.stop();
 	}
 #endif
-
+    delete gevolution::Debugger;
 	return 0;
 }
 

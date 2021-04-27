@@ -6,7 +6,7 @@ LIB          := $(shell pkg-config --libs fftw3 hdf5 gsl)
 
 # Boost
 INCLUDE      += -I${BOOST_ROOT}/include
-LIB          += -L${BOOST_ROOT}/lib -lboost_mpi
+LIB          += -L${BOOST_ROOT}/lib -lboost_mpi -lboost_serialization
 
 # target and source
 EXEC         := gevolution

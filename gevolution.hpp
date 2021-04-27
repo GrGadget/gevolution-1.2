@@ -34,6 +34,9 @@
 // using namespace std;
 #include <vector>
 #include <cmath>
+#include "debugger.hpp"
+#include "Particles_gevolution.hpp"
+
 using namespace LATfield2;
 
 
@@ -581,7 +584,20 @@ void solveModifiedPoissonFT(Field<Cplx> & sourceFT, Field<Cplx> & potFT, Real co
 // 
 //////////////////////////
 
-Real update_q(double dtau, double dx, part_simple * part, double * ref_dist, part_simple_info partInfo, Field<Real> ** fields, Site * sites, int nfield, double * params, double * outputs, int noutputs)
+//template <typename part_t, typename part_info_t, typename part_dataType>
+//Real Particles_gevolution<part_t, part_info_t, part_dataType>::update_q(
+Real update_q(
+    double dtau, 
+    double dx, 
+    part_simple * part, 
+    double * ref_dist,
+    part_simple_info partInfo, 
+    LATfield2::Field<Real> ** fields, 
+    LATfield2::Site * sites, 
+    int nfield, 
+    double * params, 
+    double * outputs, 
+    int noutputs)
 {
 #define phi (*fields[0])
 #define chi (*fields[1])
@@ -704,7 +720,20 @@ Real update_q(double dtau, double dx, part_simple * part, double * ref_dist, par
 // 
 //////////////////////////
 
-Real update_q_Newton(double dtau, double dx, part_simple * part, double * ref_dist, part_simple_info partInfo, Field<Real> ** fields, Site * sites, int nfield, double * params, double * outputs, int noutputs)
+//template <typename part_t, typename part_info_t, typename part_dataType>
+//Real Particles_gevolution<part_t, part_info_t, part_dataType>::update_q_newton(
+Real update_q_Newton(
+    double dtau, 
+    double dx, 
+    part_simple * part, 
+    double * ref_dist, 
+    part_simple_info partinfo, 
+    LATfield2::Field<Real> ** fields, 
+    LATfield2::Site * sites, 
+    int nfield, 
+    double * params, 
+    double * outputs, 
+    int noutputs)
 {
 #define psi (*fields[0])
 #define xpsi (sites[0])
@@ -726,7 +755,7 @@ Real update_q_Newton(double dtau, double dx, part_simple * part, double * ref_di
 	gradpsi[1] += ref_dist[0] * ref_dist[2] * (psi(xpsi+2+1+0) - psi(xpsi+2+0));
 	gradpsi[2] += ref_dist[0] * ref_dist[1] * (psi(xpsi+2+1+0) - psi(xpsi+1+0));
 
-	if (nfield>=2 && fields[1] != NULL)
+	if (nfield>=2 && fields[1] != nullptr)
 	{
 		gradpsi[0] -= (1.-ref_dist[1]) * (1.-ref_dist[2]) * (chi(xchi+0) - chi(xchi));
 		gradpsi[1] -= (1.-ref_dist[0]) * (1.-ref_dist[2]) * (chi(xchi+1) - chi(xchi));
@@ -741,14 +770,21 @@ Real update_q_Newton(double dtau, double dx, part_simple * part, double * ref_di
 		gradpsi[1] -= ref_dist[0] * ref_dist[2] * (chi(xchi+2+1+0) - chi(xchi+2+0));
 		gradpsi[2] -= ref_dist[0] * ref_dist[1] * (chi(xchi+2+1+0) - chi(xchi+1+0));
 	}
-	
+    
+    *gevolution::Debugger << params[0] << ' '; // scale factor
+	for (int i=0;i<3;i++)
+        *gevolution::Debugger << (*part).pos[i] << ' '; // 3-position
 	Real v2 = 0.;
 	for (int i=0;i<3;i++)
 	{
         Real force = -params[0]*gradpsi[i]/dx;
+        *gevolution::Debugger << force << ' ' ; // 3-force (acceleration)
+            
 		(*part).vel[i] += dtau * force;
 		v2 += (*part).vel[i] * (*part).vel[i];
 	}
+    *gevolution::Debugger << '\n';
+    
 	
 	return v2 / params[0] / params[0];
 	
