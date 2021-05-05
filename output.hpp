@@ -14,12 +14,24 @@
 #ifndef OUTPUT_HEADER
 #define OUTPUT_HEADER
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <set>
+#include <string>
 
-using namespace std;
+#include "LATfield2.hpp"
 
+namespace gevolution
+{
+using LATfield2::FFT_BACKWARD;
+using LATfield2::FFT_FORWARD;
+using LATfield2::parallel;
+using LATfield2::part_simple;
+using LATfield2::part_simple_dataType;
+using LATfield2::part_simple_info;
+using LATfield2::PlanFFT;
+using LATfield2::Real;
 //////////////////////////
 // writeSnapshots
 //////////////////////////
@@ -62,7 +74,7 @@ using namespace std;
 void writeSnapshots (
     metadata &sim, cosmology &cosmo, const double fourpiG, const double a,
     const double dtau_old, const int done_hij, const int snapcount,
-    string h5filename,
+    std::string h5filename,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
         *pcls_cdm,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
@@ -243,7 +255,7 @@ void writeSnapshots (
 
         computeVectorDiagnostics (*Bi, divB, curlB);
         COUT << " B diagnostics: max |divB| = " << divB
-             << ", max |curlB| = " << curlB << endl;
+             << ", max |curlB| = " << curlB << std::endl;
 
 #ifdef EXTERNAL_IO
         Bi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
@@ -296,7 +308,7 @@ void writeSnapshots (
         computeTensorDiagnostics (*Sij, divh, traceh, normh);
         COUT << " GW diagnostics: max |divh| = " << divh
              << ", max |traceh| = " << traceh << ", max |h| = " << normh
-             << endl;
+             << std::endl;
 
 #ifdef EXTERNAL_IO
         Sij->saveHDF5_server_write (NUMBER_OF_IO_FILES);
@@ -464,7 +476,7 @@ void writeSnapshots (
                         "(4294967295). Try "
                         "using "
                         "multi-Gadget2 output format."
-                     << endl;
+                     << std::endl;
             }
             else
                 pcls_cdm->saveGadget2 (h5filename + filename + "_cdm", hdr,
@@ -498,7 +510,7 @@ void writeSnapshots (
                         "(4294967295). Try "
                         "using "
                         "multi-Gadget2 output format."
-                     << endl;
+                     << std::endl;
             }
             else
                 pcls_b->saveGadget2 (h5filename + filename + "_b", hdr,
@@ -546,7 +558,7 @@ void writeSnapshots (
                         "(4294967295). Try "
                         "using "
                         "multi-Gadget2 output format."
-                     << endl;
+                     << std::endl;
             }
             else
                 pcls_ncdm[i].saveGadget2 (
@@ -626,7 +638,7 @@ void writeSnapshots (
 void writeLightcones (
     metadata &sim, cosmology &cosmo, const double fourpiG, const double a,
     const double tau, const double dtau, const double dtau_old,
-    const double maxvel, const int cycle, string h5filename,
+    const double maxvel, const int cycle, std::string h5filename,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
         *pcls_cdm,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
@@ -635,7 +647,7 @@ void writeLightcones (
         *pcls_ncdm,
     Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *Sij,
     Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_Bi,
-    PlanFFT<Cplx> *plan_Sij, int &done_hij, set<long> *IDbacklog)
+    PlanFFT<Cplx> *plan_Sij, int &done_hij, std::set<long> *IDbacklog)
 {
     int i, j, n, p;
     double d;
@@ -647,7 +659,7 @@ void writeLightcones (
     char buffer[268];
     FILE *outfile;
     gadget2_header hdr;
-    set<long> IDprelog[MAX_PCL_SPECIES];
+    std::set<long> IDprelog[MAX_PCL_SPECIES];
     long *IDcombuf;
     long *IDcombuf2;
     Site xsim;
@@ -712,7 +724,8 @@ void writeLightcones (
             outfile = fopen (filename, "a");
             if (outfile == NULL)
             {
-                cout << " error opening file for lightcone info!" << endl;
+                std::cout << " error opening file for lightcone info!"
+                          << std::endl;
             }
             else if (cycle == 0)
             {
@@ -856,9 +869,9 @@ void writeLightcones (
                 outfile = fopen (filename, "a");
                 if (outfile == NULL)
                 {
-                    cout << " error opening file for lightcone "
-                            "info!"
-                         << endl;
+                    std::cout << " error opening file for lightcone "
+                                 "info!"
+                              << std::endl;
                 }
                 else
                 {
@@ -1178,31 +1191,31 @@ void writeLightcones (
                                     sizeof (Real) * pixbuf_reserve[j]);
                                 if (pixbuf[q][j] == NULL)
                                 {
-                                    cout << COLORTEXT_RED
-                                         << " er"
-                                            "ror"
-                                         << COLORTEXT_RESET
-                                         << ": "
-                                            "pro"
-                                            "c#"
-                                         << parallel.rank ()
-                                         << " un"
-                                            "abl"
-                                            "e "
-                                            "to "
-                                            "all"
-                                            "oca"
-                                            "te "
-                                            "mem"
-                                            "ory"
-                                            " fo"
-                                            "r "
-                                            "pix"
-                                            "eli"
-                                            "sat"
-                                            "ion"
-                                            "!"
-                                         << endl;
+                                    std::cout << COLORTEXT_RED
+                                              << " er"
+                                                 "ror"
+                                              << COLORTEXT_RESET
+                                              << ": "
+                                                 "pro"
+                                                 "c#"
+                                              << parallel.rank ()
+                                              << " un"
+                                                 "abl"
+                                                 "e "
+                                                 "to "
+                                                 "all"
+                                                 "oca"
+                                                 "te "
+                                                 "mem"
+                                                 "ory"
+                                                 " fo"
+                                                 "r "
+                                                 "pix"
+                                                 "eli"
+                                                 "sat"
+                                                 "ion"
+                                                 "!"
+                                              << std::endl;
                                     parallel.abortForce ();
                                 }
                             }
@@ -2157,35 +2170,36 @@ void writeLightcones (
 
                                 if (outbuf[j] == NULL)
                                 {
-                                    cout << COLORTEXT_RED
-                                         << " er"
-                                            "ror"
-                                         << COLORTEXT_RESET
-                                         << ": "
-                                            "pro"
-                                            "c#"
-                                         << parallel.rank ()
-                                         << " un"
-                                            "abl"
-                                            "e "
-                                            "to "
-                                            "all"
-                                            "oca"
-                                            "te "
-                                         << maphdr.Npix * maphdr.precision + 272
-                                         << " by"
-                                            "tes"
-                                            " of"
-                                            " me"
-                                            "mor"
-                                            "y "
-                                            "for"
-                                            " pi"
-                                            "xel"
-                                            "isa"
-                                            "tio"
-                                            "n!"
-                                         << endl;
+                                    std::cout
+                                        << COLORTEXT_RED
+                                        << " er"
+                                           "ror"
+                                        << COLORTEXT_RESET
+                                        << ": "
+                                           "pro"
+                                           "c#"
+                                        << parallel.rank ()
+                                        << " un"
+                                           "abl"
+                                           "e "
+                                           "to "
+                                           "all"
+                                           "oca"
+                                           "te "
+                                        << maphdr.Npix * maphdr.precision + 272
+                                        << " by"
+                                           "tes"
+                                           " of"
+                                           " me"
+                                           "mor"
+                                           "y "
+                                           "for"
+                                           " pi"
+                                           "xel"
+                                           "isa"
+                                           "tio"
+                                           "n!"
+                                        << std::endl;
                                     parallel.abortForce ();
                                 }
                             }
@@ -2198,46 +2212,47 @@ void writeLightcones (
 
                                 if (outbuf[j] == NULL)
                                 {
-                                    cout << COLORTEXT_RED
-                                         << " er"
-                                            "ror"
-                                         << COLORTEXT_RESET
-                                         << ": "
-                                            "pro"
-                                            "c#"
-                                         << parallel.rank ()
-                                         << " un"
-                                            "abl"
-                                            "e "
-                                            "to "
-                                            "rea"
-                                            "llo"
-                                            "cat"
-                                            "e "
-                                         << bytes2
-                                                + maphdr.Npix * maphdr.precision
-                                                + 272
-                                         << " by"
-                                            "tes"
-                                            " of"
-                                            " me"
-                                            "mor"
-                                            "y ("
-                                         << maphdr.Npix * maphdr.precision + 272
-                                         << " ad"
-                                            "dit"
-                                            "ion"
-                                            "al "
-                                            "byt"
-                                            "es)"
-                                            " fo"
-                                            "r "
-                                            "pix"
-                                            "eli"
-                                            "sat"
-                                            "ion"
-                                            "!"
-                                         << endl;
+                                    std::cout
+                                        << COLORTEXT_RED
+                                        << " er"
+                                           "ror"
+                                        << COLORTEXT_RESET
+                                        << ": "
+                                           "pro"
+                                           "c#"
+                                        << parallel.rank ()
+                                        << " un"
+                                           "abl"
+                                           "e "
+                                           "to "
+                                           "rea"
+                                           "llo"
+                                           "cat"
+                                           "e "
+                                        << bytes2
+                                               + maphdr.Npix * maphdr.precision
+                                               + 272
+                                        << " by"
+                                           "tes"
+                                           " of"
+                                           " me"
+                                           "mor"
+                                           "y ("
+                                        << maphdr.Npix * maphdr.precision + 272
+                                        << " ad"
+                                           "dit"
+                                           "ion"
+                                           "al "
+                                           "byt"
+                                           "es)"
+                                           " fo"
+                                           "r "
+                                           "pix"
+                                           "eli"
+                                           "sat"
+                                           "ion"
+                                           "!"
+                                        << std::endl;
                                     parallel.abortForce ();
                                 }
                             }
@@ -2355,35 +2370,35 @@ void writeLightcones (
 
                                 if (outbuf[j] == NULL)
                                 {
-                                    cout << COLORTEXT_RED
-                                         << " er"
-                                            "ror"
-                                         << COLORTEXT_RESET
-                                         << ": "
-                                            "pro"
-                                            "c#"
-                                         << parallel.rank ()
-                                         << " un"
-                                            "abl"
-                                            "e "
-                                            "to "
-                                            "all"
-                                            "oca"
-                                            "te "
-                                         << bytes2
-                                         << " by"
-                                            "tes"
-                                            " of"
-                                            " me"
-                                            "mor"
-                                            "y "
-                                            "for"
-                                            " pi"
-                                            "xel"
-                                            "isa"
-                                            "tio"
-                                            "n!"
-                                         << endl;
+                                    std::cout << COLORTEXT_RED
+                                              << " er"
+                                                 "ror"
+                                              << COLORTEXT_RESET
+                                              << ": "
+                                                 "pro"
+                                                 "c#"
+                                              << parallel.rank ()
+                                              << " un"
+                                                 "abl"
+                                                 "e "
+                                                 "to "
+                                                 "all"
+                                                 "oca"
+                                                 "te "
+                                              << bytes2
+                                              << " by"
+                                                 "tes"
+                                                 " of"
+                                                 " me"
+                                                 "mor"
+                                                 "y "
+                                                 "for"
+                                                 " pi"
+                                                 "xel"
+                                                 "isa"
+                                                 "tio"
+                                                 "n!"
+                                              << std::endl;
                                     parallel.abortForce ();
                                 }
                             }
@@ -2426,13 +2441,14 @@ void writeLightcones (
                 {
                     if (q != sender_proc.size ())
                     {
-                        cout << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                             << ": proc#" << parallel.rank ()
-                             << " pixel batch count "
-                                "mismatch! expecting "
-                             << q << " but sender list contains "
-                             << sender_proc.size () << " entries!" << endl;
-                        exit (-99);
+                        std::cout
+                            << COLORTEXT_RED << " error" << COLORTEXT_RESET
+                            << ": proc#" << parallel.rank ()
+                            << " pixel batch count "
+                               "mismatch! expecting "
+                            << q << " but sender list contains "
+                            << sender_proc.size () << " entries!" << std::endl;
+                        std::exit (-99);
                     }
 
                     for (int64_t p2 = p; p2 < p + q; p2 += n)
@@ -2558,8 +2574,8 @@ void writeLightcones (
                                         "contains "
                                         "not enough "
                                         "elements!"
-                                     << endl;
-                                exit (-99);
+                                     << std::endl;
+                                std::exit (-99);
                             }
                             else if (pixbatch_id[pix] != p2)
                             {
@@ -2574,8 +2590,8 @@ void writeLightcones (
                                      << p2
                                      << " but ID "
                                         "list says "
-                                     << pixbatch_id[pix] << "!" << endl;
-                                exit (-99);
+                                     << pixbatch_id[pix] << "!" << std::endl;
+                                std::exit (-99);
                             }
                             for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
                             {
@@ -3962,5 +3978,5 @@ void writeSpectra (
     free (pscatter);
     free (occupation);
 }
-
+}
 #endif

@@ -14,24 +14,35 @@
 #ifndef IC_BASIC_HEADER
 #define IC_BASIC_HEADER
 
+#include "LATfield2.hpp"
 #include "parser.hpp"
 #include "prng_engine.hpp"
 #include "tools.hpp"
 #include <gsl/gsl_spline.h>
+#include <iostream>
 
 #ifndef Cplx
-#define Cplx Imag
+#define Cplx LATfield2::Imag
 #endif
 
 #define MAX_LINESIZE 2048
-
-using namespace std;
-using namespace LATfield2;
 
 // should be larger than maximum Ngrid
 #ifndef HUGE_SKIP
 #define HUGE_SKIP 65536
 #endif
+
+namespace gevolution
+{
+using LATfield2::FFT_BACKWARD;
+using LATfield2::FFT_FORWARD;
+using LATfield2::parallel;
+using LATfield2::part_simple;
+using LATfield2::part_simple_dataType;
+using LATfield2::part_simple_info;
+using LATfield2::Particles;
+using LATfield2::PlanFFT;
+using LATfield2::Real;
 
 //////////////////////////
 // displace_pcls_ic_basic
@@ -253,22 +264,22 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
 
         if (templatefile == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Unable to open "
-                    "template "
-                    "file "
-                 << filename << "." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Unable to open "
+                         "template "
+                         "file "
+                      << filename << "." << std::endl;
             parallel.abortForce ();
         }
 
         fread (&blocksize1, sizeof (int), 1, templatefile);
         if (blocksize1 != sizeof (filehdr))
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Unknown "
-                    "template file "
-                    "format - header not recognized."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Unknown "
+                         "template file "
+                         "format - header not recognized."
+                      << std::endl;
             fclose (templatefile);
             parallel.abortForce ();
         }
@@ -276,11 +287,11 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
         fread (&blocksize2, sizeof (int), 1, templatefile);
         if (blocksize1 != blocksize2)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Unknown "
-                    "template file "
-                    "format - block size mismatch while reading header."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Unknown "
+                         "template file "
+                         "format - block size mismatch while reading header."
+                      << std::endl;
             fclose (templatefile);
             parallel.abortForce ();
         }
@@ -288,27 +299,28 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
         // analyze header for compatibility
         if (filehdr.num_files != 1)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Multiple "
-                    "input files ("
-                 << filehdr.num_files << ") currently not supported." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Multiple "
+                         "input files ("
+                      << filehdr.num_files << ") currently not supported."
+                      << std::endl;
             fclose (templatefile);
             parallel.abortForce ();
         }
         if (filehdr.BoxSize <= 0.)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! BoxSize = "
-                 << filehdr.BoxSize << " not allowed." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! BoxSize = "
+                      << filehdr.BoxSize << " not allowed." << std::endl;
             fclose (templatefile);
             parallel.abortForce ();
         }
         if (filehdr.npart[1] <= 0)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! No particles "
-                    "declared."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! No particles "
+                         "declared."
+                      << std::endl;
             fclose (templatefile);
             parallel.abortForce ();
         }
@@ -316,8 +328,9 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
         partdata = (float *)malloc (3 * sizeof (float) * filehdr.npart[1]);
         if (partdata == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Memory error." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Memory error."
+                      << std::endl;
             fclose (templatefile);
             parallel.abortForce ();
         }
@@ -328,12 +341,12 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
             if (fseek (templatefile, 3 * sizeof (float) * filehdr.npart[0],
                        SEEK_CUR))
             {
-                cerr << " proc#" << parallel.rank ()
-                     << ": error in loadHomogeneousTemplate! "
-                        "Unsuccesful "
-                        "attempt "
-                        "to skip gas particles ("
-                     << filehdr.npart[0] << ")." << endl;
+                std::cerr << " proc#" << parallel.rank ()
+                          << ": error in loadHomogeneousTemplate! "
+                             "Unsuccesful "
+                             "attempt "
+                             "to skip gas particles ("
+                          << filehdr.npart[0] << ")." << std::endl;
                 fclose (templatefile);
                 parallel.abortForce ();
             }
@@ -342,11 +355,11 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
                           templatefile);
         if (num_read != 3 * filehdr.npart[1])
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Unable to read "
-                    "particle "
-                    "data."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Unable to read "
+                         "particle "
+                         "data."
+                      << std::endl;
             fclose (templatefile);
             parallel.abortForce ();
         }
@@ -357,12 +370,12 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
                 if (fseek (templatefile, 3 * sizeof (float) * filehdr.npart[i],
                            SEEK_CUR))
                 {
-                    cerr << " proc#" << parallel.rank ()
-                         << ": error in "
-                            "loadHomogeneousTemplate! "
-                            "Unsuccesful "
-                            "attempt to skip particles ("
-                         << filehdr.npart[i] << ")." << endl;
+                    std::cerr << " proc#" << parallel.rank ()
+                              << ": error in "
+                                 "loadHomogeneousTemplate! "
+                                 "Unsuccesful "
+                                 "attempt to skip particles ("
+                              << filehdr.npart[i] << ")." << std::endl;
                     parallel.abortForce ();
                 }
             }
@@ -370,12 +383,12 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
         fread (&blocksize2, sizeof (int), 1, templatefile);
         if (blocksize1 != blocksize2)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Unknown "
-                    "template file "
-                    "format - block size mismatch while reading "
-                    "particles."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Unknown "
+                         "template file "
+                         "format - block size mismatch while reading "
+                         "particles."
+                      << std::endl;
             fclose (templatefile);
             parallel.abortForce ();
         }
@@ -388,11 +401,11 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
             partdata[i] /= filehdr.BoxSize;
             if (partdata[i] < 0. || partdata[i] > 1.)
             {
-                cerr << " proc#" << parallel.rank ()
-                     << ": error in loadHomogeneousTemplate! "
-                        "Particle data "
-                        "corrupted."
-                     << endl;
+                std::cerr << " proc#" << parallel.rank ()
+                          << ": error in loadHomogeneousTemplate! "
+                             "Particle data "
+                             "corrupted."
+                          << std::endl;
                 parallel.abortForce ();
             }
         }
@@ -406,18 +419,19 @@ void loadHomogeneousTemplate (const char *filename, long &numpart,
 
         if (numpart <= 0)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Communication "
-                    "error."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Communication "
+                         "error."
+                      << std::endl;
             parallel.abortForce ();
         }
 
         partdata = (float *)malloc (3 * sizeof (float) * numpart);
         if (partdata == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadHomogeneousTemplate! Memory error." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadHomogeneousTemplate! Memory error."
+                      << std::endl;
             parallel.abortForce ();
         }
     }
@@ -460,9 +474,9 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
 
         if (pkfile == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadPowerSpectrum! Unable to open file "
-                 << filename << "." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadPowerSpectrum! Unable to open file "
+                      << filename << "." << std::endl;
             parallel.abortForce ();
         }
 
@@ -471,11 +485,11 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
             fgets (line, MAX_LINESIZE, pkfile);
             if (line[MAX_LINESIZE - 1] != 0)
             {
-                cerr << " proc#" << parallel.rank ()
-                     << ": error in loadPowerSpectrum! Character "
-                        "limit ("
-                     << (MAX_LINESIZE - 1) << "/line) exceeded in file "
-                     << filename << "." << endl;
+                std::cerr << " proc#" << parallel.rank ()
+                          << ": error in loadPowerSpectrum! Character "
+                             "limit ("
+                          << (MAX_LINESIZE - 1) << "/line) exceeded in file "
+                          << filename << "." << std::endl;
                 fclose (pkfile);
                 parallel.abortForce ();
             }
@@ -487,10 +501,10 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
 
         if (numpoints < 2)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadPowerSpectrum! No valid data found "
-                    "in file "
-                 << filename << "." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadPowerSpectrum! No valid data found "
+                         "in file "
+                      << filename << "." << std::endl;
             fclose (pkfile);
             parallel.abortForce ();
         }
@@ -500,8 +514,9 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
 
         if (k == NULL || pk == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadPowerSpectrum! Memory error." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadPowerSpectrum! Memory error."
+                      << std::endl;
             fclose (pkfile);
             parallel.abortForce ();
         }
@@ -517,11 +532,11 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
             {
                 if (dummy1 < 0. || dummy2 < 0.)
                 {
-                    cerr << " proc#" << parallel.rank ()
-                         << ": error in loadPowerSpectrum! "
-                            "Negative entry "
-                            "encountered."
-                         << endl;
+                    std::cerr << " proc#" << parallel.rank ()
+                              << ": error in loadPowerSpectrum! "
+                                 "Negative entry "
+                                 "encountered."
+                              << std::endl;
                     free (k);
                     free (pk);
                     fclose (pkfile);
@@ -532,12 +547,12 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
                 {
                     if (k[i - 1] >= dummy1 * boxsize)
                     {
-                        cerr << " proc#" << parallel.rank ()
-                             << ": error in "
-                                "loadPowerSpectrum! "
-                                "k-values are not "
-                                "strictly ordered."
-                             << endl;
+                        std::cerr << " proc#" << parallel.rank ()
+                                  << ": error in "
+                                     "loadPowerSpectrum! "
+                                     "k-values are not "
+                                     "strictly ordered."
+                                  << std::endl;
                         free (k);
                         free (pk);
                         fclose (pkfile);
@@ -555,12 +570,12 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
 
         if (i != numpoints)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadPowerSpectrum! File may have "
-                    "changed or "
-                    "file "
-                    "pointer corrupted."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadPowerSpectrum! File may have "
+                         "changed or "
+                         "file "
+                         "pointer corrupted."
+                      << std::endl;
             free (k);
             free (pk);
             parallel.abortForce ();
@@ -574,9 +589,9 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
 
         if (numpoints < 2)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadPowerSpectrum! Communication error."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadPowerSpectrum! Communication error."
+                      << std::endl;
             parallel.abortForce ();
         }
 
@@ -585,8 +600,9 @@ void loadPowerSpectrum (const char *filename, gsl_spline *&pkspline,
 
         if (k == NULL || pk == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadPowerSpectrum! Memory error." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadPowerSpectrum! Memory error."
+                      << std::endl;
             parallel.abortForce ();
         }
     }
@@ -647,10 +663,10 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
 
         if (tkfile == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadTransferFunctions! Unable to open "
-                    "file "
-                 << filename << "." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadTransferFunctions! Unable to open "
+                         "file "
+                      << filename << "." << std::endl;
             parallel.abortForce ();
         }
 
@@ -659,11 +675,11 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
             fgets (line, MAX_LINESIZE, tkfile);
             if (line[MAX_LINESIZE - 1] != 0)
             {
-                cerr << " proc#" << parallel.rank ()
-                     << ": error in loadTransferFunctions! "
-                        "Character limit ("
-                     << (MAX_LINESIZE - 1) << "/line) exceeded in file "
-                     << filename << "." << endl;
+                std::cerr << " proc#" << parallel.rank ()
+                          << ": error in loadTransferFunctions! "
+                             "Character limit ("
+                          << (MAX_LINESIZE - 1) << "/line) exceeded in file "
+                          << filename << "." << std::endl;
                 fclose (tkfile);
                 parallel.abortForce ();
             }
@@ -674,11 +690,11 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
 
         if (numpoints < 2)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadTransferFunctions! No valid data "
-                    "found in "
-                    "file "
-                 << filename << "." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadTransferFunctions! No valid data "
+                         "found in "
+                         "file "
+                      << filename << "." << std::endl;
             fclose (tkfile);
             parallel.abortForce ();
         }
@@ -689,8 +705,9 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
 
         if (k == NULL || tk_d == NULL || tk_t == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadTransferFunctions! Memory error." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadTransferFunctions! Memory error."
+                      << std::endl;
             fclose (tkfile);
             parallel.abortForce ();
         }
@@ -723,11 +740,11 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
 
         if (kcol < 0 || dcol < 0 || tcol < 0)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadTransferFunctions! Unable to "
-                    "identify "
-                    "requested columns!"
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadTransferFunctions! Unable to "
+                         "identify "
+                         "requested columns!"
+                      << std::endl;
             fclose (tkfile);
             free (k);
             free (tk_d);
@@ -789,10 +806,10 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
         }
         else
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadTransferFunctions! Inconsistent "
-                    "columns!"
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadTransferFunctions! Inconsistent "
+                         "columns!"
+                      << std::endl;
             fclose (tkfile);
             free (k);
             free (tk_d);
@@ -810,11 +827,11 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
             {
                 if (dummy[kcol] < 0.)
                 {
-                    cerr << " proc#" << parallel.rank ()
-                         << ": error in loadTransferFunctions! "
-                            "Negative k-value "
-                            "encountered."
-                         << endl;
+                    std::cerr << " proc#" << parallel.rank ()
+                              << ": error in loadTransferFunctions! "
+                                 "Negative k-value "
+                                 "encountered."
+                              << std::endl;
                     free (k);
                     free (tk_d);
                     free (tk_t);
@@ -826,12 +843,12 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
                 {
                     if (k[i - 1] >= dummy[kcol] * boxsize)
                     {
-                        cerr << " proc#" << parallel.rank ()
-                             << ": error in "
-                                "loadTransferFunctions! "
-                                "k-values are "
-                                "not strictly ordered."
-                             << endl;
+                        std::cerr << " proc#" << parallel.rank ()
+                                  << ": error in "
+                                     "loadTransferFunctions! "
+                                     "k-values are "
+                                     "not strictly ordered."
+                                  << std::endl;
                         free (k);
                         free (tk_d);
                         free (tk_t);
@@ -851,11 +868,11 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
 
         if (i != numpoints)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadTransferFunctions! File may have "
-                    "changed or "
-                    "file pointer corrupted."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadTransferFunctions! File may have "
+                         "changed or "
+                         "file pointer corrupted."
+                      << std::endl;
             free (k);
             free (tk_d);
             free (tk_t);
@@ -870,10 +887,10 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
 
         if (numpoints < 2)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadTransferFunctions! Communication "
-                    "error."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadTransferFunctions! Communication "
+                         "error."
+                      << std::endl;
             parallel.abortForce ();
         }
 
@@ -883,8 +900,9 @@ void loadTransferFunctions (const char *filename, gsl_spline *&tk_delta,
 
         if (k == NULL || tk_d == NULL || tk_t == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadTransferFunctions! Memory error." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadTransferFunctions! Memory error."
+                      << std::endl;
             parallel.abortForce ();
         }
     }
@@ -2034,7 +2052,7 @@ void generateIC_basic (
 
     if (pcldata == NULL)
     {
-        COUT << " error: particle data was empty!" << endl;
+        COUT << " error: particle data was empty!" << std::endl;
         parallel.abortForce ();
     }
 
@@ -2052,7 +2070,7 @@ void generateIC_basic (
 
         if (pkspline == NULL)
         {
-            COUT << " error: power spectrum was empty!" << endl;
+            COUT << " error: power spectrum was empty!" << std::endl;
             parallel.abortForce ();
         }
 
@@ -2093,7 +2111,7 @@ void generateIC_basic (
 
         if (tk_d1 == NULL || tk_t1 == NULL)
         {
-            COUT << " error: total transfer function was empty!" << endl;
+            COUT << " error: total transfer function was empty!" << std::endl;
             parallel.abortForce ();
         }
 
@@ -2217,7 +2235,7 @@ void generateIC_basic (
 
         if (tk_d1 == NULL || tk_t1 == NULL)
         {
-            COUT << " error: cdm transfer function was empty!" << endl;
+            COUT << " error: cdm transfer function was empty!" << std::endl;
             parallel.abortForce ();
         }
 
@@ -2236,14 +2254,15 @@ void generateIC_basic (
 
             if (tk_d2 == NULL || tk_t2 == NULL)
             {
-                COUT << " error: baryon transfer function was empty!" << endl;
+                COUT << " error: baryon transfer function was empty!"
+                     << std::endl;
                 parallel.abortForce ();
             }
             if (tk_d2->size != tk_d1->size)
             {
                 COUT << " error: baryon transfer function line "
                         "number mismatch!"
-                     << endl;
+                     << std::endl;
                 parallel.abortForce ();
             }
         }
@@ -2652,7 +2671,7 @@ void generateIC_basic (
 
     COUT << " " << sim.numpcl[0]
          << " cdm particles initialized: maximum displacement = "
-         << max_displacement * sim.numpts << " lattice units." << endl;
+         << max_displacement * sim.numpts << " lattice units." << std::endl;
 
     free (pcldata);
 
@@ -2662,7 +2681,7 @@ void generateIC_basic (
 
         if (pcldata == NULL)
         {
-            COUT << " error: particle data was empty!" << endl;
+            COUT << " error: particle data was empty!" << std::endl;
             parallel.abortForce ();
         }
 
@@ -2700,7 +2719,7 @@ void generateIC_basic (
 
         COUT << " " << sim.numpcl[1]
              << " baryon particles initialized: maximum displacement = "
-             << max_displacement * sim.numpts << " lattice units." << endl;
+             << max_displacement * sim.numpts << " lattice units." << std::endl;
 
         free (pcldata);
     }
@@ -2757,7 +2776,7 @@ void generateIC_basic (
 
         if (pcldata == NULL)
         {
-            COUT << " error: particle data was empty!" << endl;
+            COUT << " error: particle data was empty!" << std::endl;
             parallel.abortForce ();
         }
 
@@ -2778,7 +2797,7 @@ void generateIC_basic (
             {
                 COUT << " error: ncdm transfer function was empty! "
                         "(species "
-                     << p << ")" << endl;
+                     << p << ")" << std::endl;
                 parallel.abortForce ();
             }
 
@@ -2885,7 +2904,7 @@ void generateIC_basic (
         COUT << " " << sim.numpcl[1 + sim.baryon_flag + p]
              << " ncdm particles initialized for species " << p + 1
              << ": maximum displacement = " << max_displacement * sim.numpts
-             << " lattice units." << endl;
+             << " lattice units." << std::endl;
 
         free (pcldata);
 
@@ -2980,7 +2999,7 @@ void generateIC_basic (
             parallel.sum (mean_q);
             COUT << " species " << p + 1
                  << " Fermi-Dirac distribution had mean q/m = "
-                 << mean_q / sim.numpcl[1 + sim.baryon_flag + p] << endl;
+                 << mean_q / sim.numpcl[1 + sim.baryon_flag + p] << std::endl;
         }
         maxvel[1 + sim.baryon_flag + p]
             = pcls_ncdm[p].updateVel (update_q, 0., &phi, 1, &a);
@@ -3019,5 +3038,5 @@ void generateIC_basic (
 }
 
 #endif
-
+}
 #endif

@@ -69,6 +69,7 @@
 
 using namespace std;
 using namespace LATfield2;
+using namespace gevolution;
 
 int main (int argc, char **argv)
 {

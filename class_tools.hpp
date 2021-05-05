@@ -19,9 +19,6 @@
 #include "parser.hpp"
 #include <gsl/gsl_spline.h>
 
-using namespace std;
-using namespace LATfield2;
-
 //////////////////////////
 // initializeCLASSstructures
 //////////////////////////

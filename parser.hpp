@@ -15,11 +15,15 @@
 #define PARSER_HEADER
 
 #include "metadata.hpp"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 
-using namespace std;
+namespace gevolution
+{
+
+using LATfield2::parallel;
 
 struct parameter
 {
@@ -149,15 +153,16 @@ int loadParameterFile (const char *filename, parameter *&params)
         if (paramfile == NULL)
         {
 #ifdef LATFIELD2_HPP
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadParameterFile! Unable to open "
-                    "parameter "
-                    "file "
-                 << filename << "." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadParameterFile! Unable to open "
+                         "parameter "
+                         "file "
+                      << filename << "." << std::endl;
             parallel.abortForce ();
 #else
-        cerr << " error in loadParameterFile! Unable to open parameter file "
-             << filename << "." << endl;
+        std::cerr
+            << " error in loadParameterFile! Unable to open parameter file "
+            << filename << "." << std::endl;
         return -1;
 #endif
         }
@@ -175,14 +180,14 @@ int loadParameterFile (const char *filename, parameter *&params)
         {
             fclose (paramfile);
 #ifdef LATFIELD2_HPP
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadParameterFile! No valid data found "
-                    "in file "
-                 << filename << "." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadParameterFile! No valid data found "
+                         "in file "
+                      << filename << "." << std::endl;
             parallel.abortForce ();
 #else
-        cerr << " error in loadParameterFile! No valid data found in file "
-             << filename << "." << endl;
+        std::cerr << " error in loadParameterFile! No valid data found in file "
+                  << filename << "." << std::endl;
         return -1;
 #endif
         }
@@ -193,11 +198,12 @@ int loadParameterFile (const char *filename, parameter *&params)
         {
             fclose (paramfile);
 #ifdef LATFIELD2_HPP
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadParameterFile! Memory error." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadParameterFile! Memory error."
+                      << std::endl;
             parallel.abortForce ();
 #else
-        cerr << " error in loadParameterFile! Memory error." << endl;
+        std::cerr << " error in loadParameterFile! Memory error." << std::endl;
         return -1;
 #endif
         }
@@ -222,17 +228,18 @@ int loadParameterFile (const char *filename, parameter *&params)
         {
             free (params);
 #ifdef LATFIELD2_HPP
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadParameterFile! File may have "
-                    "changed or "
-                    "file "
-                    "pointer corrupted."
-                 << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadParameterFile! File may have "
+                         "changed or "
+                         "file "
+                         "pointer corrupted."
+                      << std::endl;
             parallel.abortForce ();
 #else
-        cerr << " error in loadParameterFile! File may have changed or file "
-                "pointer corrupted."
-             << endl;
+        std::cerr
+            << " error in loadParameterFile! File may have changed or file "
+               "pointer corrupted."
+            << std::endl;
         return -1;
 #endif
         }
@@ -248,8 +255,9 @@ int loadParameterFile (const char *filename, parameter *&params)
 
         if (params == NULL)
         {
-            cerr << " proc#" << parallel.rank ()
-                 << ": error in loadParameterFile! Memory error." << endl;
+            std::cerr << " proc#" << parallel.rank ()
+                      << ": error in loadParameterFile! Memory error."
+                      << std::endl;
             parallel.abortForce ();
         }
     }
@@ -289,8 +297,8 @@ void saveParameterFile (const char *filename, parameter *params,
 
         if (paramfile == NULL)
         {
-            cout << " error in saveParameterFile! Unable to open file "
-                 << filename << "." << endl;
+            std::cout << " error in saveParameterFile! Unable to open file "
+                      << filename << "." << std::endl;
         }
         else
         {
@@ -847,7 +855,7 @@ bool parseFieldSpecifiers (parameter *&params, const int numparam,
 //////////////////////////
 
 #ifndef LATFIELD2_HPP
-#define COUT cout
+#define COUT std::cout
 #endif
 
 int parseMetadata (parameter *&params, const int numparam, metadata &sim,
@@ -903,7 +911,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         else
         {
             COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                 << ": IC generator not recognized!" << endl;
+                 << ": IC generator not recognized!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -913,7 +921,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     {
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": IC generator not specified, selecting default (basic)"
-             << endl;
+             << std::endl;
         ic.generator = ICGEN_BASIC;
     }
 
@@ -924,7 +932,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         if (!parseParameter (params, numparam, "particle file", pptr, i))
         {
             COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                 << ": no particle file specified!" << endl;
+                 << ": no particle file specified!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -933,7 +941,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     else if (!parseParameter (params, numparam, "template file", pptr, i))
     {
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-             << ": no template file specified!" << endl;
+             << ": no template file specified!" << std::endl;
 #ifdef LATFIELD2_HPP
         parallel.abortForce ();
 #endif
@@ -966,12 +974,12 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
 #ifdef HAVE_CLASS
         COUT << " initial transfer functions will be computed by calling "
                 "CLASS"
-             << endl;
+             << std::endl;
 #else
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
              << ": no power spectrum file nor transfer function file "
                 "specified!"
-             << endl;
+             << std::endl;
 #ifdef LATFIELD2_HPP
         parallel.abortForce ();
 #endif
@@ -987,7 +995,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": setting chosen for deconvolve displacement option "
                     "not "
                     "recognized, using default (no)"
-                 << endl;
+                 << std::endl;
     }
 
     if (parseParameter (params, numparam, "k-domain", par_string))
@@ -999,7 +1007,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": setting chosen for k-domain option not recognized, "
                     "using "
                     "default (cube)"
-                 << endl;
+                 << std::endl;
     }
 
     for (i = 0; i < MAX_PCL_SPECIES; i++)
@@ -1011,7 +1019,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": tiling factor not specified, using default value for all "
                 "species (1)"
-             << endl;
+             << std::endl;
         ic.numtile[0] = 1;
         i = 1;
     }
@@ -1025,7 +1033,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
              << ": tiling number for cdm particle template not set "
                 "properly; "
                 "using default value (1)"
-             << endl;
+             << std::endl;
         ic.numtile[0] = 1;
     }
 
@@ -1037,7 +1045,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": tiling number for particle template not set "
                     "properly; "
                     "using default value (1)"
-                 << endl;
+                 << std::endl;
             ic.numtile[i] = 1;
         }
         else if (ic.generator == ICGEN_READ_FROM_DISK
@@ -1055,7 +1063,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                 COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
                      << ": using mPk file forces baryon treatment "
                         "= ignore"
-                     << endl;
+                     << std::endl;
             }
         }
     }
@@ -1064,31 +1072,31 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         if (par_string[0] == 'i' || par_string[0] == 'I')
         {
             COUT << " baryon treatment set to: " << COLORTEXT_CYAN << "ignore"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             sim.baryon_flag = 0;
         }
         else if (par_string[0] == 's' || par_string[0] == 'S')
         {
             COUT << " baryon treatment set to: " << COLORTEXT_CYAN << "sample"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             sim.baryon_flag = 1;
         }
         else if (par_string[0] == 'b' || par_string[0] == 'B')
         {
             COUT << " baryon treatment set to: " << COLORTEXT_CYAN << "blend"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             sim.baryon_flag = 2;
         }
         else if (par_string[0] == 'h' || par_string[0] == 'H')
         {
             COUT << " baryon treatment set to: " << COLORTEXT_CYAN << "hybrid"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             sim.baryon_flag = 3;
         }
         else
         {
             COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                 << ": baryon treatment not supported!" << endl;
+                 << ": baryon treatment not supported!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -1102,7 +1110,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     {
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": baryon treatment not specified, using default (blend)"
-             << endl;
+             << std::endl;
         sim.baryon_flag = 2;
     }
 
@@ -1113,7 +1121,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
              << ": tiling number for baryon particle template not set "
                 "properly; "
                 "using default value (1)"
-             << endl;
+             << std::endl;
         ic.numtile[1] = 1;
     }
 
@@ -1124,14 +1132,14 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         {
             sim.radiation_flag = 0;
             COUT << " radiation treatment set to: " << COLORTEXT_CYAN
-                 << "background" << COLORTEXT_RESET << endl;
+                 << "background" << COLORTEXT_RESET << std::endl;
         }
 #ifdef HAVE_CLASS
         else if (par_string[0] == 'c' || par_string[0] == 'C')
         {
             sim.radiation_flag = 1;
             COUT << " radiation treatment set to: " << COLORTEXT_CYAN << "CLASS"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             if ((ic.pkfile[0] != '\0' || ic.tkfile[0] != '\0')
 #ifdef ICGEN_PREVOLUTION
                 && ic.generator != ICGEN_PREVOLUTION
@@ -1143,18 +1151,18 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                         "providing "
                         "initial power spectra / transfer functions "
                         "independently"
-                     << endl;
+                     << std::endl;
                 COUT << "              is dangerous! In order to "
                         "ensure "
                         "consistency, it is recommended to call "
                         "CLASS directly."
-                     << endl;
+                     << std::endl;
             }
         }
         else
         {
             COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                 << ": radiation treatment not supported!" << endl;
+                 << ": radiation treatment not supported!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -1167,7 +1175,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": CLASS is not available, setting radiation "
                     "treatment = "
                     "background"
-                 << endl;
+                 << std::endl;
         }
 #endif
     }
@@ -1180,14 +1188,14 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         {
             sim.fluid_flag = 0;
             COUT << " fluid treatment set to: " << COLORTEXT_CYAN
-                 << "background" << COLORTEXT_RESET << endl;
+                 << "background" << COLORTEXT_RESET << std::endl;
         }
 #ifdef HAVE_CLASS
         else if (par_string[0] == 'c' || par_string[0] == 'C')
         {
             sim.fluid_flag = 1;
             COUT << " fluid treatment set to: " << COLORTEXT_CYAN << "CLASS"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             if ((ic.pkfile[0] != '\0' || ic.tkfile[0] != '\0')
 #ifdef ICGEN_PREVOLUTION
                 && ic.generator != ICGEN_PREVOLUTION
@@ -1199,18 +1207,18 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                         "providing initial "
                         "power spectra / transfer functions "
                         "independently"
-                     << endl;
+                     << std::endl;
                 COUT << "              is dangerous! In order to "
                         "ensure "
                         "consistency, it is recommended to call "
                         "CLASS directly."
-                     << endl;
+                     << std::endl;
             }
         }
         else
         {
             COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                 << ": fluid treatment not supported!" << endl;
+                 << ": fluid treatment not supported!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -1223,7 +1231,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": CLASS is not available, setting fluid treatment "
                     "= "
                     "background"
-                 << endl;
+                 << std::endl;
         }
 #endif
     }
@@ -1243,11 +1251,11 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                      << ": using radiation treatment = CLASS and "
                         "IC generator = "
                         "read from disk does not guarantee"
-                     << endl;
+                     << std::endl;
                 COUT << "              that the realization of the "
                         "radiation "
                         "perturbations is consistent!"
-                     << endl;
+                     << std::endl;
             }
         }
         parseParameter (params, numparam, "tau", ic.restart_tau);
@@ -1264,7 +1272,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                      << ": version number of settings file ("
                      << ic.restart_version
                      << ") is higher than version of executable ("
-                     << GEVOLUTION_VERSION << ")!" << endl;
+                     << GEVOLUTION_VERSION << ")!" << std::endl;
             }
         }
     }
@@ -1277,7 +1285,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": no starting redshift specified for IC generator "
                     "= "
                     "prevolution"
-                 << endl;
+                 << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -1303,7 +1311,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
              << ": power spectrum normalization not specified, using "
                 "default "
                 "value (2.215e-9)"
-             << endl;
+             << std::endl;
     }
 
     if (!parseParameter (params, numparam, "n_s", ic.n_s)
@@ -1321,7 +1329,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": scalar spectral index not specified, using default value "
                 "(0.9619)"
-             << endl;
+             << std::endl;
     }
 
     if (!parseParameter (params, numparam, "k_pivot", ic.k_pivot)
@@ -1339,7 +1347,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": pivot scale not specified, using default value (0.05 / "
                 "Mpc)"
-             << endl;
+             << std::endl;
     }
 
     // parse metadata
@@ -1371,19 +1379,19 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         if (par_string[0] == 'p' || par_string[0] == 'P')
         {
             COUT << " vector method set to: " << COLORTEXT_CYAN << "parabolic"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             sim.vector_flag = VECTOR_PARABOLIC;
         }
         else if (par_string[0] == 'e' || par_string[0] == 'E')
         {
             COUT << " vector method set to: " << COLORTEXT_CYAN << "elliptic"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             sim.vector_flag = VECTOR_ELLIPTIC;
         }
         else
         {
             COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                 << ": vector method not supported!" << endl;
+                 << ": vector method not supported!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -1420,7 +1428,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     if (sim.boxsize <= 0. || !isfinite (sim.boxsize))
     {
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-             << ": simulation box size not set properly!" << endl;
+             << ": simulation box size not set properly!" << std::endl;
 #ifdef LATFIELD2_HPP
         parallel.abortForce ();
 #endif
@@ -1430,7 +1438,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     if (sim.numpts < 2 || !isfinite (sim.numpts))
     {
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-             << ": number of grid points not set properly!" << endl;
+             << ": number of grid points not set properly!" << std::endl;
 #ifdef LATFIELD2_HPP
         parallel.abortForce ();
 #endif
@@ -1443,7 +1451,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
             || !isfinite (sim.downgrade_factor))
         {
             COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                 << ": downgrade factor makes no sense!" << endl;
+                 << ": downgrade factor makes no sense!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
         }
@@ -1459,7 +1467,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": downgrade factor does not appear to be "
                     "compatible with "
                     "process layout at given Ngrid!"
-                 << endl;
+                 << std::endl;
             parallel.abortForce ();
 #endif
         }
@@ -1478,7 +1486,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     if (!parseParameter (params, numparam, "initial redshift", sim.z_in))
     {
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-             << ": initial redshift not specified!" << endl;
+             << ": initial redshift not specified!" << std::endl;
 #ifdef LATFIELD2_HPP
         parallel.abortForce ();
 #endif
@@ -1493,7 +1501,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
              << ": relaxation redshift cannot be below initial redshift "
                 "for IC "
                 "generator = prevolution; reset to initial redshift!"
-             << endl;
+             << std::endl;
         ic.z_relax = sim.z_in;
     }
 #endif
@@ -1548,7 +1556,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": parsing of lightcone Nside parameter failed, "
                     "assuming "
                     "minimum value Nside=2"
-                 << endl;
+                 << std::endl;
             sim.Nside[0][0] = 2;
         }
         if (i < 2)
@@ -1560,7 +1568,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                     "assuming "
                     "minimum "
                     "value Nside=2"
-                 << endl;
+                 << std::endl;
             sim.Nside[0][0] = 2;
         }
         else
@@ -1574,7 +1582,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                         "be no power "
                         "of "
                         "two, assuming nearest value Nside="
-                     << i << endl;
+                     << i << std::endl;
                 sim.Nside[0][0] = i;
             }
         }
@@ -1585,7 +1593,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                     "assuming "
                     "minimum "
                     "value Nside="
-                 << sim.Nside[0][0] << endl;
+                 << sim.Nside[0][0] << std::endl;
             sim.Nside[0][1] = sim.Nside[0][0];
         }
         else
@@ -1599,7 +1607,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                         "be no power "
                         "of "
                         "two, assuming nearest value Nside="
-                     << i << endl;
+                     << i << std::endl;
                 sim.Nside[0][1] = i;
             }
         }
@@ -1637,7 +1645,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": parsing of lightcone geometry failed, no "
                     "lightcone will "
                     "be written!"
-                 << endl;
+                 << std::endl;
         }
         else
         {
@@ -1657,7 +1665,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                          << ": lightcone opening half-angle "
                             "out of bounds, "
                             "assuming full sky"
-                         << endl;
+                         << std::endl;
                     sim.lightcone[0].opening = -1.;
                 }
                 else
@@ -1725,7 +1733,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                          << ": parsing of lightcone geometry "
                             "failed, no "
                             "lightcone will be written!"
-                         << endl;
+                         << std::endl;
                     sim.num_lightcone = 0;
                 }
             }
@@ -1759,7 +1767,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                          << ": parsing of lightcone geometry "
                             "failed, not all "
                             "lightcones will be written!"
-                         << endl;
+                         << std::endl;
                     break;
                 }
                 else
@@ -1789,7 +1797,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                                     "half-angle out of "
                                     "bounds, assuming "
                                     "full sky"
-                                 << endl;
+                                 << std::endl;
                             sim.lightcone[sim.num_lightcone].opening = -1.;
                         }
                         else
@@ -1887,7 +1895,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                                     "not "
                                     "all lightcones "
                                     "will be written!"
-                                 << endl;
+                                 << std::endl;
                             break;
                         }
                     }
@@ -1925,7 +1933,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                                     "failed, assuming "
                                     "minimum value "
                                     "Nside=2"
-                                 << endl;
+                                 << std::endl;
                             sim.Nside[sim.num_lightcone][0] = 2;
                         }
                         if (i < 2)
@@ -1940,7 +1948,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                                     "bounds, "
                                     "assuming minimum "
                                     "value Nside=2"
-                                 << endl;
+                                 << std::endl;
                             sim.Nside[sim.num_lightcone][0] = 2;
                         }
                         else
@@ -1966,7 +1974,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                                         "nearest "
                                         "value "
                                         "Nside="
-                                     << i << endl;
+                                     << i << std::endl;
                                 sim.Nside[sim.num_lightcone][0] = i;
                             }
                         }
@@ -1980,7 +1988,8 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                                     "bounds, "
                                     "assuming minimum "
                                     "value Nside="
-                                 << sim.Nside[sim.num_lightcone][0] << endl;
+                                 << sim.Nside[sim.num_lightcone][0]
+                                 << std::endl;
                             sim.Nside[sim.num_lightcone][1]
                                 = sim.Nside[sim.num_lightcone][0];
                         }
@@ -2007,7 +2016,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                                         "nearest "
                                         "value "
                                         "Nside="
-                                     << i << endl;
+                                     << i << std::endl;
                                 sim.Nside[sim.num_lightcone][1] = i;
                             }
                         }
@@ -2028,7 +2037,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
             COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
                  << ": tracer factor not set properly; using default "
                     "value (1)"
-                 << endl;
+                 << std::endl;
             sim.tracer_factor[i - 1] = 1;
         }
     }
@@ -2037,7 +2046,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         && (sim.num_pk <= 0 || sim.out_pk == 0))
     {
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
-             << ": no output specified!" << endl;
+             << ": no output specified!" << std::endl;
     }
 
     if (!parseParameter (params, numparam, "Pk bins", sim.numbins))
@@ -2045,7 +2054,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": number of Pk bins not set properly; using default value "
                 "(64)"
-             << endl;
+             << std::endl;
         sim.numbins = 64;
     }
 
@@ -2054,7 +2063,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         if (par_string[0] == 'N' || par_string[0] == 'n')
         {
             COUT << " gravity theory set to: " << COLORTEXT_CYAN << "Newtonian"
-                 << COLORTEXT_RESET << endl;
+                 << COLORTEXT_RESET << std::endl;
             sim.gr_flag = 0;
             if (ic.pkfile[0] == '\0' && ic.tkfile[0] != '\0'
 #ifdef ICGEN_PREVOLUTION
@@ -2067,19 +2076,19 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                         "can only be "
                         "performed for the positions; the "
                         "transformation for"
-                     << endl;
+                     << std::endl;
                 COUT << "              the velocities requires "
                         "time derivatives "
                         "of transfer functions. Call CLASS "
                         "directly to avoid "
                         "this issue."
-                     << endl;
+                     << std::endl;
             }
         }
         else if (par_string[0] == 'G' || par_string[0] == 'g')
         {
             COUT << " gravity theory set to: " << COLORTEXT_CYAN
-                 << "General Relativity" << COLORTEXT_RESET << endl;
+                 << "General Relativity" << COLORTEXT_RESET << std::endl;
             sim.gr_flag = 1;
         }
         else
@@ -2087,7 +2096,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
             COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
                  << ": gravity theory unknown, using default (General "
                     "Relativity)"
-                 << endl;
+                 << std::endl;
             sim.gr_flag = 1;
         }
     }
@@ -2096,7 +2105,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": gravity theory not selected, using default (General "
                 "Relativity)"
-             << endl;
+             << std::endl;
         sim.gr_flag = 1;
     }
 
@@ -2121,7 +2130,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         if (i < 0 || !isfinite (i))
         {
             COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                 << ": number of ncdm species not set properly!" << endl;
+                 << ": number of ncdm species not set properly!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -2132,7 +2141,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": N_ncdm = " << i
                  << " is larger than the number of mass parameters "
                     "specified ("
-                 << cosmo.num_ncdm << ")!" << endl;
+                 << cosmo.num_ncdm << ")!" << std::endl;
 #ifdef LATFIELD2_HPP
             parallel.abortForce ();
 #endif
@@ -2144,7 +2153,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": N_ncdm not specified, inferring from number of mass "
                 "parameters in m_ncdm ("
-             << cosmo.num_ncdm << ")!" << endl;
+             << cosmo.num_ncdm << ")!" << std::endl;
     }
 
     for (i = 0; i < MAX_PCL_SPECIES - 2; i++)
@@ -2211,7 +2220,8 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     if (cosmo.Omega_fld > 0 && cosmo.w0_fld == -1.)
     {
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
-             << ": w0_fld = -1 is singular, setting Omega_fld = 0." << endl;
+             << ": w0_fld = -1 is singular, setting Omega_fld = 0."
+             << std::endl;
         cosmo.Omega_fld = 0.;
     }
 
@@ -2224,7 +2234,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": Omega_b not found in settings file, setting to default "
                 "(0)."
-             << endl;
+             << std::endl;
         cosmo.Omega_b = 0.;
     }
 
@@ -2237,7 +2247,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": Omega_cdm not found in settings file, setting to "
                 "default (1)."
-             << endl;
+             << std::endl;
         cosmo.Omega_cdm = 1.;
     }
 
@@ -2248,7 +2258,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     if (cosmo.Omega_m <= 0. || cosmo.Omega_m > 1.)
     {
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-             << ": total matter density out of range!" << endl;
+             << ": total matter density out of range!" << std::endl;
 #ifdef LATFIELD2_HPP
         parallel.abortForce ();
 #endif
@@ -2256,7 +2266,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     else if (cosmo.Omega_rad < 0. || cosmo.Omega_rad > 1. - cosmo.Omega_m)
     {
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-             << ": total radiation energy density out of range!" << endl;
+             << ": total radiation energy density out of range!" << std::endl;
 #ifdef LATFIELD2_HPP
         parallel.abortForce ();
 #endif
@@ -2265,7 +2275,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     {
         COUT << " cosmological parameters are: Omega_m0 = " << cosmo.Omega_m
              << ", Omega_rad0 = " << cosmo.Omega_rad << ", h = " << cosmo.h
-             << endl;
+             << std::endl;
         cosmo.Omega_Lambda
             = 1. - cosmo.Omega_m - cosmo.Omega_rad - cosmo.Omega_fld;
     }
@@ -2310,8 +2320,8 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
              << ": with garavity theory = Newton the switch linear chi "
                 "redshift "
                 "must be larger than 0.01."
-             << endl;
-        COUT << "              setting switch linear chi = 0.011" << endl;
+             << std::endl;
+        COUT << "              setting switch linear chi = 0.011" << std::endl;
         sim.z_switch_linearchi = 0.011;
     }
 
@@ -2333,5 +2343,5 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
 
     return usedparams;
 }
-
+}
 #endif

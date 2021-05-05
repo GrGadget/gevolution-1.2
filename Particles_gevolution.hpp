@@ -15,29 +15,42 @@
 #ifndef PCLBUFFER
 #define PCLBUFFER 1048576
 #endif
+#include "LATfield2.hpp"
 #include "metadata.hpp"
+#include <cstdlib>
+#include <iostream>
+#include <mpi.h>
 #include <set>
-using namespace LATfield2;
+#include <string>
+
+namespace gevolution
+{
+
+using LATfield2::Field;
+using LATfield2::parallel;
+using LATfield2::Particles;
+using LATfield2::Real;
+using LATfield2::Site;
 
 template <typename part, typename part_info, typename part_dataType>
 class Particles_gevolution : public Particles<part, part_info, part_dataType>
 {
   public:
-    void saveGadget2 (string filename, gadget2_header &hdr,
+    void saveGadget2 (std::string filename, gadget2_header &hdr,
                       const int tracer_factor = 1, double dtau_pos = 0.,
                       double dtau_vel = 0., Field<Real> *phi = NULL);
-    void saveGadget2 (string filename, gadget2_header &hdr,
+    void saveGadget2 (std::string filename, gadget2_header &hdr,
                       lightcone_geometry &lightcone, double dist, double dtau,
                       double dtau_old, double dadtau,
                       double vertex[MAX_INTERSECTS][3], const int vertexcount,
                       std::set<long> &IDbacklog, std::set<long> &IDprelog,
                       Field<Real> *phi, const int tracer_factor = 1);
-    void loadGadget2 (string filename, gadget2_header &hdr);
+    void loadGadget2 (std::string filename, gadget2_header &hdr);
 };
 
 template <typename part, typename part_info, typename part_dataType>
 void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
-    string filename, gadget2_header &hdr, const int tracer_factor,
+    std::string filename, gadget2_header &hdr, const int tracer_factor,
     double dtau_pos, double dtau_vel, Field<Real> *phi)
 {
     float *posdata;
@@ -55,13 +68,13 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
     Real phip = 0.;
     Real gradphi[3] = { 0., 0., 0. };
     double ref_dist[3];
-    LATfield2::Site xField;
+    Site xField;
 #endif
 
     filename.copy (fname, filename.length ());
     fname[filename.length ()] = '\0';
 
-    LATfield2::Site xPart (this->lat_part_);
+    Site xPart (this->lat_part_);
     typename std::list<part>::iterator it;
 
     if (hdr.num_files != 1 && hdr.num_files != parallel.grid_size ()[1])
@@ -69,17 +82,17 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
              << ": number of Gadget2 files does not match the number of "
                 "processes in dim-1!"
-             << endl;
+             << std::endl;
         return;
     }
 
-    posdata = (float *)malloc (3 * sizeof (float) * PCLBUFFER);
-    veldata = (float *)malloc (3 * sizeof (float) * PCLBUFFER);
+    posdata = (float *)std::malloc (3 * sizeof (float) * PCLBUFFER);
+    veldata = (float *)std::malloc (3 * sizeof (float) * PCLBUFFER);
 
 #if GADGET_ID_BYTES == 8
-    IDs = malloc (sizeof (int64_t) * PCLBUFFER);
+    IDs = std::malloc (sizeof (int64_t) * PCLBUFFER);
 #else
-    IDs = malloc (sizeof (int32_t) * PCLBUFFER);
+    IDs = std::malloc (sizeof (int32_t) * PCLBUFFER);
 #endif
 
     npart = 0;
@@ -103,11 +116,11 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
             parallel.send<long> (npart, 1);
             parallel.receive<long> (count, parallel.size () - 1);
             if (count != hdr.npart[1])
-                cout << " error: number of particles in saveGadget2 "
-                        "does not "
-                        "match "
-                        "request!"
-                     << endl;
+                std::cout << " error: number of particles in saveGadget2 "
+                             "does not "
+                             "match "
+                             "request!"
+                          << std::endl;
             count = 0;
         }
         else
@@ -350,7 +363,7 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
 
 template <typename part, typename part_info, typename part_dataType>
 void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
-    string filename, gadget2_header &hdr, lightcone_geometry &lightcone,
+    std::string filename, gadget2_header &hdr, lightcone_geometry &lightcone,
     double dist, double dtau, double dtau_old, double dadtau,
     double vertex[MAX_INTERSECTS][3], const int vertexcount,
     std::set<long> &IDbacklog, std::set<long> &IDprelog, Field<Real> *phi,
@@ -384,17 +397,17 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
     {
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
              << ": writing multiple Gadget2 files not currently supported!"
-             << endl;
+             << std::endl;
         return;
     }
 
-    posdata = (float *)malloc (3 * sizeof (float) * PCLBUFFER);
-    veldata = (float *)malloc (3 * sizeof (float) * PCLBUFFER);
+    posdata = (float *)std::malloc (3 * sizeof (float) * PCLBUFFER);
+    veldata = (float *)std::malloc (3 * sizeof (float) * PCLBUFFER);
 
 #if GADGET_ID_BYTES == 8
-    IDs = malloc (sizeof (int64_t) * PCLBUFFER);
+    IDs = std::malloc (sizeof (int64_t) * PCLBUFFER);
 #else
-    IDs = malloc (sizeof (int32_t) * PCLBUFFER);
+    IDs = std::malloc (sizeof (int32_t) * PCLBUFFER);
 #endif
 
     npart = 0;
@@ -576,10 +589,11 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
         }
     }
 
-    if (parallel.rank () == 0)
+    if (LATfield2::parallel.rank () == 0)
     {
-        parallel.send<long> (npart, 1);
-        parallel.receive<long> (count, parallel.size () - 1);
+        LATfield2::parallel.send<long> (npart, 1);
+        LATfield2::parallel.receive<long> (count,
+                                           LATfield2::parallel.size () - 1);
         hdr.npart[1] = (uint32_t) (count % (1ll << 32));
         hdr.npartTotal[1] = (uint32_t) (count % (1ll << 32));
         hdr.npartTotalHW[1] = (uint32_t) (count / (1ll << 32));
@@ -587,18 +601,21 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
     }
     else
     {
-        parallel.receive<long> (count, parallel.rank () - 1);
+        LATfield2::parallel.receive<long> (count,
+                                           LATfield2::parallel.rank () - 1);
         count += npart;
-        parallel.send<long> (count, (parallel.rank () + 1) % parallel.size ());
+        LATfield2::parallel.send<long> (count,
+                                        (LATfield2::parallel.rank () + 1)
+                                            % LATfield2::parallel.size ());
         count -= npart;
     }
 
-    parallel.broadcast<uint32_t> (hdr.npartTotal[1], 0);
-    parallel.broadcast<uint32_t> (hdr.npartTotalHW[1], 0);
+    LATfield2::parallel.broadcast<uint32_t> (hdr.npartTotal[1], 0);
+    LATfield2::parallel.broadcast<uint32_t> (hdr.npartTotalHW[1], 0);
 
     if (hdr.npartTotal[1] + ((int64_t)hdr.npartTotalHW[1] << 32) > 0)
     {
-        MPI_File_open (parallel.lat_world_comm (), fname,
+        MPI_File_open (LATfield2::parallel.lat_world_comm (), fname,
                        MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL,
                        &outfile);
 
@@ -627,7 +644,7 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
                                                ? sizeof (int64_t)
                                                : sizeof (int32_t)));
 
-        if (parallel.rank () == 0)
+        if (LATfield2::parallel.rank () == 0)
         {
             blocksize = sizeof (hdr);
             MPI_File_write_at (outfile, 0, &blocksize, 1, MPI_UNSIGNED,
@@ -898,7 +915,7 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
 
 template <typename part, typename part_info, typename part_dataType>
 void Particles_gevolution<part, part_info, part_dataType>::loadGadget2 (
-    string filename, gadget2_header &hdr)
+    std::string filename, gadget2_header &hdr)
 {
     float *posdata;
     float *veldata;
@@ -915,24 +932,25 @@ void Particles_gevolution<part, part_info, part_dataType>::loadGadget2 (
     filename.copy (fname, filename.length ());
     fname[filename.length ()] = '\0';
 
-    posdata = (float *)malloc (3 * sizeof (float) * PCLBUFFER);
-    veldata = (float *)malloc (3 * sizeof (float) * PCLBUFFER);
+    posdata = (float *)std::malloc (3 * sizeof (float) * PCLBUFFER);
+    veldata = (float *)std::malloc (3 * sizeof (float) * PCLBUFFER);
 
 #if GADGET_ID_BYTES == 8
-    IDs = malloc (sizeof (int64_t) * PCLBUFFER);
+    IDs = std::malloc (sizeof (int64_t) * PCLBUFFER);
 #else
-    IDs = malloc (sizeof (int32_t) * PCLBUFFER);
+    IDs = std::malloc (sizeof (int32_t) * PCLBUFFER);
 #endif
 
-    MPI_File_open (parallel.lat_world_comm (), fname, MPI_MODE_RDONLY,
-                   MPI_INFO_NULL, &infile);
+    MPI_File_open (LATfield2::parallel.lat_world_comm (), fname,
+                   MPI_MODE_RDONLY, MPI_INFO_NULL, &infile);
 
     MPI_File_read_all (infile, &blocksize, 1, MPI_UNSIGNED, &status);
 
     if (blocksize != sizeof (hdr))
     {
         COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
-             << ": file type not recognized when reading Gadget2 file!" << endl;
+             << ": file type not recognized when reading Gadget2 file!"
+             << std::endl;
         return;
     }
 
@@ -1004,4 +1022,5 @@ void Particles_gevolution<part, part_info, part_dataType>::loadGadget2 (
     free (IDs);
 }
 
+}
 #endif

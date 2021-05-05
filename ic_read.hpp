@@ -14,6 +14,25 @@
 #ifndef IC_READ_HEADER
 #define IC_READ_HEADER
 
+#include "LATfield2.hpp"
+#include <iostream>
+#include <set>
+#include <string>
+
+namespace gevolution
+{
+using LATfield2::FFT_BACKWARD;
+using LATfield2::FFT_FORWARD;
+using LATfield2::fileDsc;
+using LATfield2::get_fileDsc_global;
+using LATfield2::get_fileDsc_local;
+using LATfield2::parallel;
+using LATfield2::part_simple;
+using LATfield2::part_simple_dataType;
+using LATfield2::part_simple_info;
+using LATfield2::PlanFFT;
+using LATfield2::Real;
+
 //////////////////////////
 // readIC
 //////////////////////////
@@ -71,7 +90,7 @@ void readIC (
     Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi,
     PlanFFT<Cplx> *plan_chi, PlanFFT<Cplx> *plan_Bi, PlanFFT<Cplx> *plan_source,
     PlanFFT<Cplx> *plan_Sij, int &cycle, int &snapcount, int &pkcount,
-    int &restartcount, set<long> *IDbacklog)
+    int &restartcount, std::set<long> *IDbacklog)
 {
     part_simple_info pcls_cdm_info;
     part_simple_dataType pcls_cdm_dataType;
@@ -80,14 +99,14 @@ void readIC (
     part_simple_info pcls_ncdm_info[MAX_PCL_SPECIES];
     part_simple_dataType pcls_ncdm_dataType;
     Real boxSize[3] = { 1., 1., 1. };
-    string filename;
-    string buf;
+    std::string filename;
+    std::string buf;
     int i, p, c;
     char *ext;
     char line[PARAM_MAX_LINESIZE];
     FILE *bgfile;
     FILE *lcfile;
-    struct fileDsc fd;
+    fileDsc fd;
     gadget2_header hdr;
     long *numpcl;
     Real *dummy1;
@@ -99,7 +118,7 @@ void readIC (
     long count;
     void *IDbuffer;
     void *buf2;
-    set<long> IDlookup;
+    std::set<long> IDlookup;
 
     filename.reserve (PARAM_MAX_LENGTH);
     hdr.npart[1] = 0;
@@ -147,7 +166,7 @@ void readIC (
                      << ": redshift indicated in Gadget2 header "
                         "does not match "
                         "initial redshift of simulation!"
-                     << endl;
+                     << std::endl;
             }
             sim.numpcl[0] += hdr.npart[1];
             i++;
@@ -168,7 +187,8 @@ void readIC (
                 = (cosmo.Omega_cdm + cosmo.Omega_b) / (Real)sim.numpcl[0];
     }
 
-    COUT << " " << sim.numpcl[0] << " cdm particles read successfully." << endl;
+    COUT << " " << sim.numpcl[0] << " cdm particles read successfully."
+         << std::endl;
     maxvel[0] = pcls_cdm->updateVel (update_q, 0., &phi, 1, &a);
 
     if (sim.baryon_flag == 1)
@@ -213,7 +233,7 @@ void readIC (
                             "header does not "
                             "match initial redshift of "
                             "simulation!"
-                         << endl;
+                         << std::endl;
                 }
                 sim.numpcl[1] += hdr.npart[1];
                 i++;
@@ -230,7 +250,7 @@ void readIC (
         }
 
         COUT << " " << sim.numpcl[1] << " baryon particles read successfully."
-             << endl;
+             << std::endl;
         maxvel[1] = pcls_b->updateVel (update_q, 0., &phi, 1, &a);
     }
     else
@@ -284,7 +304,7 @@ void readIC (
                             "header does not "
                             "match initial redshift of "
                             "simulation!"
-                         << endl;
+                         << std::endl;
                 }
                 sim.numpcl[sim.baryon_flag + 1 + p] += hdr.npart[1];
                 i++;
@@ -303,7 +323,7 @@ void readIC (
         }
 
         COUT << " " << sim.numpcl[sim.baryon_flag + 1 + p]
-             << " ncdm particles read successfully." << endl;
+             << " ncdm particles read successfully." << std::endl;
         maxvel[sim.baryon_flag + 1 + p]
             = pcls_ncdm[p].updateVel (update_q, 0., &phi, 1, &a);
     }
@@ -386,14 +406,14 @@ void readIC (
                      << ": unable to locate file for background "
                         "output! A new "
                         "file will be created"
-                     << endl;
+                     << std::endl;
                 bgfile = fopen (line, "w");
                 if (bgfile == NULL)
                 {
                     COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
                          << ": unable to create file for "
                             "background output!"
-                         << endl;
+                         << std::endl;
                     parallel.abortForce ();
                 }
                 else
@@ -418,7 +438,7 @@ void readIC (
                          << ": unable to read file for "
                             "background output! A new "
                             "file will be created"
-                         << endl;
+                         << std::endl;
                 }
                 else if (line[0] != '#')
                 {
@@ -428,7 +448,7 @@ void readIC (
                             "unexpected "
                             "format! "
                             "Contents will be overwritten!"
-                         << endl;
+                         << std::endl;
                 }
                 else
                 {
@@ -439,7 +459,7 @@ void readIC (
                              << ": unable to read file for "
                                 "background output! A "
                                 "new file will be created"
-                             << endl;
+                             << std::endl;
                     }
                     else if (line[0] != '#')
                     {
@@ -449,7 +469,7 @@ void readIC (
                                 "output has unexpected "
                                 "format! Contents will be "
                                 "overwritten!"
-                             << endl;
+                             << std::endl;
                     }
                 }
 
@@ -475,7 +495,7 @@ void readIC (
                     COUT << COLORTEXT_RED << " error" << COLORTEXT_RESET
                          << ": unable to create file for "
                             "background output!"
-                         << endl;
+                         << std::endl;
                     parallel.abortForce ();
                 }
                 else
@@ -513,7 +533,7 @@ void readIC (
                          << ": unable to locate file for "
                             "lightcone information! "
                             "A new file will be created"
-                         << endl;
+                         << std::endl;
                     lcfile = fopen (line, "w");
                     if (lcfile == NULL)
                     {
@@ -521,7 +541,7 @@ void readIC (
                              << ": unable to create file "
                                 "for lightcone "
                                 "information!"
-                             << endl;
+                             << std::endl;
                         parallel.abortForce ();
                     }
                     else
@@ -611,7 +631,7 @@ void readIC (
                                     "information! A new "
                                     "file will be "
                                     "created"
-                                 << endl;
+                                 << std::endl;
                             break;
                         }
                         else if (line[0] != '#')
@@ -624,7 +644,7 @@ void readIC (
                                     "unexpected format! "
                                     "Contents will be "
                                     "overwritten!"
-                                 << endl;
+                                 << std::endl;
                             break;
                         }
                     }
@@ -661,7 +681,7 @@ void readIC (
                              << ": unable to create file "
                                 "for lightcone "
                                 "information!"
-                             << endl;
+                             << std::endl;
                         parallel.abortForce ();
                     }
                     else
@@ -757,7 +777,7 @@ void readIC (
                                     "binary file for "
                                     "lightcone "
                                     "information!"
-                                 << endl;
+                                 << std::endl;
                         }
                     }
                     else
@@ -782,7 +802,7 @@ void readIC (
                                         "lightcone "
                                         "information"
                                         "!"
-                                     << endl;
+                                     << std::endl;
                             }
 
                             fclose (lcfile);
@@ -798,7 +818,7 @@ void readIC (
                                         "lightcone "
                                         "information"
                                         "!"
-                                     << endl;
+                                     << std::endl;
                                 parallel.abortForce ();
                             }
                             else
@@ -919,7 +939,7 @@ void readIC (
                                  << line
                                  << " for retrieving "
                                     "particle ID backlog"
-                                 << endl;
+                                 << std::endl;
                             count = 0;
                         }
                         else if (fseek (lcfile, 4, SEEK_SET)
@@ -940,7 +960,7 @@ void readIC (
                                  << line
                                  << " for retrieving "
                                     "particle ID backlog"
-                                 << endl;
+                                 << std::endl;
                             count = 0;
                             fclose (lcfile);
                             lcfile = NULL;
@@ -970,7 +990,7 @@ void readIC (
                                         "particle "
                                         "ID block "
                                         "from "
-                                     << line << endl;
+                                     << line << std::endl;
                                 parallel.abortForce ();
                             }
 
@@ -1009,7 +1029,7 @@ void readIC (
                                         "particle "
                                         "ID block "
                                         "from "
-                                     << line << endl;
+                                     << line << std::endl;
                                 parallel.abortForce ();
                             }
 
@@ -1087,5 +1107,5 @@ void readIC (
            && 1. / a < sim.z_restart[restartcount] + 1.)
         restartcount++;
 }
-
+}
 #endif

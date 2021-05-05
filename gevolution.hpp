@@ -29,12 +29,23 @@
 #ifndef GEVOLUTION_HEADER
 #define GEVOLUTION_HEADER
 
-#ifndef Cplx
-#define Cplx Imag
-#endif
+#include "LATfield2.hpp"
+#include <cstdlib>
+#include <iostream>
 
-using namespace std;
-using namespace LATfield2;
+namespace gevolution
+{
+using LATfield2::Field;
+using LATfield2::part_simple;
+using LATfield2::part_simple_info;
+using LATfield2::Particles;
+using LATfield2::Real;
+using LATfield2::rKSite;
+using LATfield2::Site;
+
+#ifndef Cplx
+#define Cplx LATfield2::Imag
+#endif
 
 //////////////////////////
 // prepareFTsource (1)
@@ -1193,8 +1204,9 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
 {
     if (T00->lattice ().halo () == 0)
     {
-        cout << "projection_T00_project: target field needs halo > 0" << endl;
-        exit (-1);
+        std::cout << "projection_T00_project: target field needs halo > 0"
+                  << std::endl;
+        std::exit (-1);
     }
 
     Site xPart (pcls->lattice ());
@@ -1334,8 +1346,9 @@ void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
 {
     if (T0i->lattice ().halo () == 0)
     {
-        cout << "projection_T0i_project: target field needs halo > 0" << endl;
-        exit (-1);
+        std::cout << "projection_T0i_project: target field needs halo > 0"
+                  << std::endl;
+        std::exit (-1);
     }
 
     Site xPart (pcls->lattice ());
@@ -1478,8 +1491,9 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
 {
     if (Tij->lattice ().halo () == 0)
     {
-        cout << "projection_Tij_project: target field needs halo > 0" << endl;
-        exit (-1);
+        std::cout << "projection_Tij_project: target field needs halo > 0"
+                  << std::endl;
+        std::exit (-1);
     }
 
     Site xPart (pcls->lattice ());
@@ -1687,8 +1701,9 @@ void projection_Ti0_project (Particles<part, part_info, part_dataType> *pcls,
 {
     if (Ti0->lattice ().halo () == 0)
     {
-        cout << "projection_Ti0_project: target field needs halo > 0" << endl;
-        exit (-1);
+        std::cout << "projection_Ti0_project: target field needs halo > 0"
+                  << std::endl;
+        std::exit (-1);
     }
 
     Site xPart (pcls->lattice ());
@@ -1935,5 +1950,5 @@ void projectFTomega (Field<Cplx> &viFT)
 
     free (gridk2);
 }
-
+}
 #endif

@@ -22,9 +22,6 @@
 
 #include "tools.hpp"
 
-using namespace std;
-using namespace LATfield2;
-
 //////////////////////////
 // generateIC_prevolution
 //////////////////////////

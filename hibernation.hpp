@@ -14,6 +14,17 @@
 #ifndef HIBERNATION_HEADER
 #define HIBERNATION_HEADER
 
+#include "LATfield2.hpp"
+#include <iostream>
+#include <string>
+
+namespace gevolution
+{
+using LATfield2::parallel;
+using LATfield2::part_simple;
+using LATfield2::part_simple_dataType;
+using LATfield2::part_simple_info;
+using LATfield2::Real;
 //////////////////////////
 // writeRestartSettings
 //////////////////////////
@@ -56,7 +67,7 @@ void writeRestartSettings (metadata &sim, icsettings &ic, cosmology &cosmo,
     outfile = fopen (buffer, "w");
     if (outfile == NULL)
     {
-        cout << " error opening file for restart settings!" << endl;
+        std::cout << " error opening file for restart settings!" << std::endl;
     }
     else
     {
@@ -572,7 +583,7 @@ void hibernate (
     const double tau, const double dtau, const int cycle,
     const int restartcount = -1)
 {
-    string h5filename;
+    std::string h5filename;
     char buffer[5];
     int i;
     Site x (Bi.lattice ());
@@ -674,5 +685,5 @@ void hibernate (
 #endif
 #endif
 }
-
+}
 #endif

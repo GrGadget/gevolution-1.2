@@ -14,15 +14,24 @@
 #ifndef TOOLS_HEADER
 #define TOOLS_HEADER
 
+#include "LATfield2.hpp"
+#include <iostream>
+#include <string>
+
+namespace gevolution
+{
+using LATfield2::Field;
+using LATfield2::parallel;
+using LATfield2::Real;
+using LATfield2::rKSite;
+using LATfield2::Site;
+
 #ifndef Cplx
-#define Cplx Imag
+#define Cplx LATfield2::Imag
 #endif
 
 #define KTYPE_GRID 0
 #define KTYPE_LINEAR 1
-
-using namespace std;
-using namespace LATfield2;
 
 #ifdef FFT3D
 //////////////////////////
@@ -324,11 +333,11 @@ void writePowerSpectrum (Real *kbin, Real *power, Real *kscatter,
                 fscanf (infile, "%*[^\n]\n");
                 if (fscanf (infile, "# redshift z=%lf\n", &weight) != 1)
                 {
-                    cout << " error parsing power spectrum "
-                            "file header for "
-                            "interpolation "
-                            "(EXACT_OUTPUT_REDSHIFTS)"
-                         << endl;
+                    std::cout << " error parsing power spectrum "
+                                 "file header for "
+                                 "interpolation "
+                                 "(EXACT_OUTPUT_REDSHIFTS)"
+                              << std::endl;
                     weight = 1.;
                 }
                 else
@@ -353,20 +362,20 @@ void writePowerSpectrum (Real *kbin, Real *power, Real *kscatter,
                                 != 1)
 #endif
                             {
-                                cout << " error "
-                                        "parsing "
-                                        "power "
-                                        "spectrum "
-                                        "file "
-                                        "data "
-                                     << i
-                                     << " for "
-                                        "interpolat"
-                                        "ion "
-                                        "(EXACT_"
-                                        "OUTPUT_"
-                                        "REDSHIFTS)"
-                                     << endl;
+                                std::cout << " error "
+                                             "parsing "
+                                             "power "
+                                             "spectrum "
+                                             "file "
+                                             "data "
+                                          << i
+                                          << " for "
+                                             "interpolat"
+                                             "ion "
+                                             "(EXACT_"
+                                             "OUTPUT_"
+                                             "REDSHIFTS)"
+                                          << std::endl;
                                 break;
                             }
                             else
@@ -387,7 +396,8 @@ void writePowerSpectrum (Real *kbin, Real *power, Real *kscatter,
         FILE *outfile = fopen (filename, "w");
         if (outfile == NULL)
         {
-            cout << " error opening file for power spectrum output!" << endl;
+            std::cout << " error opening file for power spectrum output!"
+                      << std::endl;
         }
         else
         {
@@ -602,17 +612,18 @@ int findIntersectingLightcones (lightcone_geometry &lightcone, double outer,
             {
                 if (n >= MAX_INTERSECTS)
                 {
-                    cout << COLORTEXT_YELLOW << " /!\\ warning"
-                         << COLORTEXT_RESET
-                         << ": maximum number of lightcone "
-                            "intersects exceeds "
-                            "MAX_INTERSECTS = "
-                         << MAX_INTERSECTS << " for domain (" << domain[0]
-                         << ", " << domain[1] << ", " << domain[2] << ") - ("
-                         << domain[3] << ", " << domain[4] << ", " << domain[5]
-                         << "); some data may be missing in "
-                            "output!"
-                         << endl;
+                    std::cout << COLORTEXT_YELLOW << " /!\\ warning"
+                              << COLORTEXT_RESET
+                              << ": maximum number of lightcone "
+                                 "intersects exceeds "
+                                 "MAX_INTERSECTS = "
+                              << MAX_INTERSECTS << " for domain (" << domain[0]
+                              << ", " << domain[1] << ", " << domain[2]
+                              << ") - (" << domain[3] << ", " << domain[4]
+                              << ", " << domain[5]
+                              << "); some data may be missing in "
+                                 "output!"
+                              << std::endl;
                     return MAX_INTERSECTS;
                 }
                 vertex[n][0] = lightcone.vertex[0] + u;
@@ -996,9 +1007,9 @@ int findIntersectingLightcones (lightcone_geometry &lightcone, double outer,
 //
 //////////////////////////
 
-string hourMinSec (double seconds)
+std::string hourMinSec (double seconds)
 {
-    string output;
+    std::string output;
     char ptr[20];
     int h, m, s, f;
 
@@ -1016,5 +1027,5 @@ string hourMinSec (double seconds)
 
     return output;
 }
-
+}
 #endif
