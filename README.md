@@ -43,6 +43,14 @@ A typical command to run a simulation looks like this:
 
 For further information, please refer to the User Manual (manual.pdf)
 
+## Contributions
+
+Before commiting any changes make sure your code have been formated according to
+the clang rules in `.clang-format` file.
+```
+make format
+```
+
 ## Credits
 
 If you use gevolution for scientific work, we kindly ask you to cite

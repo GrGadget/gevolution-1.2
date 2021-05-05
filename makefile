@@ -8,6 +8,7 @@ HPXCXXLIB    := -lhealpix_cxx -lcfitsio
 EXEC         := gevolution
 SOURCE       := main.cpp
 HEADERS      := $(wildcard *.hpp)
+SOURCES      := main.cpp lccat.cpp lcmap.cpp
 
 # mandatory compiler settings (LATfield2)
 DLATFIELD2   := -DFFT3D -DHDF5
@@ -42,3 +43,7 @@ lcmap: lcmap.cpp
 clean:
 	-rm -f $(EXEC) lccat lcmap
 
+format:
+	-clang-format -i $(HEADERS) $(SOURCES)
+
+.PHONY: clean format
