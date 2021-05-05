@@ -771,21 +771,18 @@ Real update_q_Newton(
 		gradpsi[2] -= ref_dist[0] * ref_dist[1] * (chi(xchi+2+1+0) - chi(xchi+1+0));
 	}
     
-    *gevolution::Debugger << params[0] << ' '; // scale factor
-	for (int i=0;i<3;i++)
-        *gevolution::Debugger << (*part).pos[i] << ' '; // 3-position
 	Real v2 = 0.;
+    std::array<Real,3> acc;
 	for (int i=0;i<3;i++)
 	{
-        Real force = -params[0]*gradpsi[i]/dx;
-        *gevolution::Debugger << force << ' ' ; // 3-force (acceleration)
-            
-		(*part).vel[i] += dtau * force;
+        acc[i] = -params[0]*gradpsi[i]/dx;
+		(*part).vel[i] += dtau * acc[i];
 		v2 += (*part).vel[i] * (*part).vel[i];
 	}
-    *gevolution::Debugger << '\n';
     
-	
+    gevolution::Debugger ->
+    append(part->ID,{part->pos[0],part->pos[1],part->pos[2]},acc);
+    
 	return v2 / params[0] / params[0];
 	
 #undef psi
