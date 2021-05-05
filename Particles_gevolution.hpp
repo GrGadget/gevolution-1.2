@@ -15,7 +15,8 @@
 #ifndef PCLBUFFER
 #define PCLBUFFER 1048576
 #endif
-
+#include "metadata.hpp"
+#include <set>
 using namespace LATfield2;
 
 template <typename part, typename part_info, typename part_dataType>
@@ -29,7 +30,7 @@ class Particles_gevolution : public Particles<part, part_info, part_dataType>
                       lightcone_geometry &lightcone, double dist, double dtau,
                       double dtau_old, double dadtau,
                       double vertex[MAX_INTERSECTS][3], const int vertexcount,
-                      set<long> &IDbacklog, set<long> &IDprelog,
+                      std::set<long> &IDbacklog, std::set<long> &IDprelog,
                       Field<Real> *phi, const int tracer_factor = 1);
     void loadGadget2 (string filename, gadget2_header &hdr);
 };
@@ -352,7 +353,7 @@ void Particles_gevolution<part, part_info, part_dataType>::saveGadget2 (
     string filename, gadget2_header &hdr, lightcone_geometry &lightcone,
     double dist, double dtau, double dtau_old, double dadtau,
     double vertex[MAX_INTERSECTS][3], const int vertexcount,
-    set<long> &IDbacklog, set<long> &IDprelog, Field<Real> *phi,
+    std::set<long> &IDbacklog, std::set<long> &IDprelog, Field<Real> *phi,
     const int tracer_factor)
 {
     float *posdata;

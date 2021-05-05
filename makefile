@@ -1,14 +1,15 @@
 # programming environment
 COMPILER     := mpic++
-INCLUDE      := # add the path to LATfield2 and other libraries (if necessary)
-LIB          := -lfftw3 -lm -lhdf5 -lgsl -lgslcblas
-HPXCXXLIB    := -lhealpix_cxx -lcfitsio
+INCLUDE      := $(shell pkg-config --cflags latfield fftw3 hdf5 gsl)
+LIB          := $(shell pkg-config --libs fftw3 hdf5 gsl)
+HPXCXXLIB    := $(shell pkg-config --libs --cflags healpix)
 
 # target and source
 EXEC         := gevolution
 SOURCE       := main.cpp
 HEADERS      := $(wildcard *.hpp)
 SOURCES      := main.cpp lccat.cpp lcmap.cpp
+VERSION      := version.h
 
 # mandatory compiler settings (LATfield2)
 DLATFIELD2   := -DFFT3D -DHDF5
@@ -31,7 +32,7 @@ DGEVOLUTION  += -DEXACT_OUTPUT_REDSHIFTS
 # further compiler options
 OPT          := -O3 -std=c++11
 
-$(EXEC): $(SOURCE) $(HEADERS) makefile
+$(EXEC): $(SOURCE) $(HEADERS) makefile $(VERSION)
 	$(COMPILER) $< -o $@ $(OPT) $(DLATFIELD2) $(DGEVOLUTION) $(INCLUDE) $(LIB)
 	
 lccat: lccat.cpp
@@ -40,8 +41,11 @@ lccat: lccat.cpp
 lcmap: lcmap.cpp
 	$(COMPILER) $< -o $@ $(OPT) -fopenmp $(DGEVOLUTION) $(INCLUDE) $(LIB) $(HPXCXXLIB)
 
+$(VERSION) : git_version.sh version.template
+	bash $< . . version.template
+
 clean:
-	-rm -f $(EXEC) lccat lcmap
+	-rm -f $(EXEC) lccat lcmap $(VERSION)
 
 format:
 	-clang-format -i $(HEADERS) $(SOURCES)
