@@ -44,5 +44,5 @@ $(VERSION) : git_version.sh version.template
 	bash $< . . version.template
 
 clean:
-	-rm -f $(EXEC) lccat lcmap
+	-rm -f $(EXEC) lccat lcmap $(VERSION)
 
