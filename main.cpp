@@ -34,6 +34,7 @@
 //
 //////////////////////////
 
+#include "gevolution.hpp"
 #include "version.h"
 #include <set>
 #include <stdlib.h>
@@ -48,7 +49,6 @@
 #include "Particles_gevolution.hpp"
 #include "background.hpp"
 #include "class_tools.hpp"
-#include "gevolution.hpp"
 #include "ic_basic.hpp"
 #include "ic_read.hpp"
 #include "metadata.hpp"

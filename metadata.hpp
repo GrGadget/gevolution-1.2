@@ -14,6 +14,10 @@
 #ifndef METADATA_HEADER
 #define METADATA_HEADER
 
+#include <cstdint>
+
+namespace gevolution
+{
 #define GEVOLUTION_VERSION 1.2
 
 #ifndef MAX_OUTPUTS
@@ -151,7 +155,7 @@
 #define GADGET2_HEADER
 struct gadget2_header
 {
-    uint32_t npart[6];
+    std::uint32_t npart[6];
     double mass[6];
     double time;
     double redshift;
@@ -289,5 +293,5 @@ struct cosmology
     double deg_ncdm[MAX_PCL_SPECIES - 2];
     int num_ncdm;
 };
-
+}
 #endif

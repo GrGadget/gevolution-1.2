@@ -16,8 +16,13 @@
 
 #ifdef HAVE_CLASS
 
+#include "LATfield2.hpp"
 #include "parser.hpp"
 #include <gsl/gsl_spline.h>
+
+namespace gevolution
+{
+using LATfield2::parallel;
 
 //////////////////////////
 // initializeCLASSstructures
@@ -491,6 +496,6 @@ void loadTransferFunctions (background &class_background,
     free (tk_t);
 }
 
+}
 #endif
-
 #endif
