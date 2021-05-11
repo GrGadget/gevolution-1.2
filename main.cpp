@@ -1128,6 +1128,6 @@ int main (int argc, char **argv)
     ioserver.stop ();
 }
 #endif
-
+    MPI_Finalize();
 return 0;
 }

@@ -41,7 +41,7 @@ $(EXEC): $(OBJS) $(HEADERS) makefile $(VERSION)
 	$(COMPILER) $(OBJS) -o $@ $(OPT) $(DLATFIELD2) $(DGEVOLUTION) $(INCLUDE) $(LIB)
 
 $(OBJS) : %.o : %.cpp $(VERSION)
-	$(COMPILER) -c $^ $(INCLUDE)
+	$(COMPILER) -c $^ $(INCLUDE) $(DGEVOLUTION)
 
 lccat: lccat.cpp
 	$(COMPILER) $< -o $@ $(OPT) $(DGEVOLUTION) $(INCLUDE)
