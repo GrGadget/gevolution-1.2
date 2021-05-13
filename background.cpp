@@ -73,13 +73,14 @@ double bg_ncdm (const double a, const cosmology cosmo, const int p)
     {
         double w
             = a * cosmo.m_ncdm[p]
-              / (pow (cosmo.Omega_g * cosmo.h * cosmo.h / C_PLANCK_LAW, 0.25)
-                 * cosmo.T_ncdm[p] * C_BOLTZMANN_CST);
+              / (pow (cosmo.Omega_g * cosmo.h * cosmo.h / cosmo.C_PLANCK_LAW, 0.25)
+                 * cosmo.T_ncdm[p] * cosmo.C_BOLTZMANN_CST);
         w *= w;
 
         return FermiDiracIntegral (w) * cosmo.Omega_ncdm[p]
-               * pow (cosmo.Omega_g * cosmo.h * cosmo.h / C_PLANCK_LAW, 0.25)
-               * cosmo.T_ncdm[p] * C_BOLTZMANN_CST / cosmo.m_ncdm[p] / C_FD_NORM
+               * pow (cosmo.Omega_g * cosmo.h * cosmo.h / cosmo.C_PLANCK_LAW, 0.25)
+               * cosmo.T_ncdm[p] * cosmo.C_BOLTZMANN_CST / cosmo.m_ncdm[p]
+               / cosmo.C_FD_NORM
                / a;
     }
 }

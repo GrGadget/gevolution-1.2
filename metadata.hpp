@@ -93,12 +93,6 @@ namespace gevolution
 #define VECTOR_PARABOLIC 0
 #define VECTOR_ELLIPTIC 1
 
-// Physical constants
-#define C_PLANCK_LAW 4.48147e-7     // omega_g / (T_cmb [K])^4
-#define C_BOLTZMANN_CST 8.61733e-5  // Boltzmann constant [eV/K]
-#define C_SPEED_OF_LIGHT 2997.92458 // speed of light [100 km/s]
-#define C_RHO_CRIT 2.77459457e11    // critical density [M_sun h^2 / Mpc^3]
-#define C_FD_NORM 1.80308535        // Integral[q*q/(exp(q)+1), 0, infinity]
 
 // default physical parameters (used in parser.hpp)
 #define P_HUBBLE 0.67556        // default value for h
@@ -297,6 +291,15 @@ struct cosmology
     double T_ncdm[MAX_PCL_SPECIES - 2];
     double deg_ncdm[MAX_PCL_SPECIES - 2];
     int num_ncdm;
+    
+    
+    // constants
+    double fourpiG;
+    static constexpr double C_PLANCK_LAW = 4.48147e-7;     // omega_g / (T_cmb [K])^4
+    static constexpr double C_BOLTZMANN_CST = 8.61733e-5;  // Boltzmann constant [eV/K]
+    static constexpr double C_SPEED_OF_LIGHT = 2997.92458; // speed of light [100 km/s]
+    static constexpr double C_RHO_CRIT = 2.77459457e11;    // critical density [M_sun h^2 / Mpc^3]
+    static constexpr double C_FD_NORM = 1.80308535;        // Integral[q*q/(exp(q)+1), 0, infinity]
 };
 }
 #endif

@@ -2563,8 +2563,8 @@ void generateIC_basic (
         if (cosmo.m_ncdm[p] > 0.) // add velocity dispersion for non-CDM species
         {
             rescale
-                = pow (cosmo.Omega_g * cosmo.h * cosmo.h / C_PLANCK_LAW, 0.25)
-                  * cosmo.T_ncdm[p] * C_BOLTZMANN_CST / cosmo.m_ncdm[p];
+                = pow (cosmo.Omega_g * cosmo.h * cosmo.h / cosmo.C_PLANCK_LAW, 0.25)
+                  * cosmo.T_ncdm[p] * cosmo.C_BOLTZMANN_CST / cosmo.m_ncdm[p];
             mean_q = applyMomentumDistribution (
                 pcls_ncdm + p, (unsigned int)(ic.seed + p), rescale);
             parallel.sum (mean_q);

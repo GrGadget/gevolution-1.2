@@ -451,12 +451,12 @@ void writeSnapshots (
                      : (sim.numpcl[0] / sim.tracer_factor[0]))
                 / (1ll << 32));
             if (sim.baryon_flag)
-                hdr.mass[1] = (double)sim.tracer_factor[0] * C_RHO_CRIT
+                hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
                               * cosmo.Omega_cdm * sim.boxsize * sim.boxsize
                               * sim.boxsize / sim.numpcl[0]
                               / GADGET_MASS_CONVERSION;
             else
-                hdr.mass[1] = (double)sim.tracer_factor[0] * C_RHO_CRIT
+                hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
                               * (cosmo.Omega_cdm + cosmo.Omega_b) * sim.boxsize
                               * sim.boxsize * sim.boxsize / sim.numpcl[0]
                               / GADGET_MASS_CONVERSION;
@@ -491,7 +491,7 @@ void writeSnapshots (
                      ? (1 + (sim.numpcl[1] / sim.tracer_factor[1]))
                      : (sim.numpcl[1] / sim.tracer_factor[1]))
                 / (1ll << 32));
-            hdr.mass[1] = (double)sim.tracer_factor[1] * C_RHO_CRIT
+            hdr.mass[1] = (double)sim.tracer_factor[1] * cosmo.C_RHO_CRIT
                           * cosmo.Omega_b * sim.boxsize * sim.boxsize
                           * sim.boxsize / sim.numpcl[1]
                           / GADGET_MASS_CONVERSION;
@@ -538,7 +538,7 @@ void writeSnapshots (
                         / sim.tracer_factor[i + 1 + sim.baryon_flag]))
                 / (1ll << 32));
             hdr.mass[1] = (double)sim.tracer_factor[i + 1 + sim.baryon_flag]
-                          * C_RHO_CRIT * cosmo.Omega_ncdm[i] * sim.boxsize
+                          * cosmo.C_RHO_CRIT * cosmo.Omega_ncdm[i] * sim.boxsize
                           * sim.boxsize * sim.boxsize
                           / sim.numpcl[i + 1 + sim.baryon_flag]
                           / GADGET_MASS_CONVERSION;
@@ -2878,12 +2878,12 @@ void writeLightcones (
             hdr.redshift = (1. / a) - 1.;
 
             if (sim.baryon_flag)
-                hdr.mass[1] = (double)sim.tracer_factor[0] * C_RHO_CRIT
+                hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
                               * cosmo.Omega_cdm * sim.boxsize * sim.boxsize
                               * sim.boxsize / sim.numpcl[0]
                               / GADGET_MASS_CONVERSION;
             else
-                hdr.mass[1] = (double)sim.tracer_factor[0] * C_RHO_CRIT
+                hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
                               * (cosmo.Omega_cdm + cosmo.Omega_b) * sim.boxsize
                               * sim.boxsize * sim.boxsize / sim.numpcl[0]
                               / GADGET_MASS_CONVERSION;
@@ -2902,7 +2902,7 @@ void writeLightcones (
 
             if (sim.baryon_flag && sim.tracer_factor[1] > 0)
             {
-                hdr.mass[1] = (double)sim.tracer_factor[1] * C_RHO_CRIT
+                hdr.mass[1] = (double)sim.tracer_factor[1] * cosmo.C_RHO_CRIT
                               * cosmo.Omega_b * sim.boxsize * sim.boxsize
                               * sim.boxsize / sim.numpcl[1]
                               / GADGET_MASS_CONVERSION;
@@ -2920,7 +2920,7 @@ void writeLightcones (
                     continue;
                 sprintf (buffer, "_ncdm%d", p);
                 hdr.mass[1] = (double)sim.tracer_factor[p + 1 + sim.baryon_flag]
-                              * C_RHO_CRIT * cosmo.Omega_ncdm[p] * sim.boxsize
+                              * cosmo.C_RHO_CRIT * cosmo.Omega_ncdm[p] * sim.boxsize
                               * sim.boxsize * sim.boxsize
                               / sim.numpcl[p + 1 + sim.baryon_flag]
                               / GADGET_MASS_CONVERSION;

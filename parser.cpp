@@ -2164,7 +2164,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     {
         cosmo.Omega_g = cosmo.Omega_g * cosmo.Omega_g / cosmo.h;
         cosmo.Omega_g
-            = cosmo.Omega_g * cosmo.Omega_g * C_PLANCK_LAW; // Planck's law
+            = cosmo.Omega_g * cosmo.Omega_g * cosmo.C_PLANCK_LAW; // Planck's law
     }
     else if (parseParameter (params, numparam, "omega_g", cosmo.Omega_g))
     {
