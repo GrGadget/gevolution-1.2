@@ -66,7 +66,7 @@ static double D1_prime (struct cosmology par, double a)
 
     double result_der = (result_plus - result_minus) / (2 * delta_a * a);
 
-    result = result_der * Hconf (a, 1, par) * a;
+    result = result_der * Hconf (a, par)/std::sqrt(par.fourpiG) * a;
 
     gsl_integration_workspace_free (w);
 

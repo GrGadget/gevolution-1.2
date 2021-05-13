@@ -1545,7 +1545,6 @@ double applyMomentumDistribution (
 //   sim            simulation metadata structure
 //   ic             settings for IC generation
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   pcls_cdm       pointer to (uninitialized) particle handler for CDM
 //   pcls_b         pointer to (uninitialized) particle handler for baryons
 //   pcls_ncdm      array of (uninitialized) particle handlers for
@@ -1572,7 +1571,7 @@ double applyMomentumDistribution (
 //////////////////////////
 
 void generateIC_basic (
-    metadata &sim, icsettings &ic, cosmology &cosmo, const double fourpiG,
+    metadata &sim, icsettings &ic, const cosmology cosmo,
     Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_cdm,
     Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_b,
     Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_ncdm,
@@ -1659,7 +1658,7 @@ void generateIC_basic (
         generateDisplacementField (
             *scalarFT,
             ( sim.gr_flag == gravity_theory::GR ? 1 : 0 ) *
-            Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo),
+            Hconf (a, cosmo) * Hconf (a, cosmo),
             pkspline, (unsigned int)ic.seed, ic.flags & ICFLAG_KSPHERE);
     }
     else // initial displacements and velocities are set by individual transfer
@@ -1690,25 +1689,25 @@ void generateIC_basic (
         temp2 = (double *)malloc (tk_d1->size * sizeof (double));
 
         rescale
-            = 3. * Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo)
-              * Hconf (a, fourpiG, cosmo)
+            = 3. * Hconf (a, cosmo) * Hconf (a, cosmo)
+              * Hconf (a, cosmo)
               * (1.
-                 + 0.5 * Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo)
-                       * ((1. / Hconf (0.98 * a, fourpiG, cosmo)
-                           / Hconf (0.98 * a, fourpiG, cosmo))
-                          - (8. / Hconf (0.99 * a, fourpiG, cosmo)
-                             / Hconf (0.99 * a, fourpiG, cosmo))
-                          + (8. / Hconf (1.01 * a, fourpiG, cosmo)
-                             / Hconf (1.01 * a, fourpiG, cosmo))
-                          - (1. / Hconf (1.02 * a, fourpiG, cosmo)
-                             / Hconf (1.02 * a, fourpiG, cosmo)))
+                 + 0.5 * Hconf (a, cosmo) * Hconf (a, cosmo)
+                       * ((1. / Hconf (0.98 * a, cosmo)
+                           / Hconf (0.98 * a, cosmo))
+                          - (8. / Hconf (0.99 * a, cosmo)
+                             / Hconf (0.99 * a, cosmo))
+                          + (8. / Hconf (1.01 * a, cosmo)
+                             / Hconf (1.01 * a, cosmo))
+                          - (1. / Hconf (1.02 * a, cosmo)
+                             / Hconf (1.02 * a, cosmo)))
                        / 0.12);
         for (i = 0; i < tk_d1->size; i++) // construct phi
             temp1[i]
                 = (1.5
-                       * (Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo)
-                          - Hconf (1., fourpiG, cosmo)
-                                * Hconf (1., fourpiG, cosmo) * a * a
+                       * (Hconf (a, cosmo) * Hconf (a, cosmo)
+                          - Hconf (1., cosmo)
+                                * Hconf (1., cosmo) * a * a
                                 * cosmo.Omega_Lambda)
                        * tk_d1->y[i]
                    + rescale * tk_t1->y[i] / tk_d1->x[i] / tk_d1->x[i])
@@ -1723,7 +1722,7 @@ void generateIC_basic (
             for (i = 0; i < tk_t1->size;
                  i++) // construct gauge correction for N-body
                 // gauge (3 Hconf theta_tot / k^2)
-                temp2[i] = -3. * Hconf (a, fourpiG, cosmo) * M_PI * tk_t1->y[i]
+                temp2[i] = -3. * Hconf (a, cosmo) * M_PI * tk_t1->y[i]
                            * sqrt (Pk_primordial (
                                        tk_d1->x[i] * cosmo.h / sim.boxsize, ic)
                                    / tk_d1->x[i])
@@ -1770,7 +1769,7 @@ void generateIC_basic (
                 for (i = 0; i < tk_d1->size; i++) // construct gauge correction
                     // for N-body gauge velocities
                     temp1[i]
-                        = -99.5 * Hconf (0.995 * a, fourpiG, cosmo)
+                        = -99.5 * Hconf (0.995 * a, cosmo)
                           * (3. * temp1[i] * M_PI
                                  * sqrt (Pk_primordial (tk_d1->x[i] * cosmo.h
                                                             / sim.boxsize,
@@ -1778,7 +1777,7 @@ void generateIC_basic (
                                          / tk_d1->x[i])
                                  / tk_d1->x[i]
                              + (temp2[i]
-                                + 3. * Hconf (0.99 * a, fourpiG, cosmo) * M_PI
+                                + 3. * Hconf (0.99 * a, cosmo) * M_PI
                                       * tk_t1->y[i]
                                       * sqrt (
                                             Pk_primordial (tk_d1->x[i] * cosmo.h
@@ -2520,10 +2519,10 @@ void generateIC_basic (
             (*scalarFT) (kFT) = Cplx (0., 0.);
 
         solveModifiedPoissonFT (
-            *scalarFT, *scalarFT, fourpiG / a,
+            *scalarFT, *scalarFT, cosmo.fourpiG / a,
             3. * ( sim.gr_flag == gravity_theory::GR ? 1 : 0 )
-                * (Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo)
-                   + fourpiG * cosmo.Omega_m / a));
+                * (Hconf (a, cosmo) * Hconf (a, cosmo)
+                   + cosmo.fourpiG * cosmo.Omega_m / a));
     }
 
     plan_phi->execute (FFT_BACKWARD);
@@ -2533,7 +2532,7 @@ void generateIC_basic (
         != '\0') // if power spectrum is used instead of transfer functions, set
     // velocities using linear approximation
     {
-        rescale = a / Hconf (a, fourpiG, cosmo)
+        rescale = a / Hconf (a, cosmo)
                   / (1.5 * Omega_m (a, cosmo) + 2. * Omega_rad (a, cosmo));
         maxvel[0]
             = pcls_cdm->updateVel (initialize_q_ic_basic, rescale, &phi, 1) / a;
@@ -2555,7 +2554,7 @@ void generateIC_basic (
                                   // transfer functions,
         // set bulk velocities using linear approximation
         {
-            rescale = a / Hconf (a, fourpiG, cosmo)
+            rescale = a / Hconf (a, cosmo)
                       / (1.5 * Omega_m (a, cosmo) + Omega_rad (a, cosmo));
             pcls_ncdm[p].updateVel (initialize_q_ic_basic, rescale, &phi, 1);
         }
@@ -2583,7 +2582,7 @@ void generateIC_basic (
     projection_T0i_comm (Bi);
     plan_Bi->execute (FFT_FORWARD);
     projectFTvector (*BiFT, *BiFT,
-                     fourpiG / (double)sim.numpts / (double)sim.numpts);
+                     cosmo.fourpiG / (double)sim.numpts / (double)sim.numpts);
     plan_Bi->execute (FFT_BACKWARD);
     Bi->updateHalo (); // B initialized
 
@@ -2594,7 +2593,7 @@ void generateIC_basic (
     projection_Tij_comm (Sij);
 
     prepareFTsource<Real> (*phi, *Sij, *Sij,
-                           2. * fourpiG / a / (double)sim.numpts
+                           2. * cosmo.fourpiG / a / (double)sim.numpts
                                / (double)sim.numpts);
     plan_Sij->execute (FFT_FORWARD);
     projectFTscalar (*SijFT, *scalarFT);

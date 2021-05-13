@@ -46,7 +46,6 @@ using LATfield2::Real;
 //   sim            simulation metadata structure
 //   ic             settings for IC generation
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   a              reference to scale factor
 //   tau            reference to conformal coordinate time
 //   dtau           time step
@@ -80,7 +79,7 @@ using LATfield2::Real;
 //////////////////////////
 
 void readIC (
-    metadata &sim, icsettings &ic, cosmology &cosmo, const double fourpiG,
+    metadata &sim, icsettings &ic, const cosmology cosmo,
     double &a, double &tau, double &dtau, double &dtau_old,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
         *pcls_cdm,

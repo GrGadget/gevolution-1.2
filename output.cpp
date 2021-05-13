@@ -35,7 +35,6 @@ using LATfield2::Real;
 // Arguments:
 //   sim            simulation metadata structure
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   a              scale factor
 //   snapcount      snapshot index
 //   h5filename     base name for HDF5 output file
@@ -66,7 +65,7 @@ using LATfield2::Real;
 //////////////////////////
 
 void writeSnapshots (
-    metadata &sim, cosmology &cosmo, const double fourpiG, const double a,
+    metadata &sim, const cosmology cosmo, const double a,
     const double dtau_old, const int done_hij, const int snapcount,
     std::string h5filename,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
@@ -170,7 +169,7 @@ void writeSnapshots (
     if (sim.out_snapshot & MASK_POT)
     {
         plan_source->execute (FFT_FORWARD);
-        solveModifiedPoissonFT (*scalarFT, *scalarFT, fourpiG / a);
+        solveModifiedPoissonFT (*scalarFT, *scalarFT, cosmo.fourpiG / a);
         plan_source->execute (FFT_BACKWARD);
         if (sim.downgrade_factor > 1)
             source->saveHDF5_coarseGrain3D (h5filename + filename + "_psiN.h5",
@@ -379,7 +378,7 @@ void writeSnapshots (
             projection_T0i_comm (Bi_check);
             plan_Bi_check->execute (FFT_FORWARD);
             projectFTvector (*BiFT_check, *BiFT_check,
-                             fourpiG / (double)sim.numpts / (double)sim.numpts);
+                             cosmo.fourpiG / (double)sim.numpts / (double)sim.numpts);
         }
         plan_Bi_check->execute (FFT_BACKWARD);
 
@@ -431,7 +430,7 @@ void writeSnapshots (
 #ifdef EXACT_OUTPUT_REDSHIFTS
         hdr.time = 1. / (sim.z_snapshot[snapcount] + 1.);
         hdr.redshift = sim.z_snapshot[snapcount];
-        dtau_pos = (hdr.time - a) / a / Hconf (a, fourpiG, cosmo);
+        dtau_pos = (hdr.time - a) / a / Hconf (a, cosmo);
 #else
         hdr.time = a;
         hdr.redshift = (1. / a) - 1.;
@@ -602,7 +601,6 @@ void writeSnapshots (
 // Arguments:
 //   sim            simulation metadata structure
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   a              scale factor
 //   tau            conformal time
 //   dtau           conformal time step
@@ -630,7 +628,7 @@ void writeSnapshots (
 //////////////////////////
 
 void writeLightcones (
-    metadata &sim, cosmology &cosmo, const double fourpiG, const double a,
+    metadata &sim, const cosmology cosmo, const double a,
     const double tau, const double dtau, const double dtau_old,
     const double maxvel, const int cycle, std::string h5filename,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
@@ -782,7 +780,7 @@ void writeLightcones (
             }
         }
 
-        d = particleHorizon (1. / (1. + sim.lightcone[i].z), fourpiG, cosmo);
+        d = particleHorizon (1. / (1. + sim.lightcone[i].z), cosmo);
 
         s[0] = d - tau - 0.5 * sim.covering[i] * dtau;
         s[1] = d - tau + 0.5 * sim.covering[i] * dtau_old;
@@ -2896,7 +2894,7 @@ void writeLightcones (
             if (sim.tracer_factor[0] > 0)
                 pcls_cdm->saveGadget2 (h5filename + filename + "_cdm", hdr,
                                        sim.lightcone[i], d - tau, dtau,
-                                       dtau_old, a * Hconf (a, fourpiG, cosmo),
+                                       dtau_old, a * Hconf (a, cosmo),
                                        vertex, n, IDbacklog[0], IDprelog[0],
                                        phi, sim.tracer_factor[0]);
 
@@ -2908,7 +2906,7 @@ void writeLightcones (
                               / GADGET_MASS_CONVERSION;
                 pcls_b->saveGadget2 (h5filename + filename + "_b", hdr,
                                      sim.lightcone[i], d - tau, dtau, dtau_old,
-                                     a * Hconf (a, fourpiG, cosmo), vertex, n,
+                                     a * Hconf (a, cosmo), vertex, n,
                                      IDbacklog[1], IDprelog[1], phi,
                                      sim.tracer_factor[1]);
             }
@@ -2926,7 +2924,7 @@ void writeLightcones (
                               / GADGET_MASS_CONVERSION;
                 pcls_ncdm[p].saveGadget2 (
                     h5filename + filename + buffer, hdr, sim.lightcone[i],
-                    d - tau, dtau, dtau_old, a * Hconf (a, fourpiG, cosmo),
+                    d - tau, dtau, dtau_old, a * Hconf (a, cosmo),
                     vertex, n, IDbacklog[p + 1 + sim.baryon_flag],
                     IDprelog[p + 1 + sim.baryon_flag], phi,
                     sim.tracer_factor[p + 1 + sim.baryon_flag]);
@@ -3147,7 +3145,6 @@ void writeLightcones (
 // Arguments:
 //   sim            simulation metadata structure
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   a              scale factor
 //   pkcount        spectrum output index
 //   pcls_cdm       pointer to particle handler for CDM
@@ -3176,7 +3173,7 @@ void writeLightcones (
 //////////////////////////
 
 void writeSpectra (
-    metadata &sim, cosmology &cosmo, const double fourpiG, const double a,
+    metadata &sim, const cosmology cosmo, const double a,
     const int pkcount,
 #ifdef HAVE_CLASS
     background &class_background, perturbs &class_perturbs, icsettings &ic,
@@ -3233,8 +3230,7 @@ void writeSpectra (
             && sim.gr_flag == gravity_theory::Newtonian)
         {
             projection_T00_project (class_background, class_perturbs, *source,
-                                    *scalarFT, plan_source, sim, ic, cosmo,
-                                    fourpiG, a);
+                                    *scalarFT, plan_source, sim, ic, cosmo, a);
             if (sim.out_pk & MASK_DELTA)
             {
                 Omega_ncdm = 0;
@@ -3343,7 +3339,7 @@ void writeSpectra (
 
         if (sim.out_pk & MASK_POT)
         {
-            solveModifiedPoissonFT (*scalarFT, *scalarFT, fourpiG / a);
+            solveModifiedPoissonFT (*scalarFT, *scalarFT, cosmo.fourpiG / a);
             extractPowerSpectrum (*scalarFT, kbin, power, kscatter, pscatter,
                                   occupation, sim.numbins, false, KTYPE_LINEAR);
             sprintf (filename, "%s%s%03d_psiN.dat", sim.output_path,
@@ -3547,7 +3543,7 @@ void writeSpectra (
         projection_Tij_comm (Sij);
 
         prepareFTsource<Real> (*phi, *Sij, *Sij,
-                               2. * fourpiG / (double)sim.numpts
+                               2. * cosmo.fourpiG / (double)sim.numpts
                                    / (double)sim.numpts / a);
         plan_Sij->execute (FFT_FORWARD);
         projectFTtensor (*SijFT, *SijFT);
@@ -3569,8 +3565,7 @@ void writeSpectra (
         if (sim.radiation_flag > 0 || sim.fluid_flag > 0)
         {
             projection_T00_project (class_background, class_perturbs, *source,
-                                    *scalarFT, plan_source, sim, ic, cosmo,
-                                    fourpiG, a);
+                                    *scalarFT, plan_source, sim, ic, cosmo, a);
             if (sim.out_pk & MASK_DELTA)
             {
                 Omega_ncdm = 0;
@@ -3915,7 +3910,7 @@ void writeSpectra (
             projection_T0i_comm (Bi_check);
             plan_Bi_check->execute (FFT_FORWARD);
             projectFTvector (*BiFT_check, *BiFT_check,
-                             fourpiG / (double)sim.numpts / (double)sim.numpts);
+                             cosmo.fourpiG / (double)sim.numpts / (double)sim.numpts);
         }
         extractPowerSpectrum (*BiFT_check, kbin, power, kscatter, pscatter,
                               occupation, sim.numbins, false, KTYPE_LINEAR);

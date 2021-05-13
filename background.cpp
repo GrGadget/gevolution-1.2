@@ -132,16 +132,15 @@ double bg_ncdm (const double a, const cosmology cosmo)
 //
 // Arguments:
 //   a          scale factor
-//   fourpiG    "4 pi G"
 //   cosmo      structure containing the cosmological parameters
 //
 // Returns: conformal Hubble rate
 //
 //////////////////////////
 
-double Hconf (const double a, const double fourpiG, const cosmology cosmo)
+double Hconf (const double a, const cosmology cosmo)
 {
-    return sqrt ((2. * fourpiG / 3.)
+    return sqrt ((2. * cosmo.fourpiG / 3.)
                  * (((cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)) / a)
                     + (cosmo.Omega_Lambda * a * a) + (cosmo.Omega_rad / a / a)
                     + (cosmo.Omega_fld * exp (3. * cosmo.wa_fld * (a - 1.))
@@ -187,7 +186,6 @@ double Omega_Lambda (const double a, const cosmology cosmo)
 //
 // Arguments:
 //   a          scale factor (will be advanced by dtau)
-//   fourpiG    "4 pi G"
 //   cosmo      structure containing the cosmological parameters
 //   dtau       time step by which the scale factor should be advanced
 //
@@ -195,22 +193,23 @@ double Omega_Lambda (const double a, const cosmology cosmo)
 //
 //////////////////////////
 
-void rungekutta4bg (double &a, const double fourpiG, const cosmology cosmo,
+void rungekutta4bg (double &a, const cosmology cosmo,
                     const double dtau)
 {
     double k1a, k2a, k3a, k4a;
 
-    k1a = a * Hconf (a, fourpiG, cosmo);
-    k2a = (a + k1a * dtau / 2.) * Hconf (a + k1a * dtau / 2., fourpiG, cosmo);
-    k3a = (a + k2a * dtau / 2.) * Hconf (a + k2a * dtau / 2., fourpiG, cosmo);
-    k4a = (a + k3a * dtau) * Hconf (a + k3a * dtau, fourpiG, cosmo);
+    k1a = a * Hconf (a, cosmo);
+    k2a = (a + k1a * dtau / 2.) * Hconf (a + k1a * dtau / 2., cosmo);
+    k3a = (a + k2a * dtau / 2.) * Hconf (a + k2a * dtau / 2., cosmo);
+    k4a = (a + k3a * dtau) * Hconf (a + k3a * dtau, cosmo);
 
     a += dtau * (k1a + 2. * k2a + 2. * k3a + k4a) / 6.;
 }
 
 static double particleHorizonIntegrand (double sqrta, void *cosmo)
 {
-    return 2. / (sqrta * Hconf (sqrta * sqrta, 1., *(cosmology *)cosmo));
+    return 2. / (sqrta * Hconf (sqrta * sqrta,
+        *reinterpret_cast<cosmology*>(cosmo)));
 }
 
 //////////////////////////
@@ -221,14 +220,13 @@ static double particleHorizonIntegrand (double sqrta, void *cosmo)
 //
 // Arguments:
 //   a          scale factor
-//   fourpiG    "4 pi G"
 //   cosmo      structure containing the cosmological parameters
 //
 // Returns: particle horizon (tau)
 //
 //////////////////////////
 
-double particleHorizon (const double a, const double fourpiG, cosmology &cosmo)
+double particleHorizon (const double a, cosmology cosmo)
 {
     double result;
     gsl_function f;
@@ -241,6 +239,6 @@ double particleHorizon (const double a, const double fourpiG, cosmology &cosmo)
     gsl_integration_qng (&f, sqrt (a) * 1.0e-7, sqrt (a), 5.0e-7, 1.0e-7,
                          &result, &err, &n);
 
-    return result / sqrt (fourpiG);
+    return result;
 }
 }

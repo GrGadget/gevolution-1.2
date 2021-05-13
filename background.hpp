@@ -93,7 +93,7 @@ double bg_ncdm (const double a, const cosmology cosmo);
 //
 //////////////////////////
 
-double Hconf (const double a, const double fourpiG, const cosmology cosmo);
+double Hconf (const double a, const cosmology cosmo);
 
 double Omega_m (const double a, const cosmology cosmo);
 
@@ -118,7 +118,7 @@ double Omega_Lambda (const double a, const cosmology cosmo);
 //
 //////////////////////////
 
-void rungekutta4bg (double &a, const double fourpiG, const cosmology cosmo,
+void rungekutta4bg (double &a, const cosmology cosmo,
                     const double dtau);
 
 // double particleHorizonIntegrand (double sqrta, void *cosmo);
@@ -131,13 +131,12 @@ void rungekutta4bg (double &a, const double fourpiG, const cosmology cosmo,
 //
 // Arguments:
 //   a          scale factor
-//   fourpiG    "4 pi G"
 //   cosmo      structure containing the cosmological parameters
 //
 // Returns: particle horizon (tau)
 //
 //////////////////////////
 
-double particleHorizon (const double a, const double fourpiG, cosmology &cosmo);
+double particleHorizon (const double a, const cosmology cosmo);
 }
 #endif

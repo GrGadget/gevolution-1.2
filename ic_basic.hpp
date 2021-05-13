@@ -667,7 +667,6 @@ double applyMomentumDistribution (
 //   sim            simulation metadata structure
 //   ic             settings for IC generation
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   pcls_cdm       pointer to (uninitialized) particle handler for CDM
 //   pcls_b         pointer to (uninitialized) particle handler for baryons
 //   pcls_ncdm      array of (uninitialized) particle handlers for
@@ -694,7 +693,7 @@ double applyMomentumDistribution (
 //////////////////////////
 
 void generateIC_basic (
-    metadata &sim, icsettings &ic, cosmology &cosmo, const double fourpiG,
+    metadata &sim, icsettings &ic, const cosmology cosmo,
     Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_cdm,
     Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_b,
     Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_ncdm,

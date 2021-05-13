@@ -46,7 +46,6 @@ using LATfield2::Real;
 // Arguments:
 //   sim            simulation metadata structure
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   a              scale factor
 //   snapcount      snapshot index
 //   h5filename     base name for HDF5 output file
@@ -77,7 +76,7 @@ using LATfield2::Real;
 //////////////////////////
 
 void writeSnapshots (
-    metadata &sim, cosmology &cosmo, const double fourpiG, const double a,
+    metadata &sim, const cosmology cosmo, const double a,
     const double dtau_old, const int done_hij, const int snapcount,
     std::string h5filename,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
@@ -109,7 +108,6 @@ void writeSnapshots (
 // Arguments:
 //   sim            simulation metadata structure
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   a              scale factor
 //   tau            conformal time
 //   dtau           conformal time step
@@ -137,7 +135,7 @@ void writeSnapshots (
 //////////////////////////
 
 void writeLightcones (
-    metadata &sim, cosmology &cosmo, const double fourpiG, const double a,
+    metadata &sim, const cosmology cosmo, const double a,
     const double tau, const double dtau, const double dtau_old,
     const double maxvel, const int cycle, std::string h5filename,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
@@ -159,7 +157,6 @@ void writeLightcones (
 // Arguments:
 //   sim            simulation metadata structure
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   a              scale factor
 //   pkcount        spectrum output index
 //   pcls_cdm       pointer to particle handler for CDM
@@ -188,7 +185,7 @@ void writeLightcones (
 //////////////////////////
 
 void writeSpectra (
-    metadata &sim, cosmology &cosmo, const double fourpiG, const double a,
+    metadata &sim, const cosmology cosmo, const double a,
     const int pkcount,
 #ifdef HAVE_CLASS
     background &class_background, perturbs &class_perturbs, icsettings &ic,

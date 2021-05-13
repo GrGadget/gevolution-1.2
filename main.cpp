@@ -316,30 +316,30 @@ int main (int argc, char **argv)
     cosmo.fourpiG
         = 1.5 * sim.boxsize * sim.boxsize / cosmo.C_SPEED_OF_LIGHT / cosmo.C_SPEED_OF_LIGHT;
     a = 1. / (1. + sim.z_in);
-    tau = particleHorizon (a, cosmo.fourpiG, cosmo);
+    tau = particleHorizon (a, cosmo);
 
-    if (sim.Cf * dx < sim.steplimit / Hconf (a, cosmo.fourpiG, cosmo))
+    if (sim.Cf * dx < sim.steplimit / Hconf (a, cosmo))
         dtau = sim.Cf * dx;
     else
-        dtau = sim.steplimit / Hconf (a, cosmo.fourpiG, cosmo);
+        dtau = sim.steplimit / Hconf (a, cosmo);
 
     dtau_old = 0.;
 
     if (ic.generator == ICGEN_BASIC)
-        generateIC_basic (sim, ic, cosmo, cosmo.fourpiG, &pcls_cdm, &pcls_b,
+        generateIC_basic (sim, ic, cosmo, &pcls_cdm, &pcls_b,
                           pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij,
                           &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi,
                           &plan_Bi, &plan_source, &plan_Sij, params,
                           numparam); // generates ICs on the fly
     else if (ic.generator == ICGEN_READ_FROM_DISK)
-        readIC (sim, ic, cosmo, cosmo.fourpiG, a, tau, dtau, dtau_old, &pcls_cdm,
+        readIC (sim, ic, cosmo, a, tau, dtau, dtau_old, &pcls_cdm,
                 &pcls_b, pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij,
                 &scalarFT, &BiFT, &SijFT, &plan_phi, &plan_chi, &plan_Bi,
                 &plan_source, &plan_Sij, cycle, snapcount, pkcount,
                 restartcount, IDbacklog);
 #ifdef ICGEN_PREVOLUTION
     else if (ic.generator == ICGEN_PREVOLUTION)
-        generateIC_prevolution (sim, ic, cosmo, cosmo.fourpiG, a, tau, dtau, dtau_old,
+        generateIC_prevolution (sim, ic, cosmo, a, tau, dtau, dtau_old,
                                 &pcls_cdm, &pcls_b, pcls_ncdm, maxvel, &phi,
                                 &chi, &Bi, &source, &Sij, &scalarFT, &BiFT,
                                 &SijFT, &plan_phi, &plan_chi, &plan_Bi,
@@ -348,7 +348,7 @@ int main (int argc, char **argv)
 #ifdef ICGEN_FALCONIC
     else if (ic.generator == ICGEN_FALCONIC)
         maxvel[0] = generateIC_FalconIC (
-            sim, ic, cosmo, cosmo.fourpiG, dtau, &pcls_cdm, pcls_ncdm, maxvel + 1,
+            sim, ic, cosmo, dtau, &pcls_cdm, pcls_ncdm, maxvel + 1,
             &phi, &source, &chi, &Bi, &source, &Sij, &scalarFT, &BiFT, &SijFT,
             &plan_phi, &plan_source, &plan_chi, &plan_Bi, &plan_source,
             &plan_Sij);
@@ -416,7 +416,7 @@ int main (int argc, char **argv)
                 || (ic.generator == ICGEN_READ_FROM_DISK && cycle == 0)))
         {
             prepareFTchiLinear (class_background, class_perturbs, scalarFT, sim,
-                                ic, cosmo, cosmo.fourpiG, a);
+                                ic, cosmo, a);
             plan_source.execute (FFT_BACKWARD);
             for (x.first (); x.test (); x.next ())
                 chi (x) += source (x);
@@ -438,8 +438,7 @@ int main (int argc, char **argv)
 #ifdef HAVE_CLASS
         if (sim.radiation_flag > 0 || sim.fluid_flag > 0)
             projection_T00_project (class_background, class_perturbs, source,
-                                    scalarFT, &plan_source, sim, ic, cosmo,
-                                    cosmo.fourpiG, a);
+                                    scalarFT, &plan_source, sim, ic, cosmo, a);
 #endif
         if (sim.gr_flag == gravity_theory::GR)
         {
@@ -542,9 +541,9 @@ int main (int argc, char **argv)
                 prepareFTsource<Real> (
                     phi, chi, source,
                     cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo),
-                    source, 3. * Hconf (a, cosmo.fourpiG, cosmo) * dx * dx / dtau_old,
+                    source, 3. * Hconf (a, cosmo) * dx * dx / dtau_old,
                     cosmo.fourpiG * dx * dx / a,
-                    3. * Hconf (a, cosmo.fourpiG, cosmo) * Hconf (a, cosmo.fourpiG, cosmo)
+                    3. * Hconf (a, cosmo) * Hconf (a, cosmo)
                         * dx * dx); // prepare nonlinear source for phi
                                     // update
 
@@ -558,7 +557,7 @@ int main (int argc, char **argv)
 #endif
 
                 solveModifiedPoissonFT (scalarFT, scalarFT, 1. / (dx * dx),
-                                        3. * Hconf (a, cosmo.fourpiG, cosmo)
+                                        3. * Hconf (a, cosmo)
                                             / dtau_old); // phi update (k-space)
 
 #ifdef BENCHMARK
@@ -617,7 +616,7 @@ int main (int argc, char **argv)
                                       " T00(k=0)\n");
                 fprintf (outfile, " %6d   %e   %e   %e   %e   %e\n", cycle, tau,
                          a,
-                         Hconf (a, cosmo.fourpiG, cosmo) / Hconf (1., cosmo.fourpiG, cosmo),
+                         Hconf (a, cosmo) / Hconf (1., cosmo),
                          scalarFT (kFT).real (), T00hom);
                 fclose (outfile);
             }
@@ -642,7 +641,7 @@ int main (int argc, char **argv)
         if (sim.radiation_flag > 0 && a < 1. / (sim.z_switch_linearchi + 1.))
         {
             prepareFTchiLinear (class_background, class_perturbs, scalarFT, sim,
-                                ic, cosmo, cosmo.fourpiG, a);
+                                ic, cosmo, a);
             projectFTscalar (SijFT, scalarFT, 1);
         }
         else
@@ -703,7 +702,7 @@ int main (int argc, char **argv)
 
         // lightcone output
         if (sim.num_lightcone > 0)
-            writeLightcones (sim, cosmo, cosmo.fourpiG, a, tau, dtau, dtau_old,
+            writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
                              maxvel[0], cycle,
                              h5filename + sim.basename_lightcone, &pcls_cdm,
                              &pcls_b, pcls_ncdm, &phi, &chi, &Bi, &Sij, &BiFT,
@@ -724,7 +723,7 @@ int main (int argc, char **argv)
                  << " at z = " << ((1. / a) - 1.) << " (cycle " << cycle
                  << "), tau/boxsize = " << tau << endl;
 
-            writeSnapshots (sim, cosmo, cosmo.fourpiG, a, dtau_old, done_hij,
+            writeSnapshots (sim, cosmo, a, dtau_old, done_hij,
                             snapcount, h5filename + sim.basename_snapshot,
                             &pcls_cdm, &pcls_b, pcls_ncdm, &phi, &chi, &Bi,
                             &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi,
@@ -754,7 +753,7 @@ int main (int argc, char **argv)
                  << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
                  << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
 
-            writeSpectra (sim, cosmo, cosmo.fourpiG, a, pkcount,
+            writeSpectra (sim, cosmo, a, pkcount,
 #ifdef HAVE_CLASS
                           class_background, class_perturbs, ic,
 #endif
@@ -776,12 +775,12 @@ int main (int argc, char **argv)
 
 #ifdef EXACT_OUTPUT_REDSHIFTS
         tmp = a;
-        rungekutta4bg (tmp, cosmo.fourpiG, cosmo, 0.5 * dtau);
-        rungekutta4bg (tmp, cosmo.fourpiG, cosmo, 0.5 * dtau);
+        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
+        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
 
         if (pkcount < sim.num_pk && 1. / tmp < sim.z_pk[pkcount] + 1.)
         {
-            writeSpectra (sim, cosmo, cosmo.fourpiG, a, pkcount,
+            writeSpectra (sim, cosmo, a, pkcount,
 #ifdef HAVE_CLASS
                           class_background, class_perturbs, ic,
 #endif
@@ -838,7 +837,7 @@ int main (int argc, char **argv)
             }
 
             COUT << "), time step / Hubble time = "
-                 << Hconf (a, cosmo.fourpiG, cosmo) * dtau;
+                 << Hconf (a, cosmo) * dtau;
 
             for (i = 0; i < cosmo.num_ncdm; i++)
             {
@@ -896,7 +895,7 @@ int main (int argc, char **argv)
                 ref2_time = MPI_Wtime ();
 #endif
 
-                rungekutta4bg (tmp, cosmo.fourpiG, cosmo,
+                rungekutta4bg (tmp, cosmo,
                                0.5 * dtau / numsteps_ncdm[i]);
                 f_params[0] = tmp;
                 f_params[1] = tmp * tmp * sim.numpts;
@@ -914,7 +913,7 @@ int main (int argc, char **argv)
                 moveParts_time += MPI_Wtime () - ref2_time;
                 ref2_time = MPI_Wtime ();
 #endif
-                rungekutta4bg (tmp, cosmo.fourpiG, cosmo,
+                rungekutta4bg (tmp, cosmo,
                                0.5 * dtau / numsteps_ncdm[i]);
             }
         }
@@ -957,7 +956,7 @@ int main (int argc, char **argv)
         ref2_time = MPI_Wtime ();
 #endif
 
-        rungekutta4bg (a, cosmo.fourpiG, cosmo,
+        rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
 
         f_params[0] = a;
@@ -985,7 +984,7 @@ int main (int argc, char **argv)
         moveParts_time += MPI_Wtime () - ref2_time;
 #endif
 
-        rungekutta4bg (a, cosmo.fourpiG, cosmo,
+        rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
 
         parallel.max<double> (maxvel, numspecies);
@@ -1056,10 +1055,10 @@ int main (int argc, char **argv)
 
         dtau_old = dtau;
 
-        if (sim.Cf * dx < sim.steplimit / Hconf (a, cosmo.fourpiG, cosmo))
+        if (sim.Cf * dx < sim.steplimit / Hconf (a, cosmo))
             dtau = sim.Cf * dx;
         else
-            dtau = sim.steplimit / Hconf (a, cosmo.fourpiG, cosmo);
+            dtau = sim.steplimit / Hconf (a, cosmo);
 
         cycle++;
 

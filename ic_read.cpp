@@ -29,7 +29,6 @@ namespace gevolution
 //   sim            simulation metadata structure
 //   ic             settings for IC generation
 //   cosmo          cosmological parameter structure
-//   fourpiG        4 pi G (in code units)
 //   a              reference to scale factor
 //   tau            reference to conformal coordinate time
 //   dtau           time step
@@ -63,7 +62,7 @@ namespace gevolution
 //////////////////////////
 
 void readIC (
-    metadata &sim, icsettings &ic, cosmology &cosmo, const double fourpiG,
+    metadata &sim, icsettings &ic, const cosmology cosmo,
     double &a, double &tau, double &dtau, double &dtau_old,
     Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
         *pcls_cdm,
@@ -334,10 +333,10 @@ void readIC (
             (*scalarFT) (kFT) = Cplx (0., 0.);
 
         solveModifiedPoissonFT (
-            *scalarFT, *scalarFT, fourpiG / a,
+            *scalarFT, *scalarFT, cosmo.fourpiG / a,
             3. * ( sim.gr_flag == gravity_theory::GR ? 1 : 0 )
-                * (Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo)
-                   + fourpiG * cosmo.Omega_m / a));
+                * (Hconf (a, cosmo) * Hconf (a, cosmo)
+                   + cosmo.fourpiG * cosmo.Omega_m / a));
         plan_phi->execute (FFT_BACKWARD);
     }
 
@@ -346,15 +345,15 @@ void readIC (
     if (ic.restart_tau > 0.)
         tau = ic.restart_tau;
     else
-        tau = particleHorizon (a, fourpiG, cosmo);
+        tau = particleHorizon (a, cosmo);
 
     if (ic.restart_dtau > 0.)
         dtau_old = ic.restart_dtau;
 
-    if (sim.Cf / (double)sim.numpts < sim.steplimit / Hconf (a, fourpiG, cosmo))
+    if (sim.Cf / (double)sim.numpts < sim.steplimit / Hconf (a, cosmo))
         dtau = sim.Cf / (double)sim.numpts;
     else
-        dtau = sim.steplimit / Hconf (a, fourpiG, cosmo);
+        dtau = sim.steplimit / Hconf (a, cosmo);
 
     if (ic.restart_cycle >= 0)
     {
@@ -826,8 +825,7 @@ void readIC (
                 }
             }
 
-            d = particleHorizon (1. / (1. + sim.lightcone[i].z), fourpiG,
-                                 cosmo);
+            d = particleHorizon (1. / (1. + sim.lightcone[i].z), cosmo);
             if (sim.out_lightcone[i] & MASK_GADGET
                 && sim.lightcone[i].distance[0] > d - tau + 0.5 * dtau_old
                 && sim.lightcone[i].distance[1] <= d - tau + 0.5 * dtau_old
@@ -1060,7 +1058,7 @@ void readIC (
         projection_T0i_comm (Bi);
         plan_Bi->execute (FFT_FORWARD);
         projectFTvector (*BiFT, *BiFT,
-                         fourpiG / (double)sim.numpts / (double)sim.numpts);
+                         cosmo.fourpiG / (double)sim.numpts / (double)sim.numpts);
         plan_Bi->execute (FFT_BACKWARD);
         Bi->updateHalo ();
 
@@ -1071,7 +1069,7 @@ void readIC (
         projection_Tij_comm (Sij);
 
         prepareFTsource<Real> (*phi, *Sij, *Sij,
-                               2. * fourpiG / a / (double)sim.numpts
+                               2. * cosmo.fourpiG / a / (double)sim.numpts
                                    / (double)sim.numpts);
         plan_Sij->execute (FFT_FORWARD);
         projectFTscalar (*SijFT, *scalarFT);
