@@ -991,7 +991,7 @@ void generateIC_prevolution (
     COUT << " needed " << cycle << " steps and " << relax_cycles
          << " nonlinear relaxation operations." << endl;
 
-    if (sim.gr_flag == 0)
+    if (sim.gr_flag == gravity_theory::Newtonian)
     {
         COUT << " gravity theory = Newton: computing gauge transformation..."
              << endl;

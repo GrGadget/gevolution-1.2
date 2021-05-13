@@ -205,6 +205,11 @@ struct lightcone_geometry
     double distance[2];
 };
 
+enum class gravity_theory
+{
+    GR, Newtonian
+};
+
 struct metadata
 {
     int numpts;
@@ -212,7 +217,7 @@ struct metadata
     long numpcl[MAX_PCL_SPECIES];
     int tracer_factor[MAX_PCL_SPECIES];
     int baryon_flag;
-    int gr_flag;
+    gravity_theory gr_flag = gravity_theory::GR;
     int vector_flag;
     int radiation_flag;
     int fluid_flag;

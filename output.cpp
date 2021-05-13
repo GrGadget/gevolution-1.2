@@ -182,7 +182,7 @@ void writeSnapshots (
     if (sim.out_snapshot & MASK_T00)
     {
         projection_init (source);
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
             projection_T00_project (pcls_cdm, source, a, phi);
             if (sim.baryon_flag)
@@ -235,7 +235,7 @@ void writeSnapshots (
 
     if (sim.out_snapshot & MASK_B)
     {
-        if (sim.gr_flag == 0)
+        if (sim.gr_flag == gravity_theory::Newtonian)
         {
             plan_Bi->execute (FFT_BACKWARD);
         }
@@ -261,7 +261,7 @@ void writeSnapshots (
             Bi->saveHDF5 (h5filename + filename + "_B.h5");
 #endif
 
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
             plan_Bi->execute (FFT_BACKWARD);
             Bi->updateHalo ();
@@ -354,7 +354,7 @@ void writeSnapshots (
                                         sim.downgrade_factor);
         else
             Bi->saveHDF5 (h5filename + filename + "_p.h5");
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
             plan_Bi->execute (FFT_BACKWARD);
             Bi->updateHalo ();
@@ -933,7 +933,7 @@ void writeLightcones (
                 }
             }
 
-            if (sim.gr_flag == 0 && sim.out_lightcone[i] & MASK_B
+            if (sim.gr_flag == gravity_theory::Newtonian && sim.out_lightcone[i] & MASK_B
                 && done_B == 0)
             {
                 plan_Bi->execute (FFT_BACKWARD);
@@ -3225,11 +3225,12 @@ void writeSpectra (
     if (sim.out_pk & MASK_RBARE || sim.out_pk & MASK_DBARE
         || sim.out_pk & MASK_POT
         || ((sim.out_pk & MASK_T00 || sim.out_pk & MASK_DELTA)
-            && sim.gr_flag == 0))
+            && sim.gr_flag == gravity_theory::Newtonian))
     {
         projection_init (source);
 #ifdef HAVE_CLASS
-        if ((sim.radiation_flag > 0 || sim.fluid_flag > 0) && sim.gr_flag == 0)
+        if ((sim.radiation_flag > 0 || sim.fluid_flag > 0) 
+            && sim.gr_flag == gravity_theory::Newtonian)
         {
             projection_T00_project (class_background, class_perturbs, *source,
                                     *scalarFT, plan_source, sim, ic, cosmo,
@@ -3288,7 +3289,7 @@ void writeSpectra (
 
         if (sim.out_pk & MASK_RBARE || sim.out_pk & MASK_DBARE
             || ((sim.out_pk & MASK_T00 || sim.out_pk & MASK_DELTA)
-                && sim.gr_flag == 0))
+                && sim.gr_flag == gravity_theory::Newtonian))
             extractPowerSpectrum (*scalarFT, kbin, power, kscatter, pscatter,
                                   occupation, sim.numbins, true, KTYPE_LINEAR);
 
@@ -3316,7 +3317,7 @@ void writeSpectra (
                                 sim.z_pk[pkcount]);
         }
 
-        if (sim.out_pk & MASK_T00 && sim.gr_flag == 0)
+        if (sim.out_pk & MASK_T00 && sim.gr_flag == gravity_theory::Newtonian)
         {
             sprintf (filename, "%s%s%03d_T00.dat", sim.output_path,
                      sim.basename_pk, pkcount);
@@ -3328,7 +3329,7 @@ void writeSpectra (
                                 sim.z_pk[pkcount]);
         }
 
-        if (sim.out_pk & MASK_DELTA && sim.gr_flag == 0)
+        if (sim.out_pk & MASK_DELTA && sim.gr_flag == gravity_theory::Newtonian)
         {
             sprintf (filename, "%s%s%03d_delta.dat", sim.output_path,
                      sim.basename_pk, pkcount);
@@ -3355,7 +3356,8 @@ void writeSpectra (
 
         if ((cosmo.num_ncdm > 0 || sim.baryon_flag)
             && (sim.out_pk & MASK_DBARE
-                || (sim.out_pk & MASK_DELTA && sim.gr_flag == 0)))
+                || (sim.out_pk & MASK_DELTA 
+                    && sim.gr_flag == gravity_theory::Newtonian)))
         {
             projection_init (source);
             scalarProjectionCIC_project (pcls_cdm, source);
@@ -3560,7 +3562,7 @@ void writeSpectra (
                             sim.z_pk[pkcount]);
     }
 
-    if ((sim.out_pk & MASK_T00 || sim.out_pk & MASK_DELTA) && sim.gr_flag > 0)
+    if ((sim.out_pk & MASK_T00 || sim.out_pk & MASK_DELTA) && sim.gr_flag == gravity_theory::GR)
     {
         projection_init (source);
 #ifdef HAVE_CLASS

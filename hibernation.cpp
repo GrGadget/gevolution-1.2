@@ -83,7 +83,7 @@ void writeRestartSettings (metadata &sim, icsettings &ic, cosmology &cosmo,
                          sim.basename_restart, buffer, i);
         }
         fprintf (outfile, "\n");
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
             fprintf (outfile, "metric file        = %s%s%s_phi.h5",
                      sim.restart_path, sim.basename_restart, buffer);
@@ -173,7 +173,7 @@ void writeRestartSettings (metadata &sim, icsettings &ic, cosmology &cosmo,
         }
         if (sim.fluid_flag > 0)
             fprintf (outfile, "fluid treatment     = CLASS\n");
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
             fprintf (outfile, "gravity theory      = GR\n");
         else
             fprintf (outfile, "gravity theory      = N\n");
@@ -607,7 +607,7 @@ void hibernate (
         pcls_ncdm[i].saveHDF5_server_open (h5filename + "_ncdm" + buffer);
     }
 
-    if (sim.gr_flag > 0)
+    if (sim.gr_flag == gravity_theory::GR)
     {
         phi.saveHDF5_server_open (h5filename + "_phi");
         chi.saveHDF5_server_open (h5filename + "_chi");
@@ -630,7 +630,7 @@ void hibernate (
         pcls_ncdm[i].saveHDF5_server_write ();
     }
 
-    if (sim.gr_flag > 0)
+    if (sim.gr_flag == gravity_theory::GR)
     {
         phi.saveHDF5_server_write (NUMBER_OF_IO_FILES);
         chi.saveHDF5_server_write (NUMBER_OF_IO_FILES);
@@ -654,7 +654,7 @@ void hibernate (
         pcls_ncdm[i].saveHDF5 (h5filename + "_ncdm" + buffer, 1);
     }
 
-    if (sim.gr_flag > 0)
+    if (sim.gr_flag == gravity_theory::GR)
     {
         phi.saveHDF5 (h5filename + "_phi.h5");
         chi.saveHDF5 (h5filename + "_chi.h5");

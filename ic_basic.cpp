@@ -1658,7 +1658,8 @@ void generateIC_basic (
 
         generateDisplacementField (
             *scalarFT,
-            sim.gr_flag * Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo),
+            ( sim.gr_flag == gravity_theory::GR ? 1 : 0 ) *
+            Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo),
             pkspline, (unsigned int)ic.seed, ic.flags & ICFLAG_KSPHERE);
     }
     else // initial displacements and velocities are set by individual transfer
@@ -1717,7 +1718,7 @@ void generateIC_basic (
                         / tk_d1->x[i])
                   / tk_d1->x[i];
 
-        if (sim.gr_flag == 0)
+        if (sim.gr_flag == gravity_theory::Newtonian)
         {
             for (i = 0; i < tk_t1->size;
                  i++) // construct gauge correction for N-body
@@ -1740,7 +1741,7 @@ void generateIC_basic (
 #ifdef HAVE_CLASS
         if (ic.tkfile[0] == '\0')
         {
-            if (sim.gr_flag == 0)
+            if (sim.gr_flag == gravity_theory::Newtonian)
             {
                 loadTransferFunctions (class_background, class_perturbs, tk_d1,
                                        tk_t1, NULL, sim.boxsize, sim.z_in,
@@ -1840,7 +1841,7 @@ void generateIC_basic (
         if (sim.baryon_flag == 2) // baryon treatment = blend; compute
         // displacement & velocity from weighted average
         {
-            if (sim.gr_flag > 0)
+            if (sim.gr_flag == gravity_theory::GR )
             {
                 for (i = 0; i < tk_d1->size; i++)
                     temp1[i]
@@ -1870,7 +1871,7 @@ void generateIC_basic (
                                         / tk_d1->x[i])
                                 / tk_d1->x[i];
             }
-            if (sim.gr_flag > 0 || vnbspline == NULL)
+            if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
             {
                 for (i = 0; i < tk_d1->size; i++)
                     temp2[i]
@@ -1917,7 +1918,7 @@ void generateIC_basic (
         {
             if (8. * cosmo.Omega_b / (cosmo.Omega_cdm + cosmo.Omega_b) > 1.)
             {
-                if (sim.gr_flag > 0)
+                if (sim.gr_flag == gravity_theory::GR)
                 {
                     for (i = 0; i < tk_d1->size; i++)
                         temp1[i]
@@ -1950,7 +1951,7 @@ void generateIC_basic (
                                             / tk_d1->x[i])
                                     / tk_d1->x[i];
                 }
-                if (sim.gr_flag > 0 || vnbspline == NULL)
+                if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
                 {
                     for (i = 0; i < tk_d1->size; i++)
                         temp2[i] = -a
@@ -1992,7 +1993,7 @@ void generateIC_basic (
             }
             else
             {
-                if (sim.gr_flag > 0)
+                if (sim.gr_flag == gravity_theory::GR)
                 {
                     for (i = 0; i < tk_d1->size; i++)
                         temp1[i]
@@ -2025,7 +2026,7 @@ void generateIC_basic (
                                             / tk_d1->x[i])
                                     / tk_d1->x[i];
                 }
-                if (sim.gr_flag > 0 || vnbspline == NULL)
+                if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
                 {
                     for (i = 0; i < tk_d1->size; i++)
                         temp2[i] = -a
@@ -2072,7 +2073,7 @@ void generateIC_basic (
                 && 8. * cosmo.Omega_b / (cosmo.Omega_cdm + cosmo.Omega_b)
                        > 1.)) // compute baryonic displacement & velocity
         {
-            if (sim.gr_flag > 0)
+            if (sim.gr_flag == gravity_theory::GR)
             {
                 for (i = 0; i < tk_d1->size; i++)
                     temp1[i]
@@ -2096,7 +2097,7 @@ void generateIC_basic (
                                         / tk_d2->x[i])
                                 / tk_d2->x[i];
             }
-            if (sim.gr_flag > 0 || vnbspline == NULL)
+            if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
             {
                 for (i = 0; i < tk_d1->size; i++)
                     temp2[i]
@@ -2132,7 +2133,7 @@ void generateIC_basic (
                 && 8. * cosmo.Omega_b / (cosmo.Omega_cdm + cosmo.Omega_b)
                        <= 1.)) // compute CDM displacement & velocity
         {
-            if (sim.gr_flag > 0)
+            if (sim.gr_flag == gravity_theory::GR)
             {
                 for (i = 0; i < tk_d1->size; i++)
                     temp1[i]
@@ -2156,7 +2157,7 @@ void generateIC_basic (
                                         / tk_d1->x[i])
                                 / tk_d1->x[i];
             }
-            if (sim.gr_flag > 0 || vnbspline == NULL)
+            if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
             {
                 for (i = 0; i < tk_d1->size; i++)
                     temp2[i]
@@ -2371,7 +2372,7 @@ void generateIC_basic (
                 parallel.abortForce ();
             }
 
-            if (sim.gr_flag > 0)
+            if (sim.gr_flag == gravity_theory::GR)
             {
                 for (i = 0; i < tk_d1->size; i++)
                     temp1[i]
@@ -2395,7 +2396,7 @@ void generateIC_basic (
                                         / tk_d1->x[i])
                                 / tk_d1->x[i];
             }
-            if (sim.gr_flag > 0 || vnbspline == NULL)
+            if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
             {
                 for (i = 0; i < tk_d1->size; i++)
                     temp2[i]
@@ -2520,7 +2521,7 @@ void generateIC_basic (
 
         solveModifiedPoissonFT (
             *scalarFT, *scalarFT, fourpiG / a,
-            3. * sim.gr_flag
+            3. * ( sim.gr_flag == gravity_theory::GR ? 1 : 0 )
                 * (Hconf (a, fourpiG, cosmo) * Hconf (a, fourpiG, cosmo)
                    + fourpiG * cosmo.Omega_m / a));
     }
@@ -2601,7 +2602,7 @@ void generateIC_basic (
     chi->updateHalo (); // chi now finally contains chi
 
     gsl_spline_free (pkspline);
-    if (sim.gr_flag == 0)
+    if (sim.gr_flag == gravity_theory::Newtonian)
         gsl_spline_free (nbspline);
     if (vnbspline != NULL)
         gsl_spline_free (vnbspline);

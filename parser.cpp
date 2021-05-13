@@ -1347,7 +1347,6 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     for (i = 0; i < MAX_PCL_SPECIES; i++)
         sim.numpcl[i] = 0;
     sim.vector_flag = VECTOR_PARABOLIC;
-    sim.gr_flag = 0;
     sim.out_pk = 0;
     sim.out_snapshot = 0;
     sim.out_lightcone[0] = 0;
@@ -2054,7 +2053,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         {
             COUT << " gravity theory set to: " << COLORTEXT_CYAN << "Newtonian"
                  << COLORTEXT_RESET << std::endl;
-            sim.gr_flag = 0;
+            sim.gr_flag = gravity_theory::Newtonian;
             if (ic.pkfile[0] == '\0' && ic.tkfile[0] != '\0'
 #ifdef ICGEN_PREVOLUTION
                 && ic.generator != ICGEN_PREVOLUTION
@@ -2079,7 +2078,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
         {
             COUT << " gravity theory set to: " << COLORTEXT_CYAN
                  << "General Relativity" << COLORTEXT_RESET << std::endl;
-            sim.gr_flag = 1;
+            sim.gr_flag = gravity_theory::GR;
         }
         else
         {
@@ -2087,7 +2086,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                  << ": gravity theory unknown, using default (General "
                     "Relativity)"
                  << std::endl;
-            sim.gr_flag = 1;
+            sim.gr_flag = gravity_theory::GR;
         }
     }
     else
@@ -2096,7 +2095,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
              << ": gravity theory not selected, using default (General "
                 "Relativity)"
              << std::endl;
-        sim.gr_flag = 1;
+        sim.gr_flag = gravity_theory::GR;
     }
 
     // parse cosmological parameters
@@ -2295,7 +2294,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
     if (!parseParameter (params, numparam, "switch linear chi",
                          sim.z_switch_linearchi))
     {
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
             sim.z_switch_linearchi = 0.;
         else
             sim.z_switch_linearchi = 0.011;
@@ -2306,7 +2305,7 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                 sim.z_switch_linearchi = sim.z_switch_deltancdm[i];
         }
     }
-    else if (sim.gr_flag == 0 && sim.z_switch_linearchi <= 0.01)
+    else if (sim.gr_flag == gravity_theory::Newtonian && sim.z_switch_linearchi <= 0.01)
     {
         COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
              << ": with garavity theory = Newton the switch linear chi "

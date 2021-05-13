@@ -203,7 +203,7 @@ void projection_T00_project (background &class_background,
 
     if (n > 0)
     {
-        if (sim.gr_flag == 0) // add gauge correction for N-body gauge
+        if (sim.gr_flag == gravity_theory::Newtonian) // add gauge correction for N-body gauge
         {
             loadTransferFunctions (class_background, class_perturbs, tk1, tk2,
                                    "tot", sim.boxsize, (1. / a) - 1., cosmo.h);
@@ -285,7 +285,7 @@ void prepareFTchiLinear (background &class_background, perturbs &class_perturbs,
                          / tk1->x[i])
                  / tk1->x[i];
 
-    if (sim.gr_flag == 0) // add gauge correction for N-body gauge
+    if (sim.gr_flag == gravity_theory::Newtonian) // add gauge correction for N-body gauge
     {
         double *l1 = (double *)malloc (tk1->size * sizeof (double));
         double *l2 = (double *)malloc (tk1->size * sizeof (double));

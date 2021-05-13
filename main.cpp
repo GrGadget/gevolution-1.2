@@ -371,7 +371,7 @@ int main (int argc, char **argv)
     numspecies = 1 + sim.baryon_flag + cosmo.num_ncdm;
     parallel.max<double> (maxvel, numspecies);
 
-    if (sim.gr_flag > 0)
+    if (sim.gr_flag == gravity_theory::GR)
     {
         for (i = 0; i < numspecies; i++)
             maxvel[i] /= sqrt (maxvel[i] * maxvel[i] + 1.0);
@@ -411,7 +411,7 @@ int main (int argc, char **argv)
         initializeCLASSstructures (sim, ic, cosmo, class_background,
                                    class_thermo, class_perturbs, params,
                                    numparam);
-        if (sim.gr_flag > 0 && a < 1. / (sim.z_switch_linearchi + 1.)
+        if (sim.gr_flag == gravity_theory::GR && a < 1. / (sim.z_switch_linearchi + 1.)
             && (ic.generator == ICGEN_BASIC
                 || (ic.generator == ICGEN_READ_FROM_DISK && cycle == 0)))
         {
@@ -440,7 +440,7 @@ int main (int argc, char **argv)
                                     scalarFT, &plan_source, sim, ic, cosmo,
                                     fourpiG, a);
 #endif
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
             projection_T00_project (&pcls_cdm, &source, a, &phi);
             if (sim.baryon_flag)
@@ -519,7 +519,7 @@ int main (int argc, char **argv)
         ref_time = MPI_Wtime ();
 #endif
 
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
             T00hom = 0.;
             for (x.first (); x.test (); x.next ())
@@ -682,7 +682,7 @@ int main (int argc, char **argv)
                             a * a * dtau_old); // evolve B using vector
                                                // projection (k-space)
 
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
 #ifdef BENCHMARK
             ref2_time = MPI_Wtime ();
@@ -873,7 +873,7 @@ int main (int argc, char **argv)
             {
                 f_params[0] = tmp;
                 f_params[1] = tmp * tmp * sim.numpts;
-                if (sim.gr_flag > 0)
+                if (sim.gr_flag == gravity_theory::GR)
                     maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
                         update_q, (dtau + dtau_old) / 2. / numsteps_ncdm[i],
                         update_ncdm_fields, (1. / a < ic.z_relax + 1. ? 3 : 2),
@@ -900,7 +900,7 @@ int main (int argc, char **argv)
                 f_params[0] = tmp;
                 f_params[1] = tmp * tmp * sim.numpts;
 
-                if (sim.gr_flag > 0)
+                if (sim.gr_flag == gravity_theory::GR)
                     pcls_ncdm[i].moveParticles (
                         update_pos, dtau / numsteps_ncdm[i], update_ncdm_fields,
                         (1. / a < ic.z_relax + 1. ? 3 : 2), f_params);
@@ -921,7 +921,7 @@ int main (int argc, char **argv)
         // cdm and baryon particle update
         f_params[0] = a;
         f_params[1] = a * a * sim.numpts;
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag== gravity_theory::GR)
         {
             maxvel[0] = pcls_cdm.updateVel (
                 update_q, (dtau + dtau_old) / 2., update_cdm_fields,
@@ -961,7 +961,7 @@ int main (int argc, char **argv)
 
         f_params[0] = a;
         f_params[1] = a * a * sim.numpts;
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
             pcls_cdm.moveParticles (update_pos, dtau, update_cdm_fields,
                                     (1. / a < ic.z_relax + 1. ? 3 : 0),
@@ -989,7 +989,7 @@ int main (int argc, char **argv)
 
         parallel.max<double> (maxvel, numspecies);
 
-        if (sim.gr_flag > 0)
+        if (sim.gr_flag == gravity_theory::GR)
         {
             for (i = 0; i < numspecies; i++)
                 maxvel[i] /= sqrt (maxvel[i] * maxvel[i] + 1.0);
@@ -1012,7 +1012,8 @@ int main (int argc, char **argv)
                      << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
                      << " (cycle " << cycle << "), tau/boxsize = " << tau
                      << endl;
-                if (sim.vector_flag == VECTOR_PARABOLIC && sim.gr_flag == 0)
+                if (sim.vector_flag == VECTOR_PARABOLIC 
+                    && sim.gr_flag == gravity_theory::Newtonian)
                     plan_Bi.execute (FFT_BACKWARD);
 #ifdef CHECK_B
                 if (sim.vector_flag == VECTOR_ELLIPTIC)
@@ -1035,7 +1036,8 @@ int main (int argc, char **argv)
             COUT << COLORTEXT_CYAN << " writing hibernation point"
                  << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
                  << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
-            if (sim.vector_flag == VECTOR_PARABOLIC && sim.gr_flag == 0)
+            if (sim.vector_flag == VECTOR_PARABOLIC 
+                && sim.gr_flag ==gravity_theory::Newtonian)
                 plan_Bi.execute (FFT_BACKWARD);
 #ifdef CHECK_B
             if (sim.vector_flag == VECTOR_ELLIPTIC)
