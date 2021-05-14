@@ -498,7 +498,8 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
     Real dx = pcls->res ();
 
     double mass = coeff / (dx * dx * dx);
-    mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
+    // mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
+    mass *= pcls->parts_info () -> mass;
     mass /= a;
 
     Real e = a, f = 0.;
@@ -640,7 +641,8 @@ void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
     Real dx = pcls->res ();
 
     double mass = coeff / (dx * dx * dx);
-    mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
+    // mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
+    mass *= pcls->parts_info () -> mass;
 
     Real w;
     Real *q;
@@ -785,7 +787,8 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
     Real dx = pcls->res ();
 
     double mass = coeff / (dx * dx * dx);
-    mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
+    // mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
+    mass *= pcls->parts_info () -> mass;
     mass /= a;
 
     Real e, f, w;
