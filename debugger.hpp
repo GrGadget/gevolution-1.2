@@ -2,19 +2,36 @@
 
 #include <boost/mpi/collectives.hpp>
 #include <boost/mpi/communicator.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <string>
 #include <vector>
+#include <string>
 
 namespace gevolution
 {
-class debugger_t : public std::stringstream
+
+struct part_data
 {
-    std::vector<long> ID;
-    std::vector<std::array<double, 3> > pos;
-    std::vector<std::array<double, 3> > acc;
+    long ID;
+    std::array<double,3> pos;
+    std::array<double,3> acc;
+    
+    template<class Archive>
+    void serialize(Archive &ar, const unsigned int version)
+    {
+        ar & ID;
+        ar & pos;
+        ar & acc;
+    }
+};
+
+class debugger_t 
+{
+    std::vector< part_data > data;
 
     boost::mpi::communicator com;
     std::string fname;
@@ -28,33 +45,46 @@ class debugger_t : public std::stringstream
 
     void flush ()
     {
+        #ifndef NDEBUG
         for (int p = 0; p < com.size (); ++p)
         {
             if (p == com.rank ())
             {
                 std::ofstream os (fname, std::ios::binary | std::ios::app);
-                int n = ID.size ();
-                os << n;
-                for (int i = 0; i < n; ++i)
-                {
-                    os << ID[i] << pos[i][0] << pos[i][1] << pos[i][2]
-                       << acc[i][0] << acc[i][1] << acc[i][2];
-                }
-
-                ID.clear ();
-                pos.clear ();
-                acc.clear ();
+                boost::archive::binary_oarchive oa(os);
+                oa << data;
+                data.clear();
             }
             com.barrier ();
         }
+        #endif
     }
     void append (long id, std::array<double, 3> Pos, std::array<double, 3> Acc)
     {
-        ID.push_back (id);
-        pos.emplace_back (Pos);
-        acc.emplace_back (Acc);
+        data.push_back({id,Pos,Acc});
     }
     ~debugger_t () { flush (); }
 };
+
+class analizer_t
+{
+    std::vector<part_data> data;
+    std::string fname;
+    
+    public:
+    analizer_t(std::string _fname):
+        fname{_fname}
+    {
+        std::ifstream is (fname, std::ios::binary);
+        boost::archive::binary_iarchive ia(is);
+        std::vector<part_data> buff;
+        while(is)
+        {
+            ia >> buff;
+            std::copy(buff.begin(),buff.end(),std::back_inserter(data));
+        }
+    }
+};
+
 extern debugger_t *Debugger;
 } // namespace gevolution

@@ -72,6 +72,24 @@ namespace mpi = boost::mpi;
 #include "velocity.hpp"
 #endif
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
+// stop condition, by external file 'stop'
+// in the execution directory
+bool stop()
+{
+    fs::path p{"stop"};
+    bool ret = false;
+    
+    if(fs::exists(p))
+    {
+        ret = true;
+        fs::remove(p);
+    }
+    return ret;
+}
+
 using namespace std;
 using namespace LATfield2;
 using namespace gevolution;
@@ -435,8 +453,8 @@ int main (int argc, char **argv)
     if (numparam > 0)
         free (params);
 #endif
-
-    while (true) // main loop
+    
+    do // main loop
     {
 #ifdef BENCHMARK
         cycle_start_time = MPI_Wtime ();
@@ -958,6 +976,7 @@ int main (int argc, char **argv)
                          : 1),
                     f_params);
         }
+        Debugger_ptr -> flush();
 
 #ifdef BENCHMARK
         update_q_count++;
@@ -1074,7 +1093,7 @@ int main (int argc, char **argv)
 #ifdef BENCHMARK
         cycle_time += MPI_Wtime () - cycle_start_time;
 #endif
-    }
+    }while( not stop() );
 
     COUT << COLORTEXT_GREEN << " simulation complete." << COLORTEXT_RESET
          << endl;

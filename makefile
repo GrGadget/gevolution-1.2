@@ -39,13 +39,13 @@ DGEVOLUTION  += -DEXACT_OUTPUT_REDSHIFTS
 #DGEVOLUTION  += -DHAVE_HEALPIX  # requires LIB -lchealpix
 
 # further compiler options
-OPT          := -g -std=c++11
+OPT          := -g -std=c++17
 
 $(EXEC): $(OBJS) $(HEADERS) makefile $(VERSION)
 	$(COMPILER) $(OBJS) -o $@ $(OPT) $(DLATFIELD2) $(DGEVOLUTION) $(INCLUDE) $(LIB)
 
 $(OBJS) : %.o : %.cpp $(VERSION)
-	$(COMPILER) -c $^ $(INCLUDE) $(DGEVOLUTION)
+	$(COMPILER) -c $^ $(INCLUDE) $(DGEVOLUTION) $(OPT)
 
 lccat: lccat.cpp
 	$(COMPILER) $< -o $@ $(OPT) $(DGEVOLUTION) $(INCLUDE)
