@@ -14,11 +14,11 @@ SOURCE       := main.cpp
 HEADERS      := $(wildcard *.hpp)
 SOURCES      := main.cpp lccat.cpp lcmap.cpp hibernation.cpp velocity.cpp \
     background.cpp tools.cpp output.cpp gevolution.cpp radiation.cpp \
-    parser.cpp ic_basic.cpp ic_prevolution.cpp ic_read.cpp
+    parser.cpp ic_basic.cpp ic_prevolution.cpp ic_read.cpp debugger.cpp
 VERSION      := version.h
 OBJS         := hibernation.o main.o velocity.o background.o tools.o \
     output.o gevolution.o radiation.o parser.o ic_basic.o ic_prevolution.o \
-    ic_read.o
+    ic_read.o debugger.o
 
 # mandatory compiler settings (LATfield2)
 DLATFIELD2   := -DFFT3D -DHDF5

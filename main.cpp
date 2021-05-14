@@ -80,6 +80,9 @@ int main (int argc, char **argv)
 {
     mpi::environment env;
     mpi::communicator com_world;
+    unique_ptr<debugger_t> Debugger_ptr{
+        Debugger = new debugger_t(com_world,"forcetest.bin")};
+    
 #ifdef BENCHMARK
     // benchmarking variables
     double ref_time, ref2_time, cycle_start_time;
