@@ -34,7 +34,12 @@
 //
 //////////////////////////
 
+#include <boost/mpi/environment.hpp>
+#include <boost/mpi/communicator.hpp>
+namespace mpi = boost::mpi;
+
 #include "gevolution.hpp"
+#include "debugger.hpp"
 #include "version.h"
 #include <set>
 #include <stdlib.h>
@@ -73,7 +78,8 @@ using namespace gevolution;
 
 int main (int argc, char **argv)
 {
-    MPI_Init (NULL, NULL);
+    mpi::environment env;
+    mpi::communicator com_world;
 #ifdef BENCHMARK
     // benchmarking variables
     double ref_time, ref2_time, cycle_start_time;
@@ -167,7 +173,7 @@ int main (int argc, char **argv)
     }
 
 #ifndef EXTERNAL_IO
-    parallel.initialize (MPI_COMM_WORLD, n, m);
+    parallel.initialize (com_world, n, m);
 #else
     if (!io_size || !io_group_size)
     {
@@ -1130,6 +1136,5 @@ int main (int argc, char **argv)
     ioserver.stop ();
 }
 #endif
-    MPI_Finalize();
-return 0;
+    return 0;
 }

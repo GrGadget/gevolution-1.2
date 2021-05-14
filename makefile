@@ -4,6 +4,10 @@ INCLUDE      := $(shell pkg-config --cflags latfield fftw3 hdf5 gsl ompi)
 LIB          := $(shell pkg-config --libs latfield fftw3 hdf5 gsl ompi)
 HPXCXXLIB    := $(shell pkg-config --libs --cflags healpix)
 
+# Boost
+INCLUDE      += -I$(BOOST_ROOT)/include
+LIB          += -L$(BOOST_ROOT)/lib -lboost_mpi -lboost_serialization
+
 # target and source
 EXEC         := gevolution
 SOURCE       := main.cpp
