@@ -10,13 +10,14 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <filesystem>
 
 namespace gevolution
 {
 
 struct part_data
 {
-    long ID;
+    unsigned long long ID;
     std::array<double,3> pos;
     std::array<double,3> acc;
     
@@ -44,6 +45,8 @@ class debugger_t
         : com{ _com }, fname{ _fname },
         Pos_physical{Pos_fac}, Acc_physical{Acc_fac}
     {
+        if (com.rank()==root)
+            std::filesystem::remove(fname);
     }
 
     void flush ()
@@ -62,7 +65,7 @@ class debugger_t
         }
         #endif
     }
-    void append (long id, std::array<double, 3> Pos, std::array<double, 3> Acc)
+    void append (unsigned long long id, std::array<double, 3> Pos, std::array<double, 3> Acc)
     {
         for(auto &x: Pos) x *= Pos_physical;
         for(auto &a: Acc) a *= Acc_physical;
