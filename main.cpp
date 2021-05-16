@@ -98,8 +98,6 @@ int main (int argc, char **argv)
 {
     mpi::environment env;
     mpi::communicator com_world;
-    unique_ptr<debugger_t> Debugger_ptr{
-        Debugger = new debugger_t(com_world,"forcetest.bin")};
     
 #ifdef BENCHMARK
     // benchmarking variables
@@ -344,6 +342,13 @@ int main (int argc, char **argv)
         = 1.5 * sim.boxsize * sim.boxsize / cosmo.C_SPEED_OF_LIGHT / cosmo.C_SPEED_OF_LIGHT;
     a = 1. / (1. + sim.z_in);
     tau = particleHorizon (a, cosmo);
+    unique_ptr<debugger_t> Debugger_ptr{
+        Debugger = new
+        debugger_t(
+            com_world,
+            "forcetest.bin",
+            1000 * sim.boxsize,
+            10 * cosmo.C_SPEED_OF_LIGHT * cosmo.C_SPEED_OF_LIGHT/sim.boxsize)};
 
     if (sim.Cf * dx < sim.steplimit / Hconf (a, cosmo))
         dtau = sim.Cf * dx;
