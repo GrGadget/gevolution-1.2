@@ -752,88 +752,164 @@ Real update_q (double dtau, double dx, part_simple *part, double *ref_dist,
 // Returns: squared velocity of particle after update
 //
 //////////////////////////
+//Real update_q_Newton (double dtau, double dx, part_simple *part,
+//                      double *ref_dist, part_simple_info partInfo,
+//                      Field<Real> **fields, Site *sites, int nfield,
+//                      double *params, double *outputs, int noutputs)
+//{
+//#define psi (*fields[0])
+//#define xpsi (sites[0])
+//#define chi (*fields[1])
+//#define xchi (sites[1])
+//
+//    Real gradpsi[3] = { 0, 0, 0 };
+//
+//    gradpsi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
+//                 * (psi (xpsi + 0) - psi (xpsi));
+//    gradpsi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
+//                 * (psi (xpsi + 1) - psi (xpsi));
+//    gradpsi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
+//                 * (psi (xpsi + 2) - psi (xpsi));
+//    gradpsi[0] += ref_dist[1] * (1. - ref_dist[2])
+//                  * (psi (xpsi + 1 + 0) - psi (xpsi + 1));
+//    gradpsi[1] += ref_dist[0] * (1. - ref_dist[2])
+//                  * (psi (xpsi + 1 + 0) - psi (xpsi + 0));
+//    gradpsi[2] += ref_dist[0] * (1. - ref_dist[1])
+//                  * (psi (xpsi + 2 + 0) - psi (xpsi + 0));
+//    gradpsi[0] += (1. - ref_dist[1]) * ref_dist[2]
+//                  * (psi (xpsi + 2 + 0) - psi (xpsi + 2));
+//    gradpsi[1] += (1. - ref_dist[0]) * ref_dist[2]
+//                  * (psi (xpsi + 2 + 1) - psi (xpsi + 2));
+//    gradpsi[2] += (1. - ref_dist[0]) * ref_dist[1]
+//                  * (psi (xpsi + 2 + 1) - psi (xpsi + 1));
+//    gradpsi[0] += ref_dist[1] * ref_dist[2]
+//                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 2 + 1));
+//    gradpsi[1] += ref_dist[0] * ref_dist[2]
+//                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 2 + 0));
+//    gradpsi[2] += ref_dist[0] * ref_dist[1]
+//                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 1 + 0));
+//
+//    //if (nfield >= 2 && fields[1] != NULL)
+//    //{
+//    //    gradpsi[0] -= (1. - ref_dist[1]) * (1. - ref_dist[2])
+//    //                  * (chi (xchi + 0) - chi (xchi));
+//    //    gradpsi[1] -= (1. - ref_dist[0]) * (1. - ref_dist[2])
+//    //                  * (chi (xchi + 1) - chi (xchi));
+//    //    gradpsi[2] -= (1. - ref_dist[0]) * (1. - ref_dist[1])
+//    //                  * (chi (xchi + 2) - chi (xchi));
+//    //    gradpsi[0] -= ref_dist[1] * (1. - ref_dist[2])
+//    //                  * (chi (xchi + 1 + 0) - chi (xchi + 1));
+//    //    gradpsi[1] -= ref_dist[0] * (1. - ref_dist[2])
+//    //                  * (chi (xchi + 1 + 0) - chi (xchi + 0));
+//    //    gradpsi[2] -= ref_dist[0] * (1. - ref_dist[1])
+//    //                  * (chi (xchi + 2 + 0) - chi (xchi + 0));
+//    //    gradpsi[0] -= (1. - ref_dist[1]) * ref_dist[2]
+//    //                  * (chi (xchi + 2 + 0) - chi (xchi + 2));
+//    //    gradpsi[1] -= (1. - ref_dist[0]) * ref_dist[2]
+//    //                  * (chi (xchi + 2 + 1) - chi (xchi + 2));
+//    //    gradpsi[2] -= (1. - ref_dist[0]) * ref_dist[1]
+//    //                  * (chi (xchi + 2 + 1) - chi (xchi + 1));
+//    //    gradpsi[0] -= ref_dist[1] * ref_dist[2]
+//    //                  * (chi (xchi + 2 + 1 + 0) - chi (xchi + 2 + 1));
+//    //    gradpsi[1] -= ref_dist[0] * ref_dist[2]
+//    //                  * (chi (xchi + 2 + 1 + 0) - chi (xchi + 2 + 0));
+//    //    gradpsi[2] -= ref_dist[0] * ref_dist[1]
+//    //                  * (chi (xchi + 2 + 1 + 0) - chi (xchi + 1 + 0));
+//    //}
+//    if(part->ID==1)
+//        std::cout << "Part ID 1: " 
+//        << " vel[0] "<< part->vel[0] 
+//        << " pos[0] "<< part->pos[0] 
+//        << " a = " << params[0]
+//        << " dx = " <<  dx
+//        << " dtau = " << dtau 
+//        << " gradpsi[0] = " << gradpsi[0] 
+//        << " site.index = " << xpsi.index() 
+//        << " ref_dist[0] = " << ref_dist[0] << "\n";
+//
+//    Real v2 = 0.;
+//    std::array<double,3> acc;
+//    for (int i = 0; i < 3; i++)
+//    {
+//        acc[i] =  (-1)*params[0] * gradpsi[i] / dx;
+//        (*part).vel[i] += dtau * acc[i];
+//        v2 += (*part).vel[i] * (*part).vel[i];
+//    }
+//    //Debugger -> append( part->ID, {part->pos[0],part->pos[1],part->pos[2] } ,acc);
+//
+//    return v2 / params[0] / params[0];
+//
+//#undef psi
+//#undef xpsi
+//#undef chi
+//#undef xchi
+//}
 
-Real update_q_Newton (double dtau, double dx, part_simple *part,
-                      double *ref_dist, part_simple_info partInfo,
-                      Field<Real> **fields, Site *sites, int nfield,
-                      double *params, double *outputs, int noutputs)
+Real update_q_Newton ( 
+                      part_simple& part,
+                      const Field<Real>& psi, 
+                      const Site& xpart,
+                      double dtau,
+                      double dx,
+                      double a)
 {
-#define psi (*fields[0])
-#define xpsi (sites[0])
-#define chi (*fields[1])
-#define xchi (sites[1])
-
-    Real gradpsi[3] = { 0, 0, 0 };
+    std::array<double,3> ref_dist;
+    for(int l=0;l<3;++l)
+        ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
+    
+    std::array<Real,3> gradpsi{ 0, 0, 0 };
 
     gradpsi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
-                 * (psi (xpsi + 0) - psi (xpsi));
+                 * (psi (xpart + 0) - psi (xpart));
     gradpsi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
-                 * (psi (xpsi + 1) - psi (xpsi));
+                 * (psi (xpart + 1) - psi (xpart));
     gradpsi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
-                 * (psi (xpsi + 2) - psi (xpsi));
+                 * (psi (xpart + 2) - psi (xpart));
     gradpsi[0] += ref_dist[1] * (1. - ref_dist[2])
-                  * (psi (xpsi + 1 + 0) - psi (xpsi + 1));
+                  * (psi (xpart + 1 + 0) - psi (xpart + 1));
     gradpsi[1] += ref_dist[0] * (1. - ref_dist[2])
-                  * (psi (xpsi + 1 + 0) - psi (xpsi + 0));
+                  * (psi (xpart + 1 + 0) - psi (xpart + 0));
     gradpsi[2] += ref_dist[0] * (1. - ref_dist[1])
-                  * (psi (xpsi + 2 + 0) - psi (xpsi + 0));
+                  * (psi (xpart + 2 + 0) - psi (xpart + 0));
     gradpsi[0] += (1. - ref_dist[1]) * ref_dist[2]
-                  * (psi (xpsi + 2 + 0) - psi (xpsi + 2));
+                  * (psi (xpart + 2 + 0) - psi (xpart + 2));
     gradpsi[1] += (1. - ref_dist[0]) * ref_dist[2]
-                  * (psi (xpsi + 2 + 1) - psi (xpsi + 2));
+                  * (psi (xpart + 2 + 1) - psi (xpart + 2));
     gradpsi[2] += (1. - ref_dist[0]) * ref_dist[1]
-                  * (psi (xpsi + 2 + 1) - psi (xpsi + 1));
+                  * (psi (xpart + 2 + 1) - psi (xpart + 1));
     gradpsi[0] += ref_dist[1] * ref_dist[2]
-                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 2 + 1));
+                  * (psi (xpart + 2 + 1 + 0) - psi (xpart + 2 + 1));
     gradpsi[1] += ref_dist[0] * ref_dist[2]
-                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 2 + 0));
+                  * (psi (xpart + 2 + 1 + 0) - psi (xpart + 2 + 0));
     gradpsi[2] += ref_dist[0] * ref_dist[1]
-                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 1 + 0));
+                  * (psi (xpart + 2 + 1 + 0) - psi (xpart + 1 + 0));
 
-    if (nfield >= 2 && fields[1] != NULL)
-    {
-        gradpsi[0] -= (1. - ref_dist[1]) * (1. - ref_dist[2])
-                      * (chi (xchi + 0) - chi (xchi));
-        gradpsi[1] -= (1. - ref_dist[0]) * (1. - ref_dist[2])
-                      * (chi (xchi + 1) - chi (xchi));
-        gradpsi[2] -= (1. - ref_dist[0]) * (1. - ref_dist[1])
-                      * (chi (xchi + 2) - chi (xchi));
-        gradpsi[0] -= ref_dist[1] * (1. - ref_dist[2])
-                      * (chi (xchi + 1 + 0) - chi (xchi + 1));
-        gradpsi[1] -= ref_dist[0] * (1. - ref_dist[2])
-                      * (chi (xchi + 1 + 0) - chi (xchi + 0));
-        gradpsi[2] -= ref_dist[0] * (1. - ref_dist[1])
-                      * (chi (xchi + 2 + 0) - chi (xchi + 0));
-        gradpsi[0] -= (1. - ref_dist[1]) * ref_dist[2]
-                      * (chi (xchi + 2 + 0) - chi (xchi + 2));
-        gradpsi[1] -= (1. - ref_dist[0]) * ref_dist[2]
-                      * (chi (xchi + 2 + 1) - chi (xchi + 2));
-        gradpsi[2] -= (1. - ref_dist[0]) * ref_dist[1]
-                      * (chi (xchi + 2 + 1) - chi (xchi + 1));
-        gradpsi[0] -= ref_dist[1] * ref_dist[2]
-                      * (chi (xchi + 2 + 1 + 0) - chi (xchi + 2 + 1));
-        gradpsi[1] -= ref_dist[0] * ref_dist[2]
-                      * (chi (xchi + 2 + 1 + 0) - chi (xchi + 2 + 0));
-        gradpsi[2] -= ref_dist[0] * ref_dist[1]
-                      * (chi (xchi + 2 + 1 + 0) - chi (xchi + 1 + 0));
-    }
+    // if(part.ID==1)
+    //     std::cout << "Part ID 1: " 
+    //     << " vel[0] "<< part.vel[0] 
+    //     << " pos[0] "<< part.pos[0] 
+    //     << " a = " << a 
+    //     << " dx = " <<  dx
+    //     << " dtau = " << dtau 
+    //     << " gradpsi[0] = " << gradpsi[0] 
+    //     << " site.index = " << xpart.index() 
+    //     << " ref_dist[0] = " << ref_dist[0] << "\n";
 
     Real v2 = 0.;
     std::array<double,3> acc;
     for (int i = 0; i < 3; i++)
     {
-        acc[i] =  (-1)*params[0] * gradpsi[i] / dx;
-        (*part).vel[i] += dtau * acc[i];
-        v2 += (*part).vel[i] * (*part).vel[i];
+        acc[i] =  (-1)*a * gradpsi[i] / dx;
+        part.vel[i] += dtau * acc[i];
+        v2 += part.vel[i] * part.vel[i];
     }
-    Debugger -> append( part->ID, {part->pos[0],part->pos[1],part->pos[2] } ,acc);
+   
+   #ifndef NDEBUG
+   Debugger -> append( part.ID, {part.pos[0],part.pos[1],part.pos[2] } ,acc);
+   #endif
 
-    return v2 / params[0] / params[0];
+    return v2 / a / a;
 
-#undef psi
-#undef xpsi
-#undef chi
-#undef xchi
 }
 
 //////////////////////////

@@ -384,10 +384,21 @@ Real update_q (double dtau, double dx, part_simple *part, double *ref_dist,
 //
 //////////////////////////
 
-Real update_q_Newton (double dtau, double dx, part_simple *part,
-                      double *ref_dist, part_simple_info partInfo,
-                      Field<Real> **fields, Site *sites, int nfield,
-                      double *params, double *outputs, int noutputs);
+//Real update_q_Newton (double dtau, double dx, part_simple *part,
+//                      double *ref_dist, part_simple_info partInfo,
+//                      Field<Real> **fields, Site *sites, int nfield,
+//                      double *params, double *outputs, int noutputs);
+// Real update_q_Newton (double dtau, double dx, part_simple *part,
+//                       double *ref_dist, part_simple_info partInfo,
+//                       Field<Real> **fields, Site *sites, int nfield,
+//                       double *params, double *outputs, int noutputs);
+Real update_q_Newton ( 
+                      part_simple& part,
+                      const Field<Real>& psi, 
+                      const Site& xpart,
+                      double dtau,
+                      double dx,
+                      double a);
 
 //////////////////////////
 // update_pos

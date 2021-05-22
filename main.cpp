@@ -911,15 +911,29 @@ int main (int argc, char **argv)
                         update_ncdm_fields, (1. / a < ic.z_relax + 1. ? 3 : 2),
                         f_params);
                 else
-                    maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
-                        update_q_Newton,
-                        (dtau + dtau_old) / 2. / numsteps_ncdm[i],
-                        update_ncdm_fields,
-                        ((sim.radiation_flag + sim.fluid_flag > 0
-                          && a < 1. / (sim.z_switch_linearchi + 1.))
-                             ? 2
-                             : 1),
-                        f_params);
+                {
+                 maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
+                 [&]
+                 (part_simple& part,const Site& xpart)
+                 {
+                     const double a = f_params[0];
+                     const double dtau_mean =  
+                                     (dtau + dtau_old) / 2. / numsteps_ncdm[i];
+                     const double dx = 1.0/sim.numpts;
+                     
+                     return
+                     update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
+                 } );
+                 //  maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
+                 //      update_q_Newton,
+                 //      (dtau + dtau_old) / 2. / numsteps_ncdm[i],
+                 //      update_ncdm_fields,
+                 //      ((sim.radiation_flag + sim.fluid_flag > 0
+                 //        && a < 1. / (sim.z_switch_linearchi + 1.))
+                 //           ? 2
+                 //           : 1),
+                 //      f_params);
+                 }
 
 #ifdef BENCHMARK
                 update_q_count++;
@@ -965,21 +979,46 @@ int main (int argc, char **argv)
         }
         else
         {
-            maxvel[0] = pcls_cdm.updateVel (
-                update_q_Newton, (dtau + dtau_old) / 2., update_cdm_fields,
-                ((sim.radiation_flag + sim.fluid_flag > 0
-                  && a < 1. / (sim.z_switch_linearchi + 1.))
-                     ? 2
-                     : 1),
-                f_params);
+           //maxvel[0] = pcls_cdm.updateVel (
+           //    update_q_Newton, (dtau + dtau_old) / 2., update_cdm_fields,
+           //    ((sim.radiation_flag + sim.fluid_flag > 0
+           //      && a < 1. / (sim.z_switch_linearchi + 1.))
+           //         ? 2
+           //         : 1),
+           //    f_params);
+           maxvel[0] = pcls_cdm.updateVel (
+               [&]
+               (part_simple& part,const Site& xpart)
+               {
+                   const double a = f_params[0];
+                   const double dtau_mean =  
+                                   (dtau + dtau_old) / 2.;
+                   const double dx = 1.0/sim.numpts;
+                   
+                   return update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
+               });
             if (sim.baryon_flag)
-                maxvel[1] = pcls_b.updateVel (
-                    update_q_Newton, (dtau + dtau_old) / 2., update_b_fields,
-                    ((sim.radiation_flag + sim.fluid_flag > 0
-                      && a < 1. / (sim.z_switch_linearchi + 1.))
-                         ? 2
-                         : 1),
-                    f_params);
+            {
+               maxvel[1] = pcls_b.updateVel (
+               [&]
+               (part_simple& part,const Site& xpart)
+               {
+                   const double a = f_params[0];
+                   const double dtau_mean =  
+                                   (dtau + dtau_old) / 2.;
+                   const double dx = 1.0/sim.numpts;
+                   
+                   return
+                   update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
+               } );
+            //   maxvel[1] = pcls_b.updateVel (
+            //       update_q_Newton, (dtau + dtau_old) / 2., update_b_fields,
+            //       ((sim.radiation_flag + sim.fluid_flag > 0
+            //         && a < 1. / (sim.z_switch_linearchi + 1.))
+            //            ? 2
+            //            : 1),
+            //       f_params);
+            }
         }
         Debugger_ptr -> flush();
 
