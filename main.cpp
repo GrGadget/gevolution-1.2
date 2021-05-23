@@ -916,7 +916,6 @@ int main (int argc, char **argv)
                  [&]
                  (part_simple& part,const Site& xpart)
                  {
-                     const double a = f_params[0];
                      const double dtau_mean =  
                                      (dtau + dtau_old) / 2. / numsteps_ncdm[i];
                      const double dx = 1.0/sim.numpts;
@@ -990,7 +989,6 @@ int main (int argc, char **argv)
                [&]
                (part_simple& part,const Site& xpart)
                {
-                   const double a = f_params[0];
                    const double dtau_mean =  
                                    (dtau + dtau_old) / 2.;
                    const double dx = 1.0/sim.numpts;
@@ -1003,7 +1001,6 @@ int main (int argc, char **argv)
                [&]
                (part_simple& part,const Site& xpart)
                {
-                   const double a = f_params[0];
                    const double dtau_mean =  
                                    (dtau + dtau_old) / 2.;
                    const double dx = 1.0/sim.numpts;
