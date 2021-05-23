@@ -68,12 +68,9 @@ void writeSnapshots (
     metadata &sim, const cosmology cosmo, const double a,
     const double dtau_old, const int done_hij, const int snapcount,
     std::string h5filename,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_cdm,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_b,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_ncdm,
+    Particles_gevolution *pcls_cdm,
+    Particles_gevolution *pcls_b,
+    Particles_gevolution *pcls_ncdm,
     Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *source,
     Field<Real> *Sij, Field<Cplx> *scalarFT, Field<Cplx> *BiFT,
     Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi, PlanFFT<Cplx> *plan_chi,
@@ -631,12 +628,9 @@ void writeLightcones (
     metadata &sim, const cosmology cosmo, const double a,
     const double tau, const double dtau, const double dtau_old,
     const double maxvel, const int cycle, std::string h5filename,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_cdm,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_b,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_ncdm,
+    Particles_gevolution *pcls_cdm,
+    Particles_gevolution *pcls_b,
+    Particles_gevolution *pcls_ncdm,
     Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *Sij,
     Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_Bi,
     PlanFFT<Cplx> *plan_Sij, int &done_hij, std::set<long> *IDbacklog)
@@ -3178,12 +3172,9 @@ void writeSpectra (
 #ifdef HAVE_CLASS
     background &class_background, perturbs &class_perturbs, icsettings &ic,
 #endif
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_cdm,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_b,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_ncdm,
+    Particles_gevolution *pcls_cdm,
+    Particles_gevolution *pcls_b,
+    Particles_gevolution *pcls_ncdm,
     Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *source,
     Field<Real> *Sij, Field<Cplx> *scalarFT, Field<Cplx> *BiFT,
     Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi, PlanFFT<Cplx> *plan_chi,

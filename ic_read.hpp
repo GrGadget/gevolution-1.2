@@ -81,12 +81,9 @@ using LATfield2::Real;
 void readIC (
     metadata &sim, icsettings &ic, const cosmology cosmo,
     double &a, double &tau, double &dtau, double &dtau_old,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_cdm,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_b,
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        *pcls_ncdm,
+    Particles_gevolution *pcls_cdm,
+    Particles_gevolution *pcls_b,
+    Particles_gevolution *pcls_ncdm,
     double *maxvel, Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi,
     Field<Real> *source, Field<Real> *Sij, Field<Cplx> *scalarFT,
     Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi,

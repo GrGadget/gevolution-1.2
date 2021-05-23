@@ -39,6 +39,7 @@
 namespace mpi = boost::mpi;
 
 #include "gevolution.hpp"
+#include "newtonian_pm.hpp"
 #include "debugger.hpp"
 #include "version.h"
 #include <set>
@@ -263,12 +264,8 @@ int main (int argc, char **argv)
     Lattice latFT;
     latFT.initializeRealFFT (lat, 0);
 
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        pcls_cdm;
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        pcls_b;
-    Particles_gevolution<part_simple, part_simple_info, part_simple_dataType>
-        pcls_ncdm[MAX_PCL_SPECIES - 2];
+    Particles_gevolution
+        pcls_cdm,pcls_b,pcls_ncdm[MAX_PCL_SPECIES-2];
     Field<Real> *update_cdm_fields[3];
     Field<Real> *update_b_fields[3];
     Field<Real> *update_ncdm_fields[3];
@@ -459,6 +456,8 @@ int main (int argc, char **argv)
         free (params);
 #endif
     
+    newtonian_pm PM(sim.numpts);
+    
     do // main loop
     {
 #ifdef BENCHMARK
@@ -494,15 +493,16 @@ int main (int argc, char **argv)
         }
         else
         {
+            PM.sample(pcls_cdm);
             scalarProjectionCIC_project (&pcls_cdm, &source);
-            if (sim.baryon_flag)
-                scalarProjectionCIC_project (&pcls_b, &source);
-            for (i = 0; i < cosmo.num_ncdm; i++)
-            {
-                if (a >= 1. / (sim.z_switch_deltancdm[i] + 1.)
-                    && sim.numpcl[1 + sim.baryon_flag + i] > 0)
-                    scalarProjectionCIC_project (pcls_ncdm + i, &source);
-            }
+            //if (sim.baryon_flag)
+            //    scalarProjectionCIC_project (&pcls_b, &source);
+            //for (i = 0; i < cosmo.num_ncdm; i++)
+            //{
+            //    if (a >= 1. / (sim.z_switch_deltancdm[i] + 1.)
+            //        && sim.numpcl[1 + sim.baryon_flag + i] > 0)
+            //        scalarProjectionCIC_project (pcls_ncdm + i, &source);
+            //}
         }
         projection_T00_comm (&source);
 
