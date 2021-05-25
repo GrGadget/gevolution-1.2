@@ -1572,9 +1572,9 @@ double applyMomentumDistribution (
 
 void generateIC_basic (
     metadata &sim, icsettings &ic, const cosmology cosmo,
-    Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_cdm,
-    Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_b,
-    Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_ncdm,
+    Particles_gevolution *pcls_cdm,
+    Particles_gevolution *pcls_b,
+    Particles_gevolution *pcls_ncdm,
     double *maxvel, Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi,
     Field<Real> *source, Field<Real> *Sij, Field<Cplx> *scalarFT,
     Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi,

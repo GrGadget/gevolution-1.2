@@ -544,7 +544,7 @@ void solveModifiedPoissonFT (Field<Cplx> &sourceFT, Field<Cplx> &potFT,
 //
 //////////////////////////
 
-Real update_q (double dtau, double dx, part_simple *part, double *ref_dist,
+Real update_q (double dtau, double dx, particle *part, double *ref_dist,
                part_simple_info partInfo, Field<Real> **fields, Site *sites,
                int nfield, double *params, double *outputs, int noutputs)
 {

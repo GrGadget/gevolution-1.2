@@ -17,6 +17,7 @@
 #endif
 #include "LATfield2.hpp"
 #include "metadata.hpp"
+#include "particle_handler.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <mpi.h>
@@ -31,10 +32,15 @@ using LATfield2::parallel;
 using LATfield2::Real;
 using LATfield2::Site;
 
+struct particle : LATfield2::part_simple
+{
+    LATfield2::Real acc[3];
+};
+
 class Particles_gevolution : 
     public 
     LATfield2::Particles<
-        LATfield2::part_simple, 
+        particle, 
         LATfield2::part_simple_info, 
         LATfield2::part_simple_dataType>
 {
@@ -50,6 +56,32 @@ class Particles_gevolution :
                       Field<Real> *phi, const int tracer_factor = 1);
     void loadGadget2 (std::string filename, gadget2_header &hdr);
 };
+
+// /* Specialization of particle_handler for Gevolution's type of particle */
+// class Particles_gevolution_handler : public particle_handler
+// {
+//   Particles_gevolution &P;
+// 
+//  public:
+//   Particles_gevolution_handler(Particles_gevolution &ref_P) : 
+//     P{ref_P} {}
+// 
+//   size_t size() const override { return P.NumPart; }
+// 
+//   std::array<long long int, 3> get_position(int idx) const override
+//   {
+//     int i = Sp.get_active_index(idx);
+//     return {Sp.P[i].IntPos[0], Sp.P[i].IntPos[1], Sp.P[i].IntPos[2]};
+//   }
+//   double get_mass(int i) const override { return Sp.P[i].getMass(); }
+//   void set_acceleration(int idx, std::array<double, 3> A) const override
+//   {
+//     int i             = Sp.get_active_index(idx);
+//     Sp.P[i].GravPM[0] = A[0];
+//     Sp.P[i].GravPM[1] = A[1];
+//     Sp.P[i].GravPM[2] = A[2];
+//   }
+// };
 
 
 }
