@@ -545,7 +545,7 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
                 localCubePhi[7] = (*phi) (xField + 0 + 1 + 2);
             }
 
-            for (it = (pcls->field ()) (xPart).parts.begin ();
+            for (auto it = (pcls->field ()) (xPart).parts.begin ();
                  it != (pcls->field ()) (xPart).parts.end (); ++it)
             {
                 for (int i = 0; i < 3; i++)
@@ -688,7 +688,7 @@ void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
                 localCubePhi[7] = (*phi) (xT0i + 0 + 1 + 2);
             }
 
-            for (it = (pcls->field ()) (xPart).parts.begin ();
+            for (auto it = (pcls->field ()) (xPart).parts.begin ();
                  it != (pcls->field ()) (xPart).parts.end (); ++it)
             {
                 for (int i = 0; i < 3; i++)
@@ -838,7 +838,7 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
                 localCubePhi[7] = (*phi) (xTij + 0 + 1 + 2);
             }
 
-            for (it = (pcls->field ()) (xPart).parts.begin ();
+            for (auto it = (pcls->field ()) (xPart).parts.begin ();
                  it != (pcls->field ()) (xPart).parts.end (); ++it)
             {
                 for (int i = 0; i < 3; i++)

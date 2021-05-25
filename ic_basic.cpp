@@ -1466,7 +1466,7 @@ double applyMomentumDistribution (
     {
         if (pcls->field () (xPart).size != 0)
         {
-            for (it = (pcls->field ()) (xPart).parts.begin ();
+            for (auto it = (pcls->field ()) (xPart).parts.begin ();
                  it != (pcls->field ()) (xPart).parts.end (); ++it)
             {
                 prng.seed (seed);

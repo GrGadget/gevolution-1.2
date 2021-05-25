@@ -607,6 +607,8 @@ int main (int argc, char **argv)
 #ifdef BENCHMARK
             ref2_time = MPI_Wtime ();
 #endif
+            PM.compute_potential();
+            
             plan_source.execute (FFT_FORWARD); // Newton: directly go to k-space
 #ifdef BENCHMARK
             fft_time += MPI_Wtime () - ref2_time;

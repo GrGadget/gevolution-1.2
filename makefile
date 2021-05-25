@@ -19,7 +19,7 @@ SOURCES      := main.cpp lccat.cpp lcmap.cpp hibernation.cpp velocity.cpp \
 VERSION      := version.h
 OBJS         := hibernation.o main.o velocity.o background.o tools.o \
     output.o gevolution.o radiation.o parser.o ic_basic.o ic_prevolution.o \
-    ic_read.o debugger.o Particles_gevolution.o
+    ic_read.o debugger.o Particles_gevolution.o newtonian_pm.o
 
 # mandatory compiler settings (LATfield2)
 DLATFIELD2   := -DFFT3D -DHDF5
