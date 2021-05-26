@@ -37,7 +37,6 @@ using LATfield2::FFT_BACKWARD;
 using LATfield2::FFT_FORWARD;
 using LATfield2::Field;
 using LATfield2::parallel;
-using LATfield2::part_simple;
 using LATfield2::part_simple_dataType;
 using LATfield2::part_simple_info;
 using LATfield2::Particles;
@@ -70,7 +69,7 @@ using LATfield2::Site;
 //////////////////////////
 
 void displace_pcls_ic_basic (double coeff, double lat_resolution,
-                             part_simple *part, double *ref_dist,
+                             particle *part, double *ref_dist,
                              part_simple_info partInfo, Field<Real> **fields,
                              Site *sites, int nfield, double *params,
                              double *outputs, int noutputs);
@@ -98,7 +97,7 @@ void displace_pcls_ic_basic (double coeff, double lat_resolution,
 //////////////////////////
 
 Real initialize_q_ic_basic (double coeff, double lat_resolution,
-                            part_simple *part, double *ref_dist,
+                            particle *part, double *ref_dist,
                             part_simple_info partInfo, Field<Real> **fields,
                             Site *sites, int nfield, double *params,
                             double *outputs, int noutputs);
@@ -625,7 +624,7 @@ void generateDisplacementField (Field<Cplx> &potFT, const Real coeff,
 
 void initializeParticlePositions (
     const long numpart, const float *partdata, const int numtile,
-    Particles<part_simple, part_simple_info, part_simple_dataType> &pcls);
+    Particles_gevolution &pcls);
 
 //////////////////////////
 // applyMomentumDistribution
@@ -652,7 +651,7 @@ void initializeParticlePositions (
 //////////////////////////
 
 double applyMomentumDistribution (
-    Particles<part_simple, part_simple_info, part_simple_dataType> *pcls,
+    Particles_gevolution *pcls,
     unsigned int seed, float T_m = 0., Field<Real> *delta = nullptr);
 
 #ifdef FFT3D

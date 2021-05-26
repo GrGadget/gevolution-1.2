@@ -37,7 +37,6 @@
 namespace gevolution
 {
 using LATfield2::Field;
-using LATfield2::part_simple;
 using LATfield2::part_simple_info;
 using LATfield2::Particles;
 using LATfield2::Real;
@@ -394,7 +393,7 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
 //                       Field<Real> **fields, Site *sites, int nfield,
 //                       double *params, double *outputs, int noutputs);
 Real update_q_Newton ( 
-                      part_simple& part,
+                      particle& part,
                       const Field<Real>& psi, 
                       const Site& xpart,
                       double dtau,
@@ -432,7 +431,7 @@ Real update_q_Newton (
 //
 //////////////////////////
 
-void update_pos (double dtau, double dx, part_simple *part, double *ref_dist,
+void update_pos (double dtau, double dx, particle *part, double *ref_dist,
                  part_simple_info partInfo, Field<Real> **fields, Site *sites,
                  int nfield, double *params, double *outputs, int noutputs);
 
@@ -462,7 +461,7 @@ void update_pos (double dtau, double dx, part_simple *part, double *ref_dist,
 //
 //////////////////////////
 
-void update_pos_Newton (double dtau, double dx, part_simple *part,
+void update_pos_Newton (double dtau, double dx, particle *part,
                         double *ref_dist, part_simple_info partInfo,
                         Field<Real> **fields, Site *sites, int nfield,
                         double *params, double *outputs, int noutputs);

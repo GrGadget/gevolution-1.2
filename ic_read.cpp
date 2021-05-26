@@ -837,7 +837,7 @@ void readIC (
                     {
                         for (xPart.first (); xPart.test (); xPart.next ())
                         {
-                            for (std::list<part_simple>::iterator it
+                            for (auto it
                                  = (pcls_cdm->field ()) (xPart).parts.begin ();
                                  it
                                  != (pcls_cdm->field ()) (xPart).parts.end ();
@@ -849,7 +849,7 @@ void readIC (
                     {
                         for (xPart.first (); xPart.test (); xPart.next ())
                         {
-                            for (std::list<part_simple>::iterator it
+                            for (auto it
                                  = (pcls_b->field ()) (xPart).parts.begin ();
                                  it != (pcls_b->field ()) (xPart).parts.end ();
                                  ++it)
@@ -860,7 +860,7 @@ void readIC (
                     {
                         for (xPart.first (); xPart.test (); xPart.next ())
                         {
-                            for (std::list<part_simple>::iterator it
+                            for (auto it
                                  = (pcls_ncdm[p - 1 - sim.baryon_flag]
                                         .field ()) (xPart)
                                        .parts.begin ();

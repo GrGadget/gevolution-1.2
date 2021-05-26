@@ -559,9 +559,9 @@ void writeRestartSettings (metadata &sim, icsettings &ic, cosmology &cosmo,
 
 void hibernate (
     metadata &sim, icsettings &ic, cosmology &cosmo,
-    Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_cdm,
-    Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_b,
-    Particles<part_simple, part_simple_info, part_simple_dataType> *pcls_ncdm,
+    Particles_gevolution *pcls_cdm,
+    Particles_gevolution *pcls_b,
+    Particles_gevolution *pcls_ncdm,
     Field<Real> &phi, Field<Real> &chi, Field<Real> &Bi, const double a,
     const double tau, const double dtau, const int cycle,
     const int restartcount)

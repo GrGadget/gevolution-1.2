@@ -871,7 +871,7 @@ void Particles_gevolution::loadGadget2 (
     float *posdata;
     float *veldata;
     void *IDs;
-    LATfield2::part_simple pcl;
+    particle pcl;
     MPI_File infile;
     uint32_t i, count, npart = 0;
     MPI_Offset offset_pos, offset_vel, offset_ID;

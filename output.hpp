@@ -32,7 +32,6 @@ namespace gevolution
 using LATfield2::FFT_BACKWARD;
 using LATfield2::FFT_FORWARD;
 using LATfield2::parallel;
-using LATfield2::part_simple;
 using LATfield2::part_simple_dataType;
 using LATfield2::part_simple_info;
 using LATfield2::PlanFFT;

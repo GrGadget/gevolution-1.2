@@ -25,7 +25,6 @@ namespace gevolution
 using LATfield2::FFT_BACKWARD;
 using LATfield2::FFT_FORWARD;
 using LATfield2::parallel;
-using LATfield2::part_simple;
 using LATfield2::part_simple_dataType;
 using LATfield2::part_simple_info;
 using LATfield2::Particles;
@@ -56,7 +55,7 @@ using LATfield2::Real;
 //////////////////////////
 
 void displace_pcls_ic_basic (double coeff, double lat_resolution,
-                             part_simple *part, double *ref_dist,
+                             particle *part, double *ref_dist,
                              part_simple_info partInfo, Field<Real> **fields,
                              Site *sites, int nfield, double *params,
                              double *outputs, int noutputs)
@@ -139,7 +138,7 @@ void displace_pcls_ic_basic (double coeff, double lat_resolution,
 //////////////////////////
 
 Real initialize_q_ic_basic (double coeff, double lat_resolution,
-                            part_simple *part, double *ref_dist,
+                            particle *part, double *ref_dist,
                             part_simple_info partInfo, Field<Real> **fields,
                             Site *sites, int nfield, double *params,
                             double *outputs, int noutputs)
@@ -1311,12 +1310,12 @@ void generateCICKernel (Field<Real> &ker, const long numpcl, float *pcldata,
 
 void initializeParticlePositions (
     const long numpart, const float *partdata, const int numtile,
-    Particles<part_simple, part_simple_info, part_simple_dataType> &pcls)
+    Particles_gevolution &pcls)
 {
     long xtile, ytile, ztile, i;
     Site p (pcls.lattice ());
 
-    part_simple part;
+    particle part;
 
     part.vel[0] = 0.;
     part.vel[1] = 0.;
@@ -1393,12 +1392,12 @@ void initializeParticlePositions (
 //////////////////////////
 
 double applyMomentumDistribution (
-    Particles<part_simple, part_simple_info, part_simple_dataType> *pcls,
+    Particles_gevolution *pcls,
     unsigned int seed, float T_m, Field<Real> *delta)
 {
     Site xPart (pcls->lattice ());
     Site x;
-    std::list<part_simple>::iterator it;
+    // std::list<part_simple>::iterator it;
     sitmo::prng_engine prng;
     float r1, r2, q, dT;
     double l, dummy, d[3];

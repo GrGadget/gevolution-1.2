@@ -24,6 +24,7 @@
 #include <set>
 #include <string>
 
+
 namespace gevolution
 {
 
@@ -32,6 +33,10 @@ using LATfield2::parallel;
 using LATfield2::Real;
 using LATfield2::Site;
 
+/*
+    The indivual particle data structure in gevolution is 'particle',
+    defined below.
+*/
 struct particle : LATfield2::part_simple
 {
     LATfield2::Real acc[3];

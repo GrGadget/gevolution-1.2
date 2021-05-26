@@ -916,7 +916,7 @@ int main (int argc, char **argv)
                 {
                  maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
                  [&]
-                 (part_simple& part,const Site& xpart)
+                 (particle& part,const Site& xpart)
                  {
                      const double dtau_mean =  
                                      (dtau + dtau_old) / 2. / numsteps_ncdm[i];
@@ -987,9 +987,10 @@ int main (int argc, char **argv)
            //         ? 2
            //         : 1),
            //    f_params);
+           PM.compute_forces(pcls_cdm);
            maxvel[0] = pcls_cdm.updateVel (
                [&]
-               (part_simple& part,const Site& xpart)
+               (particle& part,const Site& xpart)
                {
                    const double dtau_mean =  
                                    (dtau + dtau_old) / 2.;
@@ -997,27 +998,27 @@ int main (int argc, char **argv)
                    
                    return update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
                });
-            if (sim.baryon_flag)
-            {
-               maxvel[1] = pcls_b.updateVel (
-               [&]
-               (part_simple& part,const Site& xpart)
-               {
-                   const double dtau_mean =  
-                                   (dtau + dtau_old) / 2.;
-                   const double dx = 1.0/sim.numpts;
-                   
-                   return
-                   update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
-               } );
-            //   maxvel[1] = pcls_b.updateVel (
-            //       update_q_Newton, (dtau + dtau_old) / 2., update_b_fields,
-            //       ((sim.radiation_flag + sim.fluid_flag > 0
-            //         && a < 1. / (sim.z_switch_linearchi + 1.))
-            //            ? 2
-            //            : 1),
-            //       f_params);
-            }
+           // if (sim.baryon_flag)
+           // {
+           //    maxvel[1] = pcls_b.updateVel (
+           //    [&]
+           //    (part_simple& part,const Site& xpart)
+           //    {
+           //        const double dtau_mean =  
+           //                        (dtau + dtau_old) / 2.;
+           //        const double dx = 1.0/sim.numpts;
+           //        
+           //        return
+           //        update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
+           //    } );
+           // //   maxvel[1] = pcls_b.updateVel (
+           // //       update_q_Newton, (dtau + dtau_old) / 2., update_b_fields,
+           // //       ((sim.radiation_flag + sim.fluid_flag > 0
+           // //         && a < 1. / (sim.z_switch_linearchi + 1.))
+           // //            ? 2
+           // //            : 1),
+           // //       f_params);
+           // }
         }
         Debugger_ptr -> flush();
 
