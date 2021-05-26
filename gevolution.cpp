@@ -843,7 +843,6 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
 //#undef chi
 //#undef xchi
 //}
-
 Real update_q_Newton ( 
                       particle& part,
                       const Field<Real>& psi, 
@@ -883,9 +882,6 @@ Real update_q_Newton (
     gradpsi[2] += ref_dist[0] * ref_dist[1]
                   * (psi (xpart + 2 + 1 + 0) - psi (xpart + 1 + 0));
 
-    // if(part.ID==1)
-    //     std::cout << "Part ID 1: " 
-    //     << " vel[0] "<< part.vel[0] 
     //     << " pos[0] "<< part.pos[0] 
     //     << " a = " << a 
     //     << " dx = " <<  dx
@@ -902,6 +898,10 @@ Real update_q_Newton (
         part.vel[i] += dtau * acc[i];
         v2 += part.vel[i] * part.vel[i];
     }
+    if(part.ID==1)
+        std::cout << "from update_q_Newton Part ID 1: " 
+        << " acc[0] "<< acc[0] 
+        << "\n";
    
    #ifndef NDEBUG
    Debugger -> append( part.ID, {part.pos[0],part.pos[1],part.pos[2] } ,acc);
@@ -909,6 +909,28 @@ Real update_q_Newton (
 
     return v2 / a / a;
 
+}
+
+Real update_q_Newton ( 
+                      particle& part,
+                      const double dtau)
+{
+    Real v2 = 0.;
+    for (int i = 0; i < 3; i++)
+    {
+        part.vel[i] += dtau * part.acc[i];
+        v2 += part.vel[i] * part.vel[i];
+    }
+   #ifndef NDEBUG
+   Debugger -> append( part.ID, {part.pos[0],part.pos[1],part.pos[2] } ,part.acc);
+   #endif
+   
+//    if(part.ID==1)
+//        std::cout << "from update_q_Newton Part ID 1: " 
+//        << " acc[0] "<< part.acc[0] 
+//        << "\n";
+
+    return v2;
 }
 
 //////////////////////////

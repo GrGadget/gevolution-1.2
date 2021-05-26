@@ -63,7 +63,7 @@ class newtonian_pm
         const double dx = 1.0/pcls.lattice().size()[0];
         for(xpart.first();xpart.test();xpart.next())
         {
-            for(auto part : pcls.field()(xpart).parts )
+            for(auto& part : pcls.field()(xpart).parts )
             {
                 std::array<double,3> ref_dist;
                 for(int l=0;l<3;++l)
@@ -96,6 +96,11 @@ class newtonian_pm
                               * (phi (xpart + 2 + 1 + 0) - phi (xpart + 1 + 0));
                 for(int i=0;i<3;++i)
                     part.acc[i] =  (-1) * gradphi[i] / dx;
+                    
+               // if(part.ID==1)
+               //     std::cout << "from PM Part ID 1: " 
+               //     << " acc[0] "<< part.acc[0] 
+               //     << "\n";
             }
         }
     }

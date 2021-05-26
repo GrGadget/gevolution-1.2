@@ -399,6 +399,9 @@ Real update_q_Newton (
                       double dtau,
                       double dx,
                       double a);
+Real update_q_Newton ( 
+                      particle& part,
+                      const double dtau);
 
 //////////////////////////
 // update_pos

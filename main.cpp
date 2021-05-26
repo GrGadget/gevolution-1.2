@@ -914,17 +914,17 @@ int main (int argc, char **argv)
                         f_params);
                 else
                 {
-                 maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
-                 [&]
-                 (particle& part,const Site& xpart)
-                 {
-                     const double dtau_mean =  
-                                     (dtau + dtau_old) / 2. / numsteps_ncdm[i];
-                     const double dx = 1.0/sim.numpts;
-                     
-                     return
-                     update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
-                 } );
+                 // maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
+                 // [&]
+                 // (particle& part,const Site& xpart)
+                 // {
+                 //     const double dtau_mean =  
+                 //                     (dtau + dtau_old) / 2. / numsteps_ncdm[i];
+                 //     const double dx = 1.0/sim.numpts;
+                 //     
+                 //     return
+                 //     update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
+                 // } );
                  //  maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
                  //      update_q_Newton,
                  //      (dtau + dtau_old) / 2. / numsteps_ncdm[i],
@@ -992,12 +992,20 @@ int main (int argc, char **argv)
                [&]
                (particle& part,const Site& xpart)
                {
-                   const double dtau_mean =  
-                                   (dtau + dtau_old) / 2.;
-                   const double dx = 1.0/sim.numpts;
-                   
-                   return update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
-               });
+                   const double dtau_eff =  
+                                   (dtau + dtau_old) * 0.5 * cosmo.fourpiG;
+                   return update_q_Newton(part,dtau_eff);
+               })/a;
+           //maxvel[0] = pcls_cdm.updateVel (
+           //    [&]
+           //    (particle& part,const Site& xpart)
+           //    {
+           //        const double dtau_mean =  
+           //                        (dtau + dtau_old) / 2.;
+           //        const double dx = 1.0/sim.numpts;
+           //        
+           //        return update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
+           //    });
            // if (sim.baryon_flag)
            // {
            //    maxvel[1] = pcls_b.updateVel (
