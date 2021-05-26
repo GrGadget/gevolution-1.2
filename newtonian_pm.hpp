@@ -57,7 +57,7 @@ class newtonian_pm
     /*
         compute forces
     */
-    void compute_forces(Particles_gevolution& pcls)
+    void compute_forces(Particles_gevolution& pcls)const
     {
         LATfield2::Site xpart(pcls.lattice());
         const double dx = 1.0/pcls.lattice().size()[0];
@@ -94,9 +94,8 @@ class newtonian_pm
                               * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 0));
                 gradphi[2] += ref_dist[0] * ref_dist[1]
                               * (phi (xpart + 2 + 1 + 0) - phi (xpart + 1 + 0));
-                std::array<double,3> acc;
-                for (int i = 0; i < 3; i++)
-                    acc[i] =  (-1) * gradphi[i] / dx;
+                for(int i=0;i<3;++i)
+                    part.acc[i] =  (-1) * gradphi[i] / dx;
             }
         }
     }

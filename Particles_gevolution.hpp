@@ -39,7 +39,7 @@ using LATfield2::Site;
 */
 struct particle : LATfield2::part_simple
 {
-    LATfield2::Real acc[3];
+    std::array<LATfield2::Real,3> acc;
 };
 
 class Particles_gevolution : 
