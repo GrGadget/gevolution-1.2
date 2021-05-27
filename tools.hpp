@@ -15,6 +15,7 @@
 #define TOOLS_HEADER
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "metadata.hpp"
 #include <iostream>
 #include <string>
@@ -23,13 +24,9 @@ namespace gevolution
 {
 using LATfield2::Field;
 using LATfield2::parallel;
-using LATfield2::Real;
 using LATfield2::rKSite;
 using LATfield2::Site;
 
-#ifndef Cplx
-#define Cplx LATfield2::Imag
-#endif
 
 #define KTYPE_GRID 0
 #define KTYPE_LINEAR 1

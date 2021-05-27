@@ -30,6 +30,7 @@
 #define GEVOLUTION_HEADER
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "Particles_gevolution.hpp"
 #include <cstdlib>
 #include <iostream>
@@ -39,13 +40,8 @@ namespace gevolution
 using LATfield2::Field;
 using LATfield2::part_simple_info;
 using LATfield2::Particles;
-using LATfield2::Real;
 using LATfield2::rKSite;
 using LATfield2::Site;
-
-#ifndef Cplx
-#define Cplx LATfield2::Imag
-#endif
 
 //////////////////////////
 // prepareFTsource (1)

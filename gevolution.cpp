@@ -34,7 +34,6 @@ namespace gevolution
 using LATfield2::Field;
 using LATfield2::part_simple_info;
 using LATfield2::Particles;
-using LATfield2::Real;
 using LATfield2::rKSite;
 using LATfield2::Site;
 

@@ -49,6 +49,7 @@ namespace mpi = boost::mpi;
 #include "class.h"
 #undef MAX // due to macro collision this has to be done BEFORE including
            // LATfield2 headers!
+           // then do not use macros
 #undef MIN
 #endif
 #include "LATfield2.hpp"

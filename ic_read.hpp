@@ -15,6 +15,7 @@
 #define IC_READ_HEADER
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "Particles_gevolution.hpp" // Particles_gevolution
 #include "metadata.hpp"             // metadata
 #include "tools.hpp"                // Cplx
@@ -33,7 +34,6 @@ using LATfield2::parallel;
 using LATfield2::part_simple_dataType;
 using LATfield2::part_simple_info;
 using LATfield2::PlanFFT;
-using LATfield2::Real;
 
 //////////////////////////
 // readIC

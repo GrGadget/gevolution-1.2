@@ -14,6 +14,8 @@
 #ifndef RADIATION_HEADER
 #define RADIATION_HEADER
 
+#include "real_type.hpp"
+
 #ifdef HAVE_CLASS
 
 namespace gevolution

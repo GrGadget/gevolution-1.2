@@ -10,6 +10,7 @@
 //
 //////////////////////////
 
+#include "real_type.hpp"
 #include "velocity.hpp"
 #include "background.hpp" // Hconf
 #include <gsl/gsl_errno.h>

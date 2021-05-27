@@ -15,14 +15,11 @@
 #define IC_BASIC_HEADER
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "gevolution.hpp"  // solveModifiedPoissonFT
 #include "parser.hpp"      // parameter
 #include "prng_engine.hpp" // sitmo
 #include <gsl/gsl_spline.h>
-
-#ifndef Cplx
-#define Cplx LATfield2::Imag
-#endif
 
 #define MAX_LINESIZE 2048
 
@@ -41,7 +38,6 @@ using LATfield2::part_simple_dataType;
 using LATfield2::part_simple_info;
 using LATfield2::Particles;
 using LATfield2::PlanFFT;
-using LATfield2::Real;
 using LATfield2::rKSite;
 using LATfield2::Site;
 

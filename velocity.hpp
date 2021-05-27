@@ -16,12 +16,12 @@
 #define VELOCITY_HEADER
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "metadata.hpp"
 
 namespace gevolution
 {
 using LATfield2::Field;
-using LATfield2::Real;
 using LATfield2::Site;
 /**
     computes and stores all the background functions

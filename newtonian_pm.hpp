@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "gevolution.hpp"
 #include "Particles_gevolution.hpp"
 

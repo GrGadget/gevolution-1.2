@@ -19,6 +19,7 @@
 #ifdef HAVE_CLASS
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "tools.hpp"
 namespace gevolution
 {

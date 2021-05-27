@@ -29,7 +29,6 @@ using LATfield2::part_simple_dataType;
 using LATfield2::part_simple_info;
 using LATfield2::Particles;
 using LATfield2::PlanFFT;
-using LATfield2::Real;
 
 //////////////////////////
 // displace_pcls_ic_basic

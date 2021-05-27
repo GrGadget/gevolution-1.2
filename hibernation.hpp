@@ -15,6 +15,7 @@
 #define HIBERNATION_HEADER
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "metadata.hpp"
 #include "Particles_gevolution.hpp"
 
@@ -24,8 +25,6 @@ using LATfield2::Field;
 using LATfield2::part_simple_dataType;
 using LATfield2::part_simple_info;
 using LATfield2::Particles;
-using LATfield2::Real;
-// using LATfield2::parallel;
 
 //////////////////////////
 // writeRestartSettings

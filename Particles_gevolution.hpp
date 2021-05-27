@@ -16,6 +16,7 @@
 #define PCLBUFFER 1048576
 #endif
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "metadata.hpp"
 #include "particle_handler.hpp"
 #include <cstdlib>
@@ -30,7 +31,6 @@ namespace gevolution
 
 using LATfield2::Field;
 using LATfield2::parallel;
-using LATfield2::Real;
 using LATfield2::Site;
 
 /*
@@ -39,7 +39,7 @@ using LATfield2::Site;
 */
 struct particle : LATfield2::part_simple
 {
-    std::array<LATfield2::Real,3> acc;
+    std::array<Real,3> acc;
 };
 
 class Particles_gevolution : 

@@ -21,6 +21,7 @@
 #include <string>
 
 #include "LATfield2.hpp"
+#include "real_type.hpp"
 #include "Particles_gevolution.hpp"
 #include "background.hpp"
 #include "gevolution.hpp"
@@ -35,7 +36,6 @@ using LATfield2::parallel;
 using LATfield2::part_simple_dataType;
 using LATfield2::part_simple_info;
 using LATfield2::PlanFFT;
-using LATfield2::Real;
 //////////////////////////
 // writeSnapshots
 //////////////////////////
