@@ -500,21 +500,16 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
     Site xPart (pcls->lattice ());
     Site xField (T00->lattice ());
 
-    typename std::list<part>::iterator it;
-
     Real referPos[3];
     Real weightScalarGridUp[3];
     Real weightScalarGridDown[3];
     Real dx = pcls->res ();
 
     double mass = coeff / (dx * dx * dx);
-    // mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
     mass *= pcls->parts_info () -> mass;
     mass /= a;
 
     Real e = a, f = 0.;
-    Real *q;
-    size_t offset_q = offsetof (part, vel);
 
     Real localCube[8]; // XYZ = 000 | 001 | 010 | 011 | 100 | 101 | 110 | 111
     Real localCubePhi[8];
@@ -544,19 +539,17 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
                 localCubePhi[7] = (*phi) (xField + 0 + 1 + 2);
             }
 
-            for (auto it = (pcls->field ()) (xPart).parts.begin ();
-                 it != (pcls->field ()) (xPart).parts.end (); ++it)
+            for (const auto& p : pcls->field ()(xPart).parts)
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    weightScalarGridUp[i] = ((*it).pos[i] - referPos[i]) / dx;
+                    weightScalarGridUp[i] = (p.pos[i] - referPos[i]) / dx;
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
 
                 if (phi != NULL)
                 {
-                    q = (Real *)((char *)&(*it) + offset_q);
-
+                    const auto &q = p.vel;
                     f = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
                     e = sqrt (f + a * a);
                     f = 3. * e + f / e;
@@ -643,20 +636,15 @@ void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
     Site xPart (pcls->lattice ());
     Site xT0i (T0i->lattice ());
 
-    typename std::list<part>::iterator it;
-
     Real referPos[3];
     Real weightScalarGridDown[3];
     Real weightScalarGridUp[3];
     Real dx = pcls->res ();
 
     double mass = coeff / (dx * dx * dx);
-    // mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
     mass *= pcls->parts_info () -> mass;
 
     Real w;
-    Real *q;
-    size_t offset_q = offsetof (part, vel);
 
     Real qi[12];
     Real localCubePhi[8];
@@ -687,16 +675,15 @@ void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
                 localCubePhi[7] = (*phi) (xT0i + 0 + 1 + 2);
             }
 
-            for (auto it = (pcls->field ()) (xPart).parts.begin ();
-                 it != (pcls->field ()) (xPart).parts.end (); ++it)
+            for (const auto& p: pcls->field ()(xPart).parts)
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    weightScalarGridUp[i] = ((*it).pos[i] - referPos[i]) / dx;
+                    weightScalarGridUp[i] = (p.pos[i] - referPos[i]) / dx;
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
 
-                q = (Real *)((char *)&(*it) + offset_q);
+                const auto &q = p.vel;
 
                 w = mass * q[0];
 
@@ -789,21 +776,16 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
     Site xPart (pcls->lattice ());
     Site xTij (Tij->lattice ());
 
-    typename std::list<part>::iterator it;
-
     Real referPos[3];
     Real weightScalarGridDown[3];
     Real weightScalarGridUp[3];
     Real dx = pcls->res ();
 
     double mass = coeff / (dx * dx * dx);
-    // mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
     mass *= pcls->parts_info () -> mass;
     mass /= a;
 
     Real e, f, w;
-    Real *q;
-    size_t offset_q = offsetof (part, vel);
 
     Real tij[6];  // local cube
     Real tii[24]; // local cube
@@ -837,16 +819,15 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
                 localCubePhi[7] = (*phi) (xTij + 0 + 1 + 2);
             }
 
-            for (auto it = (pcls->field ()) (xPart).parts.begin ();
-                 it != (pcls->field ()) (xPart).parts.end (); ++it)
+            for (const auto& p : pcls->field () (xPart).parts)
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    weightScalarGridUp[i] = ((*it).pos[i] - referPos[i]) / dx;
+                    weightScalarGridUp[i] = (p.pos[i] - referPos[i]) / dx;
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
 
-                q = (Real *)((char *)&(*it) + offset_q);
+                const auto &q = p.vel;
                 f = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
                 e = sqrt (f + a * a);
                 f = 4. + a * a / (f + a * a);
@@ -1000,18 +981,13 @@ void projection_Ti0_project (Particles<part, part_info, part_dataType> *pcls,
     Site xPart (pcls->lattice ());
     Site xField (Ti0->lattice ());
 
-    typename std::list<part>::iterator it;
-
     Real referPos[3];
     Real weightScalarGridUp[3];
     Real weightScalarGridDown[3];
     Real dx = pcls->res ();
 
-    Real *q;
-    size_t offset_q = offsetof (part, vel);
-
     double mass = coeff / (dx * dx * dx);
-    mass *= *(double *)((char *)pcls->parts_info () + pcls->mass_offset ());
+    mass *= pcls->parts_info ()->mass;
 
     Real localCube[24]; // XYZ = 000 | 001 | 010 | 011 | 100 | 101 | 110 | 111
     Real localCubePhi[8];
@@ -1055,16 +1031,15 @@ void projection_Ti0_project (Particles<part, part_info, part_dataType> *pcls,
                 localCubeChi[7] = (*chi) (xField + 0 + 1 + 2);
             }
 
-            for (it = (pcls->field ()) (xPart).parts.begin ();
-                 it != (pcls->field ()) (xPart).parts.end (); ++it)
+            for (const auto& p : pcls->field () (xPart).parts)
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    weightScalarGridUp[i] = ((*it).pos[i] - referPos[i]) / dx;
+                    weightScalarGridUp[i] = (p.pos[i] - referPos[i]) / dx;
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
 
-                q = (Real *)((char *)&(*it) + offset_q);
+                const auto &q = p.vel;
 
                 for (int i = 0; i < 3; i++)
                 {

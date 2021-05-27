@@ -121,8 +121,10 @@ int main (int argc, char **argv)
 #endif // BENCHMARK
 
     int n = 0, m = 0;
+#ifdef EXTERNAL_IO
     int io_size = 0;
     int io_group_size = 0;
+#endif
 
     int i, j, cycle = 0, snapcount = 0, pkcount = 0, restartcount = 0,
               usedparams, numparam = 0, numspecies, done_hij;
@@ -135,7 +137,10 @@ int main (int argc, char **argv)
     char filename[2 * PARAM_MAX_LENGTH + 24];
     string h5filename;
     char *settingsfile = NULL;
+
+#ifdef HAVE_CLASS
     char *precisionfile = NULL;
+#endif
     parameter *params = NULL;
     metadata sim;
     cosmology cosmo;
@@ -168,8 +173,9 @@ int main (int argc, char **argv)
                     "precision files"
                  << endl;
             exit (-100);
-#endif
+#else
             precisionfile = argv[++i];
+#endif
             break;
         case 'i':
 #ifndef EXTERNAL_IO
@@ -178,8 +184,9 @@ int main (int argc, char **argv)
                     "server"
                  << endl;
             exit (-1000);
-#endif
+#else
             io_size = atoi (argv[++i]);
+#endif
             break;
         case 'g':
 #ifndef EXTERNAL_IO
@@ -188,8 +195,9 @@ int main (int argc, char **argv)
                     "server"
                  << endl;
             exit (-1000);
-#endif
+#else
             io_group_size = atoi (argv[++i]);
+#endif
         }
     }
 

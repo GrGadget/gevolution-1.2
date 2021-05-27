@@ -1579,7 +1579,8 @@ void generateIC_basic (
     PlanFFT<Cplx> *plan_chi, PlanFFT<Cplx> *plan_Bi, PlanFFT<Cplx> *plan_source,
     PlanFFT<Cplx> *plan_Sij, parameter *params, int &numparam)
 {
-    int i, j, p;
+    // int j, p;
+    int i;
     double a = 1. / (1. + sim.z_in);
     float *pcldata = NULL;
     gsl_spline *pkspline = NULL;
@@ -1700,7 +1701,7 @@ void generateIC_basic (
                           - (1. / Hconf (1.02 * a, cosmo)
                              / Hconf (1.02 * a, cosmo)))
                        / 0.12);
-        for (i = 0; i < tk_d1->size; i++) // construct phi
+        for (int i = 0; i < tk_d1->size; i++) // construct phi
             temp1[i]
                 = (1.5
                        * (Hconf (a, cosmo) * Hconf (a, cosmo)
@@ -1855,7 +1856,7 @@ void generateIC_basic (
             }
             else
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp1[i]
                         = nbspline->y[i]
                           - ((cosmo.Omega_cdm * tk_d1->y[i]
@@ -1870,7 +1871,7 @@ void generateIC_basic (
             }
             if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp2[i]
                         = -a
                           * ((cosmo.Omega_cdm * tk_t1->y[i]
@@ -1884,7 +1885,7 @@ void generateIC_basic (
             }
             else
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp2[i]
                         = a * vnbspline->y[i]
                           - a
@@ -1917,7 +1918,7 @@ void generateIC_basic (
             {
                 if (sim.gr_flag == gravity_theory::GR)
                 {
-                    for (i = 0; i < tk_d1->size; i++)
+                    for (int i = 0; i < tk_d1->size; i++)
                         temp1[i]
                             = -3. * pkspline->y[i] / pkspline->x[i]
                                   / pkspline->x[i]
@@ -1934,7 +1935,7 @@ void generateIC_basic (
                 }
                 else
                 {
-                    for (i = 0; i < tk_d1->size; i++)
+                    for (int i = 0; i < tk_d1->size; i++)
                         temp1[i]
                             = nbspline->y[i]
                               - ((8. * cosmo.Omega_cdm * tk_d1->y[i]
@@ -1950,7 +1951,7 @@ void generateIC_basic (
                 }
                 if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
                 {
-                    for (i = 0; i < tk_d1->size; i++)
+                    for (int i = 0; i < tk_d1->size; i++)
                         temp2[i] = -a
                                    * ((8. * cosmo.Omega_cdm * tk_t1->y[i]
                                        + (7. * cosmo.Omega_b - cosmo.Omega_cdm)
@@ -1965,7 +1966,7 @@ void generateIC_basic (
                 }
                 else
                 {
-                    for (i = 0; i < tk_d1->size; i++)
+                    for (int i = 0; i < tk_d1->size; i++)
                         temp2[i]
                             = a * vnbspline->y[i]
                               - a
@@ -1992,7 +1993,7 @@ void generateIC_basic (
             {
                 if (sim.gr_flag == gravity_theory::GR)
                 {
-                    for (i = 0; i < tk_d1->size; i++)
+                    for (int i = 0; i < tk_d1->size; i++)
                         temp1[i]
                             = -3. * pkspline->y[i] / pkspline->x[i]
                                   / pkspline->x[i]
@@ -2009,7 +2010,7 @@ void generateIC_basic (
                 }
                 else
                 {
-                    for (i = 0; i < tk_d1->size; i++)
+                    for (int i = 0; i < tk_d1->size; i++)
                         temp1[i]
                             = nbspline->y[i]
                               - (((cosmo.Omega_cdm - 7. * cosmo.Omega_b)
@@ -2025,7 +2026,7 @@ void generateIC_basic (
                 }
                 if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
                 {
-                    for (i = 0; i < tk_d1->size; i++)
+                    for (int i = 0; i < tk_d1->size; i++)
                         temp2[i] = -a
                                    * (((cosmo.Omega_cdm - 7. * cosmo.Omega_b)
                                            * tk_t1->y[i]
@@ -2040,7 +2041,7 @@ void generateIC_basic (
                 }
                 else
                 {
-                    for (i = 0; i < tk_d1->size; i++)
+                    for (int i = 0; i < tk_d1->size; i++)
                         temp2[i]
                             = a * vnbspline->y[i]
                               - a
@@ -2072,7 +2073,7 @@ void generateIC_basic (
         {
             if (sim.gr_flag == gravity_theory::GR)
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp1[i]
                         = -3. * pkspline->y[i] / pkspline->x[i] / pkspline->x[i]
                           - tk_d2->y[i] * M_PI
@@ -2084,7 +2085,7 @@ void generateIC_basic (
             }
             else
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp1[i]
                         = nbspline->y[i]
                           - tk_d2->y[i] * M_PI
@@ -2096,7 +2097,7 @@ void generateIC_basic (
             }
             if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp2[i]
                         = -a * tk_t2->y[i] * M_PI
                           * sqrt (Pk_primordial (
@@ -2106,7 +2107,7 @@ void generateIC_basic (
             }
             else
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp2[i]
                         = a * vnbspline->y[i]
                           - a * tk_t2->y[i] * M_PI
@@ -2132,7 +2133,7 @@ void generateIC_basic (
         {
             if (sim.gr_flag == gravity_theory::GR)
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp1[i]
                         = -3. * pkspline->y[i] / pkspline->x[i] / pkspline->x[i]
                           - tk_d1->y[i] * M_PI
@@ -2144,7 +2145,7 @@ void generateIC_basic (
             }
             else
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp1[i]
                         = nbspline->y[i]
                           - tk_d1->y[i] * M_PI
@@ -2156,7 +2157,7 @@ void generateIC_basic (
             }
             if (sim.gr_flag == gravity_theory::GR || vnbspline == NULL)
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp2[i]
                         = -a * tk_t1->y[i] * M_PI
                           * sqrt (Pk_primordial (
@@ -2166,7 +2167,7 @@ void generateIC_basic (
             }
             else
             {
-                for (i = 0; i < tk_d1->size; i++)
+                for (int i = 0; i < tk_d1->size; i++)
                     temp2[i]
                         = a * vnbspline->y[i]
                           - a * tk_t1->y[i] * M_PI
@@ -2334,7 +2335,7 @@ void generateIC_basic (
     if (sim.baryon_flag > 1)
         sim.baryon_flag = 0;
 
-    for (p = 0; p < cosmo.num_ncdm; p++) // initialization of non-CDM species
+    for (int p = 0; p < cosmo.num_ncdm; p++) // initialization of non-CDM species
     {
         if (ic.numtile[1 + sim.baryon_flag + p] < 1)
             continue;
@@ -2502,7 +2503,7 @@ void generateIC_basic (
         scalarProjectionCIC_project (pcls_cdm, source);
         if (sim.baryon_flag)
             scalarProjectionCIC_project (pcls_b, source);
-        for (p = 0; p < cosmo.num_ncdm; p++)
+        for (int p = 0; p < cosmo.num_ncdm; p++)
         {
             if (ic.numtile[1 + sim.baryon_flag + p] < 1)
                 continue;
@@ -2540,7 +2541,7 @@ void generateIC_basic (
                   / a;
     }
 
-    for (p = 0; p < cosmo.num_ncdm; p++)
+    for (int p = 0; p < cosmo.num_ncdm; p++)
     {
         if (ic.numtile[1 + sim.baryon_flag + p] < 1)
         {

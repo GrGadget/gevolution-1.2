@@ -232,7 +232,7 @@ class prng_engine
     void discard (uint64_t z)
     {
         // check if we stay in the current block
-        if (z < 8 - _o_counter)
+        if (z + _o_counter < 8)
         {
             _o_counter += static_cast<unsigned short> (z);
             return;

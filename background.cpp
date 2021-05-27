@@ -108,7 +108,7 @@ double bg_ncdm (const double a, const cosmology cosmo, const int p)
 
 double bg_ncdm (const double a, const cosmology cosmo)
 {
-    double w;
+    // double w;
     static double result = -1.0;
     static double a_prev = -1.0;
 

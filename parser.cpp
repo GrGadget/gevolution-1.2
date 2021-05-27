@@ -605,7 +605,7 @@ bool parseParameter (parameter *&params, const int numparam, const char *pname,
     char *comma;
     char *l;
     char *r;
-    char item[PARAM_MAX_LENGTH];
+    // char item[PARAM_MAX_LENGTH];
     int n = 0;
 
     for (int i = 0; i < numparam; i++)

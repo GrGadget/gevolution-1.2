@@ -477,7 +477,7 @@ void solveModifiedPoissonFT (Field<Cplx> &sourceFT, Field<Cplx> &potFT,
     const int linesize = potFT.lattice ().size (1);
     int i;
     Real *gridk2;
-    Real *sinc;
+    // Real *sinc;
     rKSite k (potFT.lattice ());
 
     gridk2 = (Real *)malloc (linesize * sizeof (Real));
@@ -1147,7 +1147,7 @@ void projectFTomega (Field<Cplx> &viFT)
     const int linesize = viFT.lattice ().size (1);
     int i;
     Real *gridk2;
-    Cplx *kshift;
+    // Cplx *kshift;
     Real *gridk;
     rKSite k (viFT.lattice ());
     Cplx tmp (0., 0.);

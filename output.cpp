@@ -263,6 +263,7 @@ void writeSnapshots (
     }
 
     if (sim.out_snapshot & MASK_PHI)
+    {
 #ifdef EXTERNAL_IO
         phi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
 #else
@@ -272,8 +273,10 @@ void writeSnapshots (
         else
             phi->saveHDF5 (h5filename + filename + "_phi.h5");
 #endif
+   }
 
     if (sim.out_snapshot & MASK_CHI)
+    {
 #ifdef EXTERNAL_IO
         chi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
 #else
@@ -283,7 +286,7 @@ void writeSnapshots (
         else
             chi->saveHDF5 (h5filename + filename + "_chi.h5");
 #endif
-
+    }
     if (sim.out_snapshot & MASK_HIJ)
     {
         if (done_hij == 0)
@@ -637,7 +640,7 @@ void writeLightcones (
     double d;
     double vertex[MAX_INTERSECTS][3];
     double domain[6];
-    double pos[3];
+    // double pos[3];
     double s[2];
     char filename[2 * PARAM_MAX_LENGTH + 24];
     char buffer[268];
@@ -647,7 +650,7 @@ void writeLightcones (
     long *IDcombuf;
     long *IDcombuf2;
     Site xsim;
-    int done_B = 0;
+    // int done_B = 0;
 #ifdef HAVE_HEALPIX
     int64_t pix, pix2, q;
     vector<int> pixbatch_id;

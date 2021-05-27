@@ -231,7 +231,7 @@ void generateDisplacementField (Field<Cplx> &potFT, const Real coeff,
     rKSite k (potFT.lattice ());
     int kx, ky, kz, i, j;
     int kymin, kymax, kzmin, kzmax;
-    long jumpy, jumpz;
+    // long jumpy, jumpz;
     float r1, r2, k2, s;
     float *sinc;
     sitmo::prng_engine prng;
