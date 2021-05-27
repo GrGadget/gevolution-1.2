@@ -914,17 +914,16 @@ int main (int argc, char **argv)
                         f_params);
                 else
                 {
-                 // maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
-                 // [&]
-                 // (particle& part,const Site& xpart)
-                 // {
-                 //     const double dtau_mean =  
-                 //                     (dtau + dtau_old) / 2. / numsteps_ncdm[i];
-                 //     const double dx = 1.0/sim.numpts;
-                 //     
-                 //     return
-                 //     update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
-                 // } );
+                   PM.compute_forces(pcls_ncdm[i]);
+                   maxvel[i+1+sim.baryon_flag] = pcls_ncdm[i].updateVel (
+                       [&]
+                       (particle& part,const Site& xpart)
+                       {
+                           const double dtau_eff =  
+                                           (dtau + dtau_old) * 0.5 * cosmo.fourpiG;
+                           return update_q_Newton(part,dtau_eff);
+                       })/a;
+                 // TODO check the condition in the old code below
                  //  maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
                  //      update_q_Newton,
                  //      (dtau + dtau_old) / 2. / numsteps_ncdm[i],
@@ -980,6 +979,7 @@ int main (int argc, char **argv)
         }
         else
         {
+           // TODO check the condition in the old code below
            //maxvel[0] = pcls_cdm.updateVel (
            //    update_q_Newton, (dtau + dtau_old) / 2., update_cdm_fields,
            //    ((sim.radiation_flag + sim.fluid_flag > 0
@@ -996,37 +996,27 @@ int main (int argc, char **argv)
                                    (dtau + dtau_old) * 0.5 * cosmo.fourpiG;
                    return update_q_Newton(part,dtau_eff);
                })/a;
-           //maxvel[0] = pcls_cdm.updateVel (
-           //    [&]
-           //    (particle& part,const Site& xpart)
-           //    {
-           //        const double dtau_mean =  
-           //                        (dtau + dtau_old) / 2.;
-           //        const double dx = 1.0/sim.numpts;
-           //        
-           //        return update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
-           //    });
-           // if (sim.baryon_flag)
-           // {
-           //    maxvel[1] = pcls_b.updateVel (
-           //    [&]
-           //    (part_simple& part,const Site& xpart)
-           //    {
-           //        const double dtau_mean =  
-           //                        (dtau + dtau_old) / 2.;
-           //        const double dx = 1.0/sim.numpts;
-           //        
-           //        return
-           //        update_q_Newton(part,phi,xpart,dtau_mean,dx,a);
-           //    } );
-           // //   maxvel[1] = pcls_b.updateVel (
-           // //       update_q_Newton, (dtau + dtau_old) / 2., update_b_fields,
-           // //       ((sim.radiation_flag + sim.fluid_flag > 0
-           // //         && a < 1. / (sim.z_switch_linearchi + 1.))
-           // //            ? 2
-           // //            : 1),
-           // //       f_params);
-           // }
+           // TODO test the evolution of baryon species
+           if (sim.baryon_flag)
+           {
+               PM.compute_forces(pcls_b);
+               maxvel[1] = pcls_b.updateVel (
+                   [&]
+                   (particle& part,const Site& xpart)
+                   {
+                       const double dtau_eff =  
+                                       (dtau + dtau_old) * 0.5 * cosmo.fourpiG;
+                       return update_q_Newton(part,dtau_eff);
+                   })/a;
+           // TODO check the condition in the old code below
+           //   maxvel[1] = pcls_b.updateVel (
+           //       update_q_Newton, (dtau + dtau_old) / 2., update_b_fields,
+           //       ((sim.radiation_flag + sim.fluid_flag > 0
+           //         && a < 1. / (sim.z_switch_linearchi + 1.))
+           //            ? 2
+           //            : 1),
+           //       f_params);
+           }
         }
         Debugger_ptr -> flush();
 
@@ -1134,12 +1124,7 @@ int main (int argc, char **argv)
         }
 
         dtau_old = dtau;
-
-        if (sim.Cf * dx < sim.steplimit / Hconf (a, cosmo))
-            dtau = sim.Cf * dx;
-        else
-            dtau = sim.steplimit / Hconf (a, cosmo);
-
+        dtau = std::min(sim.Cf,sim.steplimit/Hconf(a,cosmo));
         cycle++;
 
 #ifdef BENCHMARK
