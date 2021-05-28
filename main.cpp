@@ -356,11 +356,7 @@ int main (int argc, char **argv)
             1000 * sim.boxsize,
             10 * cosmo.C_SPEED_OF_LIGHT * cosmo.C_SPEED_OF_LIGHT/sim.boxsize)};
 
-    if (sim.Cf * dx < sim.steplimit / Hconf (a, cosmo))
-        dtau = sim.Cf * dx;
-    else
-        dtau = sim.steplimit / Hconf (a, cosmo);
-
+    dtau = std::min(sim.Cf * dx, sim.steplimit/Hconf(a,cosmo));
     dtau_old = 0.;
 
     if (ic.generator == ICGEN_BASIC)
