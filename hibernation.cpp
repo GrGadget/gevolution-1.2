@@ -567,7 +567,7 @@ void hibernate (
     const int restartcount)
 {
     std::string h5filename;
-    char buffer[5];
+    char buffer[50];
     int i;
     Site x (Bi.lattice ());
 

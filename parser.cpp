@@ -852,7 +852,6 @@ int parseMetadata (parameter *&params, const int numparam, metadata &sim,
                    cosmology &cosmo, icsettings &ic)
 {
     char par_string[PARAM_MAX_LENGTH];
-    char *ptr;
     char *pptr[MAX_PCL_SPECIES];
     int usedparams = 0;
     int i;

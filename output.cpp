@@ -644,7 +644,7 @@ void writeLightcones (
     double s[2];
     char filename[2 * PARAM_MAX_LENGTH + 24];
     char buffer[268];
-    FILE *outfile;
+    FILE *outfile = nullptr;
     gadget2_header hdr;
     std::set<long> IDprelog[MAX_PCL_SPECIES];
     long *IDcombuf;
@@ -3190,7 +3190,7 @@ void writeSpectra (
 #endif
 )
 {
-    char filename[2 * PARAM_MAX_LENGTH + 24];
+    char filename[2 * PARAM_MAX_LENGTH + 50];
     char buffer[64];
     int i, j;
     Site x (phi->lattice ());

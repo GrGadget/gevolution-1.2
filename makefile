@@ -40,7 +40,7 @@ DGEVOLUTION  += -DEXACT_OUTPUT_REDSHIFTS
 #DGEVOLUTION  += -DHAVE_HEALPIX  # requires LIB -lchealpix
 
 # further compiler options
-OPT          := -O3 -std=c++17 -DNDEBUG
+OPT          := -O3 -std=c++17 -DNDEBUG -Wall
 
 $(EXEC): $(OBJS) $(HEADERS) makefile $(VERSION)
 	$(COMPILER) $(OBJS) -o $@ $(OPT) $(DLATFIELD2) $(DGEVOLUTION) $(INCLUDE) $(LIB)
