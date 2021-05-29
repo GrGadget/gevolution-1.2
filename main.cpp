@@ -919,13 +919,13 @@ int main (int argc, char **argv)
                         f_params);
                 else
                 {
-                   PM.compute_forces(pcls_ncdm[i]);
+                   PM.compute_forces(pcls_ncdm[i],cosmo.fourpiG);
                    maxvel[i+1+sim.baryon_flag] = pcls_ncdm[i].updateVel (
                        [&]
                        (particle& part,const Site& xpart)
                        {
                            const double dtau_eff =  
-                                           (dtau + dtau_old) * 0.5 * cosmo.fourpiG;
+                                           (dtau + dtau_old) * 0.5 ;
                            return update_q_Newton(part,dtau_eff);
                        })/a;
                  // TODO check the condition in the old code below
@@ -992,25 +992,25 @@ int main (int argc, char **argv)
            //         ? 2
            //         : 1),
            //    f_params);
-           PM.compute_forces(pcls_cdm);
+           PM.compute_forces(pcls_cdm,cosmo.fourpiG);
            maxvel[0] = pcls_cdm.updateVel (
                [&]
                (particle& part,const Site& xpart)
                {
                    const double dtau_eff =  
-                                   (dtau + dtau_old) * 0.5 * cosmo.fourpiG;
+                                   (dtau + dtau_old) * 0.5 ;
                    return update_q_Newton(part,dtau_eff);
                })/a;
            // TODO test the evolution of baryon species
            if (sim.baryon_flag)
            {
-               PM.compute_forces(pcls_b);
+               PM.compute_forces(pcls_b,cosmo.fourpiG);
                maxvel[1] = pcls_b.updateVel (
                    [&]
                    (particle& part,const Site& xpart)
                    {
                        const double dtau_eff =  
-                                       (dtau + dtau_old) * 0.5 * cosmo.fourpiG;
+                                       (dtau + dtau_old) * 0.5 ;
                        return update_q_Newton(part,dtau_eff);
                    })/a;
            // TODO check the condition in the old code below

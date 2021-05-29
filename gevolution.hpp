@@ -31,6 +31,7 @@
 
 #include "LATfield2.hpp"
 #include "real_type.hpp"
+#include "debugger.hpp"
 #include "Particles_gevolution.hpp"
 #include <cstdlib>
 #include <iostream>
