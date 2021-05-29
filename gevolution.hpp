@@ -395,9 +395,22 @@ Real update_q_Newton (
                       double dtau,
                       double dx,
                       double a);
-Real update_q_Newton ( 
+                      
+inline Real update_q_Newton ( 
                       particle& part,
-                      const double dtau);
+                      const double dtau)
+{
+    Real v2 = 0.;
+    for (int i = 0; i < 3; i++)
+    {
+        part.vel[i] += dtau * part.acc[i];
+        v2 += part.vel[i] * part.vel[i];
+    }
+    #ifndef NDEBUG
+    Debugger -> append( part.ID, {part.pos[0],part.pos[1],part.pos[2] } ,part.acc);
+    #endif
+    return v2;
+}
 
 //////////////////////////
 // update_pos
