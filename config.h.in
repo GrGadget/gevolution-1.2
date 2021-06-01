@@ -1,0 +1,13 @@
+#ifndef GEVOLUTION_CONFIG_H
+#define GEVOLUTION_CONFIG_H
+
+#mesondefine PHINONLINEAR
+#mesondefine BENCHMARK
+#mesondefine EXACT_OUTPUT_REDSHIFTS
+#mesondefine VELOCITY
+#mesondefine COLORTERMINAL
+#mesondefine CHECK_B
+#mesondefine HAVE_CLASS
+#mesondefine HAVE_HEALPIX
+
+#endif

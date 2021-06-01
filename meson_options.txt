@@ -1,0 +1,9 @@
+option('PHINONLINEAR',type: 'boolean', value: true)
+option('BENCHMARK',type: 'boolean', value: true)
+option('EXACT_OUTPUT_REDSHIFTS',type: 'boolean', value: true)
+
+option('VELOCITY',type: 'boolean', value: false)
+option('COLORTERMINAL',type: 'boolean', value: false)
+option('CHECK_B',type: 'boolean', value: false)
+option('HAVE_CLASS',type: 'boolean', value: false)
+option('HAVE_HEALPIX',type: 'boolean', value: false)
