@@ -89,12 +89,12 @@ void generateIC_prevolution (
     double mean_q;
     double dx = 1.0 / (double)sim.numpts;
     long tmp;
-    part_simple_info pcls_cdm_info;
-    part_simple_dataType pcls_cdm_dataType;
-    part_simple_info pcls_b_info;
-    part_simple_dataType pcls_b_dataType;
-    part_simple_info pcls_ncdm_info[MAX_PCL_SPECIES];
-    part_simple_dataType pcls_ncdm_dataType;
+    particle_info pcls_cdm_info;
+    particle_dataType pcls_cdm_dataType;
+    particle_info pcls_b_info;
+    particle_dataType pcls_b_dataType;
+    particle_info pcls_ncdm_info[MAX_PCL_SPECIES];
+    particle_dataType pcls_ncdm_dataType;
     Real boxSize[3] = { 1., 1., 1. };
     char ncdm_name[8];
     Field<Real> *ic_fields[2];

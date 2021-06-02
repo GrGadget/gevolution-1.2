@@ -39,7 +39,6 @@
 namespace gevolution
 {
 using LATfield2::Field;
-using LATfield2::part_simple_info;
 using LATfield2::Particles;
 using LATfield2::rKSite;
 using LATfield2::Site;
@@ -350,7 +349,7 @@ void solveModifiedPoissonFT (Field<Cplx> &sourceFT, Field<Cplx> &potFT,
 //////////////////////////
 
 Real update_q (double dtau, double dx, particle *part, double *ref_dist,
-               part_simple_info partInfo, Field<Real> **fields, Site *sites,
+               particle_info partInfo, Field<Real> **fields, Site *sites,
                int nfield, double *params, double *outputs, int noutputs);
 
 //////////////////////////
@@ -381,14 +380,6 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
 //
 //////////////////////////
 
-//Real update_q_Newton (double dtau, double dx, part_simple *part,
-//                      double *ref_dist, part_simple_info partInfo,
-//                      Field<Real> **fields, Site *sites, int nfield,
-//                      double *params, double *outputs, int noutputs);
-// Real update_q_Newton (double dtau, double dx, part_simple *part,
-//                       double *ref_dist, part_simple_info partInfo,
-//                       Field<Real> **fields, Site *sites, int nfield,
-//                       double *params, double *outputs, int noutputs);
 Real update_q_Newton ( 
                       particle& part,
                       const Field<Real>& psi, 
@@ -445,7 +436,7 @@ inline Real update_q_Newton (
 //////////////////////////
 
 void update_pos (double dtau, double dx, particle *part, double *ref_dist,
-                 part_simple_info partInfo, Field<Real> **fields, Site *sites,
+                 particle_info partInfo, Field<Real> **fields, Site *sites,
                  int nfield, double *params, double *outputs, int noutputs);
 
 //////////////////////////
@@ -475,7 +466,7 @@ void update_pos (double dtau, double dx, particle *part, double *ref_dist,
 //////////////////////////
 
 void update_pos_Newton (double dtau, double dx, particle *part,
-                        double *ref_dist, part_simple_info partInfo,
+                        double *ref_dist, particle_info partInfo,
                         Field<Real> **fields, Site *sites, int nfield,
                         double *params, double *outputs, int noutputs);
 

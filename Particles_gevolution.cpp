@@ -28,7 +28,6 @@ void Particles_gevolution::saveGadget2 (
     fname[filename.length ()] = '\0';
 
     Site xPart (this->lat_part_);
-    // typename std::list<LATfield2::part_simple>::iterator it;
 
     if (hdr.num_files != 1 && hdr.num_files != parallel.grid_size ()[1])
     {
@@ -343,7 +342,6 @@ void Particles_gevolution::saveGadget2 (
 
     LATfield2::Site xPart (this->lat_part_);
     LATfield2::Site xField (phi->lattice ());
-    // typename std::list<LATfield2::part_simple>::iterator it;
 
     if (hdr.num_files != 1)
     {

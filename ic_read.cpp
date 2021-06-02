@@ -74,12 +74,12 @@ void readIC (
     PlanFFT<Cplx> *plan_Sij, int &cycle, int &snapcount, int &pkcount,
     int &restartcount, std::set<long> *IDbacklog)
 {
-    part_simple_info pcls_cdm_info;
-    part_simple_dataType pcls_cdm_dataType;
-    part_simple_info pcls_b_info;
-    part_simple_dataType pcls_b_dataType;
-    part_simple_info pcls_ncdm_info[MAX_PCL_SPECIES];
-    part_simple_dataType pcls_ncdm_dataType;
+    particle_info pcls_cdm_info;
+    particle_dataType pcls_cdm_dataType;
+    particle_info pcls_b_info;
+    particle_dataType pcls_b_dataType;
+    particle_info pcls_ncdm_info[MAX_PCL_SPECIES];
+    particle_dataType pcls_ncdm_dataType;
     Real boxSize[3] = { 1., 1., 1. };
     std::string filename;
     std::string buf;

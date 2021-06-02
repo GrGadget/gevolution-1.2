@@ -34,8 +34,6 @@ using LATfield2::FFT_BACKWARD;
 using LATfield2::FFT_FORWARD;
 using LATfield2::Field;
 using LATfield2::parallel;
-using LATfield2::part_simple_dataType;
-using LATfield2::part_simple_info;
 using LATfield2::Particles;
 using LATfield2::PlanFFT;
 using LATfield2::rKSite;
@@ -66,7 +64,7 @@ using LATfield2::Site;
 
 void displace_pcls_ic_basic (double coeff, double lat_resolution,
                              particle *part, double *ref_dist,
-                             part_simple_info partInfo, Field<Real> **fields,
+                             particle_info partInfo, Field<Real> **fields,
                              Site *sites, int nfield, double *params,
                              double *outputs, int noutputs);
 
@@ -94,7 +92,7 @@ void displace_pcls_ic_basic (double coeff, double lat_resolution,
 
 Real initialize_q_ic_basic (double coeff, double lat_resolution,
                             particle *part, double *ref_dist,
-                            part_simple_info partInfo, Field<Real> **fields,
+                            particle_info partInfo, Field<Real> **fields,
                             Site *sites, int nfield, double *params,
                             double *outputs, int noutputs);
 

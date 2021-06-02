@@ -32,7 +32,6 @@
 namespace gevolution
 {
 using LATfield2::Field;
-using LATfield2::part_simple_info;
 using LATfield2::Particles;
 using LATfield2::rKSite;
 using LATfield2::Site;
@@ -543,7 +542,7 @@ void solveModifiedPoissonFT (Field<Cplx> &sourceFT, Field<Cplx> &potFT,
 //////////////////////////
 
 Real update_q (double dtau, double dx, particle *part, double *ref_dist,
-               part_simple_info partInfo, Field<Real> **fields, Site *sites,
+               particle_info partInfo, Field<Real> **fields, Site *sites,
                int nfield, double *params, double *outputs, int noutputs)
 {
 #define phi (*fields[0])
@@ -750,98 +749,6 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
 // Returns: squared velocity of particle after update
 //
 //////////////////////////
-//Real update_q_Newton (double dtau, double dx, part_simple *part,
-//                      double *ref_dist, part_simple_info partInfo,
-//                      Field<Real> **fields, Site *sites, int nfield,
-//                      double *params, double *outputs, int noutputs)
-//{
-//#define psi (*fields[0])
-//#define xpsi (sites[0])
-//#define chi (*fields[1])
-//#define xchi (sites[1])
-//
-//    Real gradpsi[3] = { 0, 0, 0 };
-//
-//    gradpsi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
-//                 * (psi (xpsi + 0) - psi (xpsi));
-//    gradpsi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
-//                 * (psi (xpsi + 1) - psi (xpsi));
-//    gradpsi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
-//                 * (psi (xpsi + 2) - psi (xpsi));
-//    gradpsi[0] += ref_dist[1] * (1. - ref_dist[2])
-//                  * (psi (xpsi + 1 + 0) - psi (xpsi + 1));
-//    gradpsi[1] += ref_dist[0] * (1. - ref_dist[2])
-//                  * (psi (xpsi + 1 + 0) - psi (xpsi + 0));
-//    gradpsi[2] += ref_dist[0] * (1. - ref_dist[1])
-//                  * (psi (xpsi + 2 + 0) - psi (xpsi + 0));
-//    gradpsi[0] += (1. - ref_dist[1]) * ref_dist[2]
-//                  * (psi (xpsi + 2 + 0) - psi (xpsi + 2));
-//    gradpsi[1] += (1. - ref_dist[0]) * ref_dist[2]
-//                  * (psi (xpsi + 2 + 1) - psi (xpsi + 2));
-//    gradpsi[2] += (1. - ref_dist[0]) * ref_dist[1]
-//                  * (psi (xpsi + 2 + 1) - psi (xpsi + 1));
-//    gradpsi[0] += ref_dist[1] * ref_dist[2]
-//                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 2 + 1));
-//    gradpsi[1] += ref_dist[0] * ref_dist[2]
-//                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 2 + 0));
-//    gradpsi[2] += ref_dist[0] * ref_dist[1]
-//                  * (psi (xpsi + 2 + 1 + 0) - psi (xpsi + 1 + 0));
-//
-//    //if (nfield >= 2 && fields[1] != NULL)
-//    //{
-//    //    gradpsi[0] -= (1. - ref_dist[1]) * (1. - ref_dist[2])
-//    //                  * (chi (xchi + 0) - chi (xchi));
-//    //    gradpsi[1] -= (1. - ref_dist[0]) * (1. - ref_dist[2])
-//    //                  * (chi (xchi + 1) - chi (xchi));
-//    //    gradpsi[2] -= (1. - ref_dist[0]) * (1. - ref_dist[1])
-//    //                  * (chi (xchi + 2) - chi (xchi));
-//    //    gradpsi[0] -= ref_dist[1] * (1. - ref_dist[2])
-//    //                  * (chi (xchi + 1 + 0) - chi (xchi + 1));
-//    //    gradpsi[1] -= ref_dist[0] * (1. - ref_dist[2])
-//    //                  * (chi (xchi + 1 + 0) - chi (xchi + 0));
-//    //    gradpsi[2] -= ref_dist[0] * (1. - ref_dist[1])
-//    //                  * (chi (xchi + 2 + 0) - chi (xchi + 0));
-//    //    gradpsi[0] -= (1. - ref_dist[1]) * ref_dist[2]
-//    //                  * (chi (xchi + 2 + 0) - chi (xchi + 2));
-//    //    gradpsi[1] -= (1. - ref_dist[0]) * ref_dist[2]
-//    //                  * (chi (xchi + 2 + 1) - chi (xchi + 2));
-//    //    gradpsi[2] -= (1. - ref_dist[0]) * ref_dist[1]
-//    //                  * (chi (xchi + 2 + 1) - chi (xchi + 1));
-//    //    gradpsi[0] -= ref_dist[1] * ref_dist[2]
-//    //                  * (chi (xchi + 2 + 1 + 0) - chi (xchi + 2 + 1));
-//    //    gradpsi[1] -= ref_dist[0] * ref_dist[2]
-//    //                  * (chi (xchi + 2 + 1 + 0) - chi (xchi + 2 + 0));
-//    //    gradpsi[2] -= ref_dist[0] * ref_dist[1]
-//    //                  * (chi (xchi + 2 + 1 + 0) - chi (xchi + 1 + 0));
-//    //}
-//    if(part->ID==1)
-//        std::cout << "Part ID 1: " 
-//        << " vel[0] "<< part->vel[0] 
-//        << " pos[0] "<< part->pos[0] 
-//        << " a = " << params[0]
-//        << " dx = " <<  dx
-//        << " dtau = " << dtau 
-//        << " gradpsi[0] = " << gradpsi[0] 
-//        << " site.index = " << xpsi.index() 
-//        << " ref_dist[0] = " << ref_dist[0] << "\n";
-//
-//    Real v2 = 0.;
-//    std::array<double,3> acc;
-//    for (int i = 0; i < 3; i++)
-//    {
-//        acc[i] =  (-1)*params[0] * gradpsi[i] / dx;
-//        (*part).vel[i] += dtau * acc[i];
-//        v2 += (*part).vel[i] * (*part).vel[i];
-//    }
-//    //Debugger -> append( part->ID, {part->pos[0],part->pos[1],part->pos[2] } ,acc);
-//
-//    return v2 / params[0] / params[0];
-//
-//#undef psi
-//#undef xpsi
-//#undef chi
-//#undef xchi
-//}
 Real update_q_Newton ( 
                       particle& part,
                       const Field<Real>& psi, 
@@ -925,7 +832,7 @@ Real update_q_Newton (
 //////////////////////////
 
 void update_pos (double dtau, double dx, particle *part, double *ref_dist,
-                 part_simple_info partInfo, Field<Real> **fields, Site *sites,
+                 particle_info partInfo, Field<Real> **fields, Site *sites,
                  int nfield, double *params, double *outputs, int noutputs)
 {
     Real v[3];
@@ -1044,7 +951,7 @@ void update_pos (double dtau, double dx, particle *part, double *ref_dist,
 //////////////////////////
 
 void update_pos_Newton (double dtau, double dx, particle *part,
-                        double *ref_dist, part_simple_info partInfo,
+                        double *ref_dist, particle_info partInfo,
                         Field<Real> **fields, Site *sites, int nfield,
                         double *params, double *outputs, int noutputs)
 {

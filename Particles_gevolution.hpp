@@ -42,12 +42,15 @@ struct particle : LATfield2::part_simple
     std::array<Real,3> acc{0,0,0};
 };
 
+typedef LATfield2::part_simple_info particle_info;
+typedef LATfield2::part_simple_dataType particle_dataType;
+
 class Particles_gevolution : 
     public 
     LATfield2::Particles<
         particle, 
-        LATfield2::part_simple_info, 
-        LATfield2::part_simple_dataType>
+        particle_info, 
+        particle_dataType>
 {
   public:
     void saveGadget2 (std::string filename, gadget2_header &hdr,

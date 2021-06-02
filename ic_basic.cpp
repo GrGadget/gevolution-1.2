@@ -25,8 +25,6 @@ namespace gevolution
 using LATfield2::FFT_BACKWARD;
 using LATfield2::FFT_FORWARD;
 using LATfield2::parallel;
-using LATfield2::part_simple_dataType;
-using LATfield2::part_simple_info;
 using LATfield2::Particles;
 using LATfield2::PlanFFT;
 
@@ -55,7 +53,7 @@ using LATfield2::PlanFFT;
 
 void displace_pcls_ic_basic (double coeff, double lat_resolution,
                              particle *part, double *ref_dist,
-                             part_simple_info partInfo, Field<Real> **fields,
+                             particle_info partInfo, Field<Real> **fields,
                              Site *sites, int nfield, double *params,
                              double *outputs, int noutputs)
 {
@@ -138,7 +136,7 @@ void displace_pcls_ic_basic (double coeff, double lat_resolution,
 
 Real initialize_q_ic_basic (double coeff, double lat_resolution,
                             particle *part, double *ref_dist,
-                            part_simple_info partInfo, Field<Real> **fields,
+                            particle_info partInfo, Field<Real> **fields,
                             Site *sites, int nfield, double *params,
                             double *outputs, int noutputs)
 {
@@ -1396,7 +1394,6 @@ double applyMomentumDistribution (
 {
     Site xPart (pcls->lattice ());
     Site x;
-    // std::list<part_simple>::iterator it;
     sitmo::prng_engine prng;
     float r1, r2, q, dT;
     double l, dummy, d[3];
@@ -1597,12 +1594,12 @@ void generateIC_basic (
     double max_displacement;
     double rescale;
     double mean_q;
-    part_simple_info pcls_cdm_info;
-    part_simple_dataType pcls_cdm_dataType;
-    part_simple_info pcls_b_info;
-    part_simple_dataType pcls_b_dataType;
-    part_simple_info pcls_ncdm_info[MAX_PCL_SPECIES];
-    part_simple_dataType pcls_ncdm_dataType;
+    particle_info pcls_cdm_info;
+    particle_dataType pcls_cdm_dataType;
+    particle_info pcls_b_info;
+    particle_dataType pcls_b_dataType;
+    particle_info pcls_ncdm_info[MAX_PCL_SPECIES];
+    particle_dataType pcls_ncdm_dataType;
     Real boxSize[3] = { 1., 1., 1. };
     char ncdm_name[50];
     Field<Real> *ic_fields[2];

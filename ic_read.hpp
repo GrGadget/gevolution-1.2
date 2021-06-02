@@ -31,8 +31,6 @@ using LATfield2::fileDsc;
 using LATfield2::get_fileDsc_global;
 using LATfield2::get_fileDsc_local;
 using LATfield2::parallel;
-using LATfield2::part_simple_dataType;
-using LATfield2::part_simple_info;
 using LATfield2::PlanFFT;
 
 //////////////////////////
