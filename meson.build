@@ -15,7 +15,6 @@ mpirun = find_program('mpirun')
 bash = find_program('bash')
 pkg=import('pkgconfig')
 
-include=include_directories('.')
 conf_data = configuration_data({ 
     'PHINONLINEAR' :get_option('PHINONLINEAR'),
     'BENCHMARK' :get_option('BENCHMARK'),
@@ -29,43 +28,8 @@ conf_data = configuration_data({
 
 deps = [mpi,fftw3,hdf5,gsl,boost,latfield]
 
-gevolution_headers = files([
-    'background.hpp',
-    'class_tools.hpp',
-    'debugger.hpp',
-    'gevolution.hpp',
-    'hibernation.hpp',
-    'ic_basic.hpp',
-    'ic_prevolution.hpp',
-    'ic_read.hpp',
-    'metadata.hpp',
-    'newtonian_pm.hpp',
-    'output.hpp',
-    'parser.hpp',
-    'particle_handler.hpp',
-    'Particles_gevolution.hpp',
-    'prng_engine.hpp',
-    'radiation.hpp',
-    'real_type.hpp',
-    'tools.hpp',
-    'velocity.hpp'
-    ])
-gevolution_sources = files([
-    'background.cpp',
-    'debugger.cpp',
-    'gevolution.cpp',
-    'hibernation.cpp',
-    'ic_basic.cpp',
-    'ic_prevolution.cpp',
-    'ic_read.cpp',
-    'newtonian_pm.cpp',
-    'output.cpp',
-    'parser.cpp',
-    'Particles_gevolution.cpp',
-    'radiation.cpp',
-    'tools.cpp',
-    'velocity.cpp'
-    ])
+subdir('include')
+subdir('src')
 
 config=configure_file(
     input: 'config.h.in', 
@@ -96,8 +60,8 @@ version = custom_target('git-info',
     command : [bash,gitinfo_generator,meson.source_root(),'@OUTDIR@','@INPUT@'],
     build_always_stale: true)
 
-main = files('main.cpp')
 gevolution = executable('gevolution',
     main,version,
     link_with: libgevolution,
-    dependencies: deps)
+    dependencies: deps,
+    include_directories: include)
