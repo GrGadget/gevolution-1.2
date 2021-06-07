@@ -145,8 +145,6 @@ namespace gevolution
 // White, New Astron. 6 (2001) 79 and V. Springel, Mon. Not. R. Astron. Soc.
 // 364 (2005) 1105]
 
-#ifndef GADGET2_HEADER
-#define GADGET2_HEADER
 struct gadget2_header
 {
     std::uint32_t npart[6];
@@ -168,7 +166,6 @@ struct gadget2_header
     char fill[256 - 6 * 4 - 6 * 8 - 2 * 8 - 2 * 4 - 6 * 4 - 2 * 4 - 4 * 8
               - 2 * 4 - 6 * 4]; /* fills to 256 Bytes */
 };
-#endif
 
 #ifdef HAVE_HEALPIX
 #include "chealpix.h"
