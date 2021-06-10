@@ -14,6 +14,7 @@
 #ifndef IC_BASIC_HEADER
 #define IC_BASIC_HEADER
 
+#include "gevolution/config.h"
 #include "LATfield2.hpp"
 #include "gevolution/real_type.hpp"
 #include "gevolution/gevolution.hpp"  // solveModifiedPoissonFT

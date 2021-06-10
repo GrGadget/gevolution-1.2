@@ -16,6 +16,7 @@
 
 #ifdef HAVE_CLASS
 
+#include "gevolution/config.h"
 #include "LATfield2.hpp"
 #include "gevolution/parser.hpp"
 #include <gsl/gsl_spline.h>

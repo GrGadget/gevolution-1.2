@@ -14,6 +14,7 @@
 #ifndef IC_READ_HEADER
 #define IC_READ_HEADER
 
+#include "gevolution/config.h"
 #include "LATfield2.hpp"
 #include "gevolution/real_type.hpp"
 #include "gevolution/Particles_gevolution.hpp" // Particles_gevolution

@@ -14,6 +14,7 @@
 #ifndef BACKGROUND_HEADER
 #define BACKGROUND_HEADER
 
+#include "gevolution/config.h"
 #include "gevolution/metadata.hpp"
 #include <gsl/gsl_integration.h>
 

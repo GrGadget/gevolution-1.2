@@ -15,6 +15,8 @@
 #ifndef PCLBUFFER
 #define PCLBUFFER 1048576
 #endif
+
+#include "gevolution/config.h"
 #include "LATfield2.hpp"
 #include "gevolution/real_type.hpp"
 #include "gevolution/metadata.hpp"

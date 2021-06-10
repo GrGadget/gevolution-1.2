@@ -14,6 +14,7 @@
 #ifndef METADATA_HEADER
 #define METADATA_HEADER
 
+#include "gevolution/config.h"
 #include <cstdint>
 
 namespace gevolution

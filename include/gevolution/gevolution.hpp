@@ -29,6 +29,7 @@
 #ifndef GEVOLUTION_HEADER
 #define GEVOLUTION_HEADER
 
+#include "gevolution/config.h"
 #include "LATfield2.hpp"
 #include "gevolution/real_type.hpp"
 #include "gevolution/debugger.hpp"

@@ -31,10 +31,6 @@ deps = [mpi,fftw3,hdf5,gsl,boost,latfield]
 subdir('include')
 subdir('src')
 
-config=configure_file(
-    input: 'config.h.in', 
-    output: 'config.h',
-    configuration: conf_data)
 
 libgevolution = library('gevolution',
     gevolution_headers,

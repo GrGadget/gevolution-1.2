@@ -15,6 +15,7 @@
 #ifndef VELOCITY_HEADER
 #define VELOCITY_HEADER
 
+#include "gevolution/config.h"
 #include "LATfield2.hpp"
 #include "gevolution/real_type.hpp"
 #include "gevolution/metadata.hpp"

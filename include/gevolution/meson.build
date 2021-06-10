@@ -1,3 +1,8 @@
+config=configure_file(
+    input: 'config.h.in', 
+    output: 'config.h',
+    configuration: conf_data)
+    
 gevolution_headers = files([
     'background.hpp',
     'class_tools.hpp',

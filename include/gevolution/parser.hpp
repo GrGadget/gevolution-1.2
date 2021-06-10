@@ -14,6 +14,7 @@
 #ifndef PARSER_HEADER
 #define PARSER_HEADER
 
+#include "gevolution/config.h"
 #include "gevolution/metadata.hpp"
 
 namespace gevolution
