@@ -34,6 +34,15 @@ class newtonian_pm
     {
     }
     
+    const LATfield2::Lattice& lattice() const 
+    {
+        return lat;
+    }
+    LATfield2::Lattice& lattice()
+    {
+        return lat;
+    }
+    
     /*
         sample particle masses into the source field
     */
