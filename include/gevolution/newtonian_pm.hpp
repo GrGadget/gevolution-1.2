@@ -13,7 +13,7 @@ class newtonian_pm
 {
     LATfield2::Lattice lat,latFT;
     LATfield2::Field<Real> source,phi;
-    LATfield2::Field<Cplx> scalarFT;
+    LATfield2::Field<Cplx> phi_FT;
     LATfield2::PlanFFT<Cplx> plan_source;
     LATfield2::PlanFFT<Cplx> plan_phi;
     
@@ -27,10 +27,10 @@ class newtonian_pm
         source(lat,1),
         phi(lat,1),
         
-        scalarFT(latFT,1),
+        phi_FT(latFT,1),
         
-        plan_source(&source,&scalarFT),
-        plan_phi (&phi, &scalarFT)
+        plan_source(&source,&phi_FT),
+        plan_phi (&phi, &phi_FT)
     {
     }
     
@@ -56,13 +56,45 @@ class newtonian_pm
     /*
         computes the potential
     */
-    void compute_potential()
+    void update_kspace()
     {
         plan_source.execute (LATfield2::FFT_FORWARD); // Newton: directly go to k-space
-        solveModifiedPoissonFT (scalarFT, scalarFT,1.0); // Newton: in k-space
-        // (4 pi G)/a = 1
+        phi_FT.updateHalo (); // update ghost cells
+    }
+    void update_rspace()
+    {
         plan_phi.execute (LATfield2::FFT_BACKWARD); // go back to position space
         phi.updateHalo (); // update ghost cells
+    }
+    void solve_poisson_eq()
+    {
+        solveModifiedPoissonFT (phi_FT, phi_FT,1.0); // Newton: in k-space
+        // (4 pi G)/a = 1
+    }
+    void compute_potential()
+    {
+        update_kspace();
+        solve_poisson_eq();
+        update_rspace();
+    }
+    
+    template<class Functor>
+    void apply_filter_kspace(Functor f)
+    {
+        rKSite k(phi_FT.lattice());
+        for (k.first(); k.test(); k.next())
+        {
+            phi_FT(k) *= f({k.coord(0),k.coord(1),k.coord(2)});
+        }
+    }
+    template<class Functor>
+    void apply_filter_rspace(Functor f)
+    {
+        Site x(phi.lattice());
+        for (x.first(); x.test(); x.next())
+        {
+            phi(x) *= f({x.coord(0),x.coord(1),x.coord(2)});
+        }
     }
     
     /*
