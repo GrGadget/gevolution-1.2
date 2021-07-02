@@ -21,7 +21,7 @@ class newtonian_pm
     newtonian_pm(int N):
         lat(/* dims        = */ 3,
             /* size        = */ N,
-            /* ghost cells = */ 1),
+            /* ghost cells = */ 2),
         latFT(lat,0,LATfield2::Lattice::FFT::RealToComplex),
         
         source(lat,1),
