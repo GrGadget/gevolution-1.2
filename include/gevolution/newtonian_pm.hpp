@@ -115,50 +115,24 @@ class newtonian_pm
                     ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
                 
                 std::array<double,3> gradphi{ 0, 0, 0 };
-                
-                // gradphi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
-                //              * (phi (xpart + 0) - phi (xpart));
-                // gradphi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
-                //              * (phi (xpart + 1) - phi (xpart));
-                // gradphi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
-                //              * (phi (xpart + 2) - phi (xpart));
-                // gradphi[0] += ref_dist[1] * (1. - ref_dist[2])
-                //               * (phi (xpart + 1 + 0) - phi (xpart + 1));
-                // gradphi[1] += ref_dist[0] * (1. - ref_dist[2])
-                //               * (phi (xpart + 1 + 0) - phi (xpart + 0));
-                // gradphi[2] += ref_dist[0] * (1. - ref_dist[1])
-                //               * (phi (xpart + 2 + 0) - phi (xpart + 0));
-                // gradphi[0] += (1. - ref_dist[1]) * ref_dist[2]
-                //               * (phi (xpart + 2 + 0) - phi (xpart + 2));
-                // gradphi[1] += (1. - ref_dist[0]) * ref_dist[2]
-                //               * (phi (xpart + 2 + 1) - phi (xpart + 2));
-                // gradphi[2] += (1. - ref_dist[0]) * ref_dist[1]
-                //               * (phi (xpart + 2 + 1) - phi (xpart + 1));
-                // gradphi[0] += ref_dist[1] * ref_dist[2]
-                //               * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 1));
-                // gradphi[1] += ref_dist[0] * ref_dist[2]
-                //               * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 0));
-                // gradphi[2] += ref_dist[0] * ref_dist[1]
-                //               * (phi (xpart + 2 + 1 + 0) - phi (xpart + 1 + 0));
-                
                 for (int i=0; i<3; i++)
                 {
-                    gradpsi[i] = 0.5 * (1.-ref_dist[0]) * (1.-ref_dist[1]) *
-                    (1.-ref_dist[2]) * (psi(xpart+i) - psi(xpart-i));
-                    gradpsi[i] += 0.5 * ref_dist[0] * (1.-ref_dist[1]) *
-                    (1.-ref_dist[2]) * (psi(xpart+i+0) - psi(xpart-i+0));
-                    gradpsi[i] += 0.5 * (1.-ref_dist[0]) * ref_dist[1] *
-                    (1.-ref_dist[2]) * (psi(xpart+i+1) - psi(xpart-i+1));
-                    gradpsi[i] += 0.5 * ref_dist[0] * ref_dist[1] *
-                    (1.-ref_dist[2]) * (psi(xpart+i+1+0) - psi(xpart-i+1+0));
-                    gradpsi[i] += 0.5 * (1.-ref_dist[0]) * (1.-ref_dist[1]) *
-                    ref_dist[2] * (psi(xpart+2+i) - psi(xpart+2-i));
-                    gradpsi[i] += 0.5 * ref_dist[0] * (1.-ref_dist[1]) *
-                    ref_dist[2] * (psi(xpart+2+i+0) - psi(xpart+2-i+0));
-                    gradpsi[i] += 0.5 * (1.-ref_dist[0]) * ref_dist[1] *
-                    ref_dist[2] * (psi(xpart+2+i+1) - psi(xpart+2-i+1));
-                    gradpsi[i] += 0.5 * ref_dist[0] * ref_dist[1] * ref_dist[2]
-                    * (psi(xpart+2+i+1+0) - psi(xpart+2-i+1+0));
+                    gradphi[i] = 0.5 * (1.-ref_dist[0]) * (1.-ref_dist[1]) *
+                    (1.-ref_dist[2]) * (phi(xpart+i) - phi(xpart-i));
+                    gradphi[i] += 0.5 * ref_dist[0] * (1.-ref_dist[1]) *
+                    (1.-ref_dist[2]) * (phi(xpart+i+0) - phi(xpart-i+0));
+                    gradphi[i] += 0.5 * (1.-ref_dist[0]) * ref_dist[1] *
+                    (1.-ref_dist[2]) * (phi(xpart+i+1) - phi(xpart-i+1));
+                    gradphi[i] += 0.5 * ref_dist[0] * ref_dist[1] *
+                    (1.-ref_dist[2]) * (phi(xpart+i+1+0) - phi(xpart-i+1+0));
+                    gradphi[i] += 0.5 * (1.-ref_dist[0]) * (1.-ref_dist[1]) *
+                    ref_dist[2] * (phi(xpart+2+i) - phi(xpart+2-i));
+                    gradphi[i] += 0.5 * ref_dist[0] * (1.-ref_dist[1]) *
+                    ref_dist[2] * (phi(xpart+2+i+0) - phi(xpart+2-i+0));
+                    gradphi[i] += 0.5 * (1.-ref_dist[0]) * ref_dist[1] *
+                    ref_dist[2] * (phi(xpart+2+i+1) - phi(xpart+2-i+1));
+                    gradphi[i] += 0.5 * ref_dist[0] * ref_dist[1] * ref_dist[2]
+                    * (phi(xpart+2+i+1+0) - phi(xpart+2-i+1+0));
                 } 
                               
                 for(int i=0;i<3;++i)
