@@ -103,6 +103,12 @@ class newtonian_pm
     */
     void compute_forces(Particles_gevolution& pcls, double factor = 1.0)const
     {
+        /*
+        Let's do like in Gadget4:
+        1. compute Fx field from phi at 4th order FD
+        2. interpolate Fx at particle's position using CIC
+        3. repeat for y,z
+        */
         LATfield2::Site xpart(pcls.lattice());
         const double dx = 1.0/pcls.lattice().size()[0];
         factor /= dx;
