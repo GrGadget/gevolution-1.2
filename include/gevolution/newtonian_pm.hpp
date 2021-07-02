@@ -101,7 +101,7 @@ class newtonian_pm
         compute forces
         factor = 4 pi G
     */
-    void compute_forces(Particles_gevolution& pcls, double factor = 1.0)const
+    void compute_forces(Particles_gevolution& pcls, double factor = 1.0) const
     {
         /*
         Let's do like in Gadget4:
@@ -111,57 +111,55 @@ class newtonian_pm
         const double dx = 1.0/pcls.lattice().size()[0];
         factor /= dx;
         
-        LATfield2::Field<Real> F(lat, /* components = */ 3);
+        LATfield2::Field<Real> Fx(lat);
         
         LATfield2::Site x(lat);
-        
-        // compute the forces on the grid
-        for(x.first();x.test();x.next())
-        {
-            for(int i=0;i<3;++i)
-            {
-                F(x,i) = (-1)*factor*( 
-                    2.0/3 * (phi(x+i) - phi(x-i)) 
-                    - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
-            }
-        }
-        
-        // CIC interpolate at the particle's positions
         LATfield2::Site xpart(pcls.lattice());
-        for(xpart.first();xpart.test();xpart.next())
+        
+        // phi.updateHalo();
+        for(int i=0;i<3;++i)
         {
-            for(auto& part : pcls.field()(xpart).parts )
+            for(x.first();x.test();x.next())
             {
-                std::array<double,3> ref_dist;
-                for(int l=0;l<3;++l)
-                    ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
-                for(int i=0;i<3;++i)
+                Fx(x)
+                = (-1)*factor*( 
+                        2.0/3 * (phi(x+i) - phi(x-i)) 
+                        - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
+            }
+            Fx.updateHalo();
+            for(xpart.first();xpart.test();xpart.next())
+            {
+                for(auto& part : pcls.field()(xpart).parts )
                 {
-                    part.acc[i] =  0.0;
+                    std::array<double,3> ref_dist;
+                    for(int l=0;l<3;++l)
+                        ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
+                    
+                    part.acc[i] = 0.0;
                     
                     part.acc[i] +=
-                    (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*F(xpart,i);
+                    (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart);
                     
                     part.acc[i] +=
-                    (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*F(xpart+0,i);
+                    (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart+0);
                     
                     part.acc[i] +=
-                    (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*F(xpart+1,i);
+                    (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1);
                     
                     part.acc[i] +=
-                    (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*F(xpart+1+0,i);
+                    (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1+0);
                     
                     part.acc[i] +=
-                    (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*F(xpart+2,i);
+                    (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2);
                     
                     part.acc[i] +=
-                    (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*F(xpart+2+0,i);
+                    (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2+0);
                     
                     part.acc[i] +=
-                    (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*F(xpart+2+1,i);
+                    (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1);
                     
                     part.acc[i] +=
-                    (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*F(xpart+2+1+0,i);
+                    (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1+0);
                 }
             }
         }
