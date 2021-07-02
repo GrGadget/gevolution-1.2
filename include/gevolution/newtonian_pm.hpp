@@ -21,7 +21,7 @@ class newtonian_pm
     newtonian_pm(int N):
         lat(/* dims        = */ 3,
             /* size        = */ N,
-            /* ghost cells = */ 1),
+            /* ghost cells = */ 2),
         latFT(lat,0,LATfield2::Lattice::FFT::RealToComplex),
         
         source(lat,1),
@@ -107,11 +107,27 @@ class newtonian_pm
         Let's do like in Gadget4:
         1. compute Fx field from phi at 4th order FD
         2. interpolate Fx at particle's position using CIC
-        3. repeat for y,z
         */
-        LATfield2::Site xpart(pcls.lattice());
         const double dx = 1.0/pcls.lattice().size()[0];
         factor /= dx;
+        
+        LATfield2::Field<Real> F(lat, /* components = */ 3);
+        
+        LATfield2::Site x(lat);
+        
+        // compute the forces on the grid
+        for(x.first();x.test();x.next())
+        {
+            for(int i=0;i<3;++i)
+            {
+                F(x,i) = (-1)*factor*( 
+                    2.0/3 * (phi(x+i) - phi(x-i)) 
+                    - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
+            }
+        }
+        
+        // interpolate at the particle's positions
+        LATfield2::Site xpart(pcls.lattice());
         for(xpart.first();xpart.test();xpart.next())
         {
             for(auto& part : pcls.field()(xpart).parts )
@@ -148,10 +164,6 @@ class newtonian_pm
                 for(int i=0;i<3;++i)
                     part.acc[i] =  (-1) * gradphi[i] * factor;
                     
-               // if(part.ID==1)
-               //     std::cout << "from PM Part ID 1: " 
-               //     << " acc[0] "<< part.acc[0] 
-               //     << "\n";
             }
         }
     }
