@@ -126,7 +126,7 @@ class newtonian_pm
             }
         }
         
-        // interpolate at the particle's positions
+        // CIC interpolate at the particle's positions
         LATfield2::Site xpart(pcls.lattice());
         for(xpart.first();xpart.test();xpart.next())
         {
@@ -135,35 +135,34 @@ class newtonian_pm
                 std::array<double,3> ref_dist;
                 for(int l=0;l<3;++l)
                     ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
-                
-                std::array<double,3> gradphi{ 0, 0, 0 };
-                gradphi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
-                             * (phi (xpart + 0) - phi (xpart));
-                gradphi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
-                             * (phi (xpart + 1) - phi (xpart));
-                gradphi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
-                             * (phi (xpart + 2) - phi (xpart));
-                gradphi[0] += ref_dist[1] * (1. - ref_dist[2])
-                              * (phi (xpart + 1 + 0) - phi (xpart + 1));
-                gradphi[1] += ref_dist[0] * (1. - ref_dist[2])
-                              * (phi (xpart + 1 + 0) - phi (xpart + 0));
-                gradphi[2] += ref_dist[0] * (1. - ref_dist[1])
-                              * (phi (xpart + 2 + 0) - phi (xpart + 0));
-                gradphi[0] += (1. - ref_dist[1]) * ref_dist[2]
-                              * (phi (xpart + 2 + 0) - phi (xpart + 2));
-                gradphi[1] += (1. - ref_dist[0]) * ref_dist[2]
-                              * (phi (xpart + 2 + 1) - phi (xpart + 2));
-                gradphi[2] += (1. - ref_dist[0]) * ref_dist[1]
-                              * (phi (xpart + 2 + 1) - phi (xpart + 1));
-                gradphi[0] += ref_dist[1] * ref_dist[2]
-                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 1));
-                gradphi[1] += ref_dist[0] * ref_dist[2]
-                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 0));
-                gradphi[2] += ref_dist[0] * ref_dist[1]
-                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 1 + 0));
                 for(int i=0;i<3;++i)
-                    part.acc[i] =  (-1) * gradphi[i] * factor;
+                {
+                    part.acc[i] =  0.0;
                     
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*F(xpart,i);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*F(xpart+0,i);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*F(xpart+1,i);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*F(xpart+1+0,i);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*F(xpart+2,i);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*F(xpart+2+0,i);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*F(xpart+2+1,i);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*F(xpart+2+1+0,i);
+                }
             }
         }
     }
