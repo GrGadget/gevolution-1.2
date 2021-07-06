@@ -474,20 +474,13 @@ void solveModifiedPoissonFT (Field<Cplx> &sourceFT, Field<Cplx> &potFT,
                              Real coeff, const Real modif)
 {
     const int linesize = potFT.lattice ().size (1);
-    int i;
-    Real *gridk2;
-    // Real *sinc;
     rKSite k (potFT.lattice ());
-
-    gridk2 = (Real *)malloc (linesize * sizeof (Real));
-
     coeff /= -((long)linesize * (long)linesize * (long)linesize);
 
-    for (i = 0; i < linesize; i++)
+    auto signed_mode = [linesize](int n)
     {
-        gridk2[i] = 2. * (Real)linesize * sin (M_PI * (Real)i / (Real)linesize);
-        gridk2[i] *= gridk2[i];
-    }
+        return n>= linesize/2 ? n-linesize : n;
+    };
 
     k.first ();
     if (k.coord (0) == 0 && k.coord (1) == 0 && k.coord (2) == 0)
@@ -500,13 +493,15 @@ void solveModifiedPoissonFT (Field<Cplx> &sourceFT, Field<Cplx> &potFT,
     }
 
     for (; k.test (); k.next ())
-    {
-        potFT (k) = sourceFT (k) * coeff
-                    / (gridk2[k.coord (0)] + gridk2[k.coord (1)]
-                       + gridk2[k.coord (2)] + modif);
+    {   
+        Real k2 {0.0};
+        for(int i=0;i<3;++i)
+        {
+            Real ki = 2*M_PI*signed_mode(k.coord(i));
+            k2 += ki*ki;
+        }
+        potFT (k) = sourceFT (k) * coeff / k2;
     }
-
-    free (gridk2);
 }
 #endif
 
