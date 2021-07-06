@@ -269,7 +269,7 @@ int main (int argc, char **argv)
     box[1] = sim.numpts;
     box[2] = sim.numpts;
 
-    Lattice lat (3, box, 1);
+    Lattice lat (3, box, 2);
     Lattice latFT;
     latFT.initializeRealFFT (lat, 0);
 

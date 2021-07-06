@@ -21,7 +21,7 @@ class newtonian_pm
     newtonian_pm(int N):
         lat(/* dims        = */ 3,
             /* size        = */ N,
-            /* ghost cells = */ 1),
+            /* ghost cells = */ 2),
         latFT(lat,0,LATfield2::Lattice::FFT::RealToComplex),
         
         source(lat,1),
@@ -103,51 +103,66 @@ class newtonian_pm
         compute forces
         factor = 4 pi G
     */
-    void compute_forces(Particles_gevolution& pcls, double factor = 1.0)const
+    void compute_forces(Particles_gevolution& pcls, double factor = 1.0) const
     {
-        LATfield2::Site xpart(pcls.lattice());
+        /*
+        Let's do like in Gadget4:
+        1. compute Fx field from phi at 4th order FD
+        2. interpolate Fx at particle's position using CIC
+        */
         const double dx = 1.0/pcls.lattice().size()[0];
         factor /= dx;
-        for(xpart.first();xpart.test();xpart.next())
+        
+        LATfield2::Field<Real> Fx(lat);
+        
+        LATfield2::Site x(lat);
+        LATfield2::Site xpart(pcls.lattice());
+        
+        // phi.updateHalo();
+        for(int i=0;i<3;++i)
         {
-            for(auto& part : pcls.field()(xpart).parts )
+            for(x.first();x.test();x.next())
             {
-                std::array<double,3> ref_dist;
-                for(int l=0;l<3;++l)
-                    ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
-                
-                std::array<double,3> gradphi{ 0, 0, 0 };
-                gradphi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
-                             * (phi (xpart + 0) - phi (xpart));
-                gradphi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
-                             * (phi (xpart + 1) - phi (xpart));
-                gradphi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
-                             * (phi (xpart + 2) - phi (xpart));
-                gradphi[0] += ref_dist[1] * (1. - ref_dist[2])
-                              * (phi (xpart + 1 + 0) - phi (xpart + 1));
-                gradphi[1] += ref_dist[0] * (1. - ref_dist[2])
-                              * (phi (xpart + 1 + 0) - phi (xpart + 0));
-                gradphi[2] += ref_dist[0] * (1. - ref_dist[1])
-                              * (phi (xpart + 2 + 0) - phi (xpart + 0));
-                gradphi[0] += (1. - ref_dist[1]) * ref_dist[2]
-                              * (phi (xpart + 2 + 0) - phi (xpart + 2));
-                gradphi[1] += (1. - ref_dist[0]) * ref_dist[2]
-                              * (phi (xpart + 2 + 1) - phi (xpart + 2));
-                gradphi[2] += (1. - ref_dist[0]) * ref_dist[1]
-                              * (phi (xpart + 2 + 1) - phi (xpart + 1));
-                gradphi[0] += ref_dist[1] * ref_dist[2]
-                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 1));
-                gradphi[1] += ref_dist[0] * ref_dist[2]
-                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 0));
-                gradphi[2] += ref_dist[0] * ref_dist[1]
-                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 1 + 0));
-                for(int i=0;i<3;++i)
-                    part.acc[i] =  (-1) * gradphi[i] * factor;
+                Fx(x)
+                = (-1)*factor*( 
+                        2.0/3 * (phi(x+i) - phi(x-i)) 
+                        - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
+            }
+            Fx.updateHalo();
+            for(xpart.first();xpart.test();xpart.next())
+            {
+                for(auto& part : pcls.field()(xpart).parts )
+                {
+                    std::array<double,3> ref_dist;
+                    for(int l=0;l<3;++l)
+                        ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
                     
-               // if(part.ID==1)
-               //     std::cout << "from PM Part ID 1: " 
-               //     << " acc[0] "<< part.acc[0] 
-               //     << "\n";
+                    part.acc[i] = 0.0;
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart+0);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1+0);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2+0);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1+0);
+                }
             }
         }
     }
