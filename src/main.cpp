@@ -923,7 +923,7 @@ int main (int argc, char **argv)
                    maxvel[i+1+sim.baryon_flag] = 0.0;
                    pcls_ncdm[i].for_each (
                        [&]
-                       (particle& part,const Site& xpart)
+                       (particle& part,const Site& /* xpart */)
                        {
                            const double dtau_eff =  
                                            (dtau + dtau_old) * 0.5 ;
@@ -999,7 +999,7 @@ int main (int argc, char **argv)
            maxvel[0]=.0;
            pcls_cdm.for_each(
                [&]
-               (particle& part,const Site& xpart)
+               (particle& part,const Site& /*xpart*/)
                {
                    const double dtau_eff =  
                                    (dtau + dtau_old) * 0.5 ;
@@ -1014,7 +1014,7 @@ int main (int argc, char **argv)
                maxvel[1]=0.0;
                pcls_b.for_each (
                    [&]
-                   (particle& part,const Site& xpart)
+                   (particle& part,const Site& /*xpart*/)
                    {
                        const double dtau_eff =  
                                        (dtau + dtau_old) * 0.5 ;
