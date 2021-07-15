@@ -171,6 +171,8 @@ void readIC (
 
     COUT << " " << sim.numpcl[0] << " cdm particles read successfully."
          << std::endl;
+    pcls_cdm->update_mass();
+    
     maxvel[0] = pcls_cdm->updateVel (update_q, 0., &phi, 1, &a);
 
     if (sim.baryon_flag == 1)
@@ -233,6 +235,8 @@ void readIC (
 
         COUT << " " << sim.numpcl[1] << " baryon particles read successfully."
              << std::endl;
+        pcls_b->update_mass();
+        
         maxvel[1] = pcls_b->updateVel (update_q, 0., &phi, 1, &a);
     }
     else
@@ -298,7 +302,7 @@ void readIC (
                     sprintf (ext, "%d", i);
                 }
             } while (i < hdr.num_files);
-
+    
             pcls_ncdm[p].parts_info ()->mass
                 = cosmo.Omega_ncdm[p]
                   / (Real)sim.numpcl[sim.baryon_flag + 1 + p];
@@ -306,6 +310,8 @@ void readIC (
 
         COUT << " " << sim.numpcl[sim.baryon_flag + 1 + p]
              << " ncdm particles read successfully." << std::endl;
+        
+        pcls_ncdm[p].update_mass();
         maxvel[sim.baryon_flag + 1 + p]
             = pcls_ncdm[p].updateVel (update_q, 0., &phi, 1, &a);
     }

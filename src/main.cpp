@@ -499,7 +499,7 @@ int main (int argc, char **argv)
         else
         {
             PM.sample(pcls_cdm);
-            scalarProjectionCIC_project (&pcls_cdm, &source);
+            // scalarProjectionCIC_project (&pcls_cdm, &source);
             //if (sim.baryon_flag)
             //    scalarProjectionCIC_project (&pcls_b, &source);
             //for (i = 0; i < cosmo.num_ncdm; i++)
@@ -614,20 +614,20 @@ int main (int argc, char **argv)
 #endif
             PM.compute_potential();
             
-            plan_source.execute (FFT_FORWARD); // Newton: directly go to k-space
+            // plan_source.execute (FFT_FORWARD); // Newton: directly go to k-space
 #ifdef BENCHMARK
             fft_time += MPI_Wtime () - ref2_time;
             fft_count++;
 #endif
 
-            solveModifiedPoissonFT (scalarFT, scalarFT,
-                                    cosmo.fourpiG
-                                        / a); // Newton: phi update (k-space)
+            //solveModifiedPoissonFT (scalarFT, scalarFT,
+            //                        cosmo.fourpiG
+            //                            / a); // Newton: phi update (k-space)
 
 #ifdef BENCHMARK
             ref2_time = MPI_Wtime ();
 #endif
-            plan_phi.execute (FFT_BACKWARD); // go back to position space
+            // plan_phi.execute (FFT_BACKWARD); // go back to position space
 #ifdef BENCHMARK
             fft_time += MPI_Wtime () - ref2_time;
             fft_count++;
@@ -920,14 +920,17 @@ int main (int argc, char **argv)
                 else
                 {
                    PM.compute_forces(pcls_ncdm[i],cosmo.fourpiG);
-                   maxvel[i+1+sim.baryon_flag] = pcls_ncdm[i].updateVel (
+                   maxvel[i+1+sim.baryon_flag] = 0.0;
+                   pcls_ncdm[i].for_each (
                        [&]
                        (particle& part,const Site& xpart)
                        {
                            const double dtau_eff =  
                                            (dtau + dtau_old) * 0.5 ;
-                           return update_q_Newton(part,dtau_eff);
-                       })/a;
+                           maxvel[i+1+sim.baryon_flag] = std::max(
+                                maxvel[i+1+sim.baryon_flag],
+                                update_q_Newton(part,dtau_eff)/a);
+                       });
                  // TODO check the condition in the old code below
                  //  maxvel[i + 1 + sim.baryon_flag] = pcls_ncdm[i].updateVel (
                  //      update_q_Newton,
@@ -993,26 +996,33 @@ int main (int argc, char **argv)
            //         : 1),
            //    f_params);
            PM.compute_forces(pcls_cdm,cosmo.fourpiG);
-           maxvel[0] = pcls_cdm.updateVel (
+           maxvel[0]=.0;
+           pcls_cdm.for_each(
                [&]
                (particle& part,const Site& xpart)
                {
                    const double dtau_eff =  
                                    (dtau + dtau_old) * 0.5 ;
-                   return update_q_Newton(part,dtau_eff);
-               })/a;
+                   maxvel[0]=std::max(
+                        maxvel[0],
+                        update_q_Newton(part,dtau_eff)/a);
+               });
            // TODO test the evolution of baryon species
            if (sim.baryon_flag)
            {
                PM.compute_forces(pcls_b,cosmo.fourpiG);
-               maxvel[1] = pcls_b.updateVel (
+               maxvel[1]=0.0;
+               pcls_b.for_each (
                    [&]
                    (particle& part,const Site& xpart)
                    {
                        const double dtau_eff =  
                                        (dtau + dtau_old) * 0.5 ;
-                       return update_q_Newton(part,dtau_eff);
-                   })/a;
+                       
+                       maxvel[1] = std::max(
+                            maxvel[1],
+                            update_q_Newton(part,dtau_eff)/a);
+                   });
            // TODO check the condition in the old code below
            //   maxvel[1] = pcls_b.updateVel (
            //       update_q_Newton, (dtau + dtau_old) / 2., update_b_fields,
