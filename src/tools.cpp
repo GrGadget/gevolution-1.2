@@ -141,7 +141,7 @@ void extractCrossSpectrum (Field<Cplx> &fld1FT, Field<Cplx> &fld2FT, Real *kbin,
         {
             p = fld1FT (k, comp1) * fld2FT (k, comp2).conj ();
         }
-        else if (fld1FT.symmetry () == LATfield2::symmetric)
+        else if (fld1FT.symmetry () == LATfield2::matrix_symmetry::symmetric)
         {
             p = fld1FT (k, 0, 1) * fld2FT (k, 0, 1).conj ();
             p += fld1FT (k, 0, 2) * fld2FT (k, 0, 2).conj ();

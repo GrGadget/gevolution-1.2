@@ -296,8 +296,8 @@ int main (int argc, char **argv)
     PlanFFT<Cplx> plan_source (&source, &scalarFT);
     PlanFFT<Cplx> plan_phi (&phi, &scalarFT);
     PlanFFT<Cplx> plan_chi (&chi, &scalarFT);
-    Sij.initialize (lat, 3, 3, symmetric);
-    SijFT.initialize (latFT, 3, 3, symmetric);
+    Sij.initialize (lat, 3, 3, matrix_symmetry::symmetric);
+    SijFT.initialize (latFT, 3, 3, matrix_symmetry::symmetric);
     PlanFFT<Cplx> plan_Sij (&Sij, &SijFT);
     Bi.initialize (lat, 3);
     BiFT.initialize (latFT, 3);
