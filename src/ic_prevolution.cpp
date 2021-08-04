@@ -251,6 +251,9 @@ void generateIC_prevolution (
         initializeParticlePositions (
             sim.numpcl[((sim.baryon_flag == 1) ? 2 : 1) + p], pcldata,
             ic.numtile[((sim.baryon_flag == 1) ? 2 : 1) + p], pcls_ncdm[p]);
+                
+        pcls_ncdm[p].update_mass();
+            
         i = MAX;
         pcls_ncdm[p].moveParticles (displace_pcls_ic_basic, 1., &chi, 1, NULL,
                                     &max_displacement, &i, 1);
@@ -581,6 +584,9 @@ void generateIC_prevolution (
 
                 initializeParticlePositions (sim.numpcl[0], pcldata,
                                              ic.numtile[0], *pcls_cdm);
+                
+                pcls_cdm->update_mass();
+                
                 i = MAX;
                 if (sim.baryon_flag == 3)
                     pcls_cdm->moveParticles (displace_pcls_ic_basic, 1.,
@@ -633,13 +639,19 @@ void generateIC_prevolution (
                           / (Real) (sim.numpcl[1] * (long)ic.numtile[1]
                                     * (long)ic.numtile[1]
                                     * (long)ic.numtile[1]);
+                                    
+                    
                     pcls_b_info.relativistic = false;
 
                     pcls_b->initialize (pcls_b_info, pcls_b_dataType,
                                         &(phi->lattice ()), boxSize);
+                    
 
                     initializeParticlePositions (sim.numpcl[1], pcldata,
                                                  ic.numtile[1], *pcls_b);
+                    
+                    pcls_b->update_mass();
+                    
                     i = MAX;
                     pcls_b->moveParticles (displace_pcls_ic_basic, 1., &chi, 1,
                                            NULL, &max_displacement, &i, 1);

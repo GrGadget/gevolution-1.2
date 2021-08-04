@@ -79,7 +79,6 @@ template <typename T> struct sitmo_enable_if<false, T>
 template <typename T> struct has_generate_template
 {
     typedef char (&Two)[2];
-    ;
     template <typename F, void (F::*) (int *, int *)> struct helper
     {
     };

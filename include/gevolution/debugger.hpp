@@ -23,7 +23,7 @@ struct part_data
     std::array<double,3> acc;
     
     template<class Archive>
-    void serialize(Archive &ar, const unsigned int version)
+    void serialize(Archive &ar, const unsigned int /*version*/)
     {
         ar & ID;
         ar & pos;

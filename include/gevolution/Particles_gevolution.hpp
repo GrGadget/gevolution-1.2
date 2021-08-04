@@ -40,6 +40,7 @@ using LATfield2::Site;
 */
 struct particle : LATfield2::part_simple
 {
+    Real mass;
     std::array<Real,3> acc{0,0,0};
 };
 
@@ -64,6 +65,15 @@ class Particles_gevolution :
                       std::set<long> &IDbacklog, std::set<long> &IDprelog,
                       Field<Real> *phi, const int tracer_factor = 1);
     void loadGadget2 (std::string filename, gadget2_header &hdr);
+    
+    void update_mass()
+    {
+        this->for_each(
+            [&](particle& part,const LATfield2::Site&)
+            {
+                part.mass = this->parts_info()->mass;
+            });
+    }
 };
 
 // /* Specialization of particle_handler for Gevolution's type of particle */

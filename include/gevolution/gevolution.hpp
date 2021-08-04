@@ -511,9 +511,7 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
     Real weightScalarGridDown[3];
     Real dx = pcls->res ();
 
-    double mass = coeff / (dx * dx * dx);
-    mass *= pcls->parts_info () -> mass;
-    mass /= a;
+    coeff *= 1.0/(dx*dx*dx*a);
 
     Real e = a, f = 0.;
 
@@ -547,6 +545,7 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
 
             for (const auto& p : pcls->field ()(xPart).parts)
             {
+                double mass = p.mass;
                 for (int i = 0; i < 3; i++)
                 {
                     weightScalarGridUp[i] = (p.pos[i] - referPos[i]) / dx;
@@ -564,45 +563,53 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
                 // 000
                 localCube[0]
                     += weightScalarGridDown[0] * weightScalarGridDown[1]
-                       * weightScalarGridDown[2] * (e + f * localCubePhi[0]);
+                       * weightScalarGridDown[2] * (e + f * localCubePhi[0])
+                       * mass;
                 // 001
                 localCube[1]
                     += weightScalarGridDown[0] * weightScalarGridDown[1]
-                       * weightScalarGridUp[2] * (e + f * localCubePhi[1]);
+                       * weightScalarGridUp[2] * (e + f * localCubePhi[1])
+                       * mass;
                 // 010
                 localCube[2] += weightScalarGridDown[0] * weightScalarGridUp[1]
                                 * weightScalarGridDown[2]
-                                * (e + f * localCubePhi[2]);
+                                * (e + f * localCubePhi[2])
+                                * mass;
                 // 011
                 localCube[3] += weightScalarGridDown[0] * weightScalarGridUp[1]
                                 * weightScalarGridUp[2]
-                                * (e + f * localCubePhi[3]);
+                                * (e + f * localCubePhi[3])
+                                * mass;
                 // 100
                 localCube[4] += weightScalarGridUp[0] * weightScalarGridDown[1]
                                 * weightScalarGridDown[2]
-                                * (e + f * localCubePhi[4]);
+                                * (e + f * localCubePhi[4])
+                                * mass;
                 // 101
                 localCube[5] += weightScalarGridUp[0] * weightScalarGridDown[1]
                                 * weightScalarGridUp[2]
-                                * (e + f * localCubePhi[5]);
+                                * (e + f * localCubePhi[5])
+                                * mass;
                 // 110
                 localCube[6] += weightScalarGridUp[0] * weightScalarGridUp[1]
                                 * weightScalarGridDown[2]
-                                * (e + f * localCubePhi[6]);
+                                * (e + f * localCubePhi[6])
+                                * mass;
                 // 111
                 localCube[7] += weightScalarGridUp[0] * weightScalarGridUp[1]
                                 * weightScalarGridUp[2]
-                                * (e + f * localCubePhi[7]);
+                                * (e + f * localCubePhi[7])
+                                * mass;
             }
 
-            (*T00) (xField) += localCube[0] * mass;
-            (*T00) (xField + 2) += localCube[1] * mass;
-            (*T00) (xField + 1) += localCube[2] * mass;
-            (*T00) (xField + 1 + 2) += localCube[3] * mass;
-            (*T00) (xField + 0) += localCube[4] * mass;
-            (*T00) (xField + 0 + 2) += localCube[5] * mass;
-            (*T00) (xField + 0 + 1) += localCube[6] * mass;
-            (*T00) (xField + 0 + 1 + 2) += localCube[7] * mass;
+            (*T00) (xField) += localCube[0] * coeff;
+            (*T00) (xField + 2) += localCube[1] * coeff;
+            (*T00) (xField + 1) += localCube[2] * coeff;
+            (*T00) (xField + 1 + 2) += localCube[3] * coeff;
+            (*T00) (xField + 0) += localCube[4] * coeff;
+            (*T00) (xField + 0 + 2) += localCube[5] * coeff;
+            (*T00) (xField + 0 + 1) += localCube[6] * coeff;
+            (*T00) (xField + 0 + 1 + 2) += localCube[7] * coeff;
         }
     }
 }
@@ -647,8 +654,7 @@ void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
     Real weightScalarGridUp[3];
     Real dx = pcls->res ();
 
-    double mass = coeff / (dx * dx * dx);
-    mass *= pcls->parts_info () -> mass;
+    coeff *= 1.0/(dx*dx*dx);
 
     Real w;
 
@@ -690,22 +696,23 @@ void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
                 }
 
                 const auto &q = p.vel;
+                double mass = p.mass;
 
-                w = mass * q[0];
+                w = coeff * mass * q[0];
 
                 qi[0] += w * weightScalarGridDown[1] * weightScalarGridDown[2];
                 qi[1] += w * weightScalarGridUp[1] * weightScalarGridDown[2];
                 qi[2] += w * weightScalarGridDown[1] * weightScalarGridUp[2];
                 qi[3] += w * weightScalarGridUp[1] * weightScalarGridUp[2];
 
-                w = mass * q[1];
+                w = coeff * mass * q[1];
 
                 qi[4] += w * weightScalarGridDown[0] * weightScalarGridDown[2];
                 qi[5] += w * weightScalarGridUp[0] * weightScalarGridDown[2];
                 qi[6] += w * weightScalarGridDown[0] * weightScalarGridUp[2];
                 qi[7] += w * weightScalarGridUp[0] * weightScalarGridUp[2];
 
-                w = mass * q[2];
+                w = coeff * mass * q[2];
 
                 qi[8] += w * weightScalarGridDown[0] * weightScalarGridDown[1];
                 qi[9] += w * weightScalarGridUp[0] * weightScalarGridDown[1];
@@ -787,9 +794,7 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
     Real weightScalarGridUp[3];
     Real dx = pcls->res ();
 
-    double mass = coeff / (dx * dx * dx);
-    mass *= pcls->parts_info () -> mass;
-    mass /= a;
+    coeff *= 1.0/(a*dx*dx*dx);
 
     Real e, f, w;
 
@@ -832,7 +837,7 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
                     weightScalarGridUp[i] = (p.pos[i] - referPos[i]) / dx;
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
-
+                double mass = p.mass;
                 const auto &q = p.vel;
                 f = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
                 e = sqrt (f + a * a);
@@ -841,7 +846,7 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
                 // diagonal components
                 for (int i = 0; i < 3; i++)
                 {
-                    w = mass * q[i] * q[i] / e;
+                    w = coeff * mass * q[i] * q[i] / e;
                     // 000
                     tii[0 + i * 8] += w * weightScalarGridDown[0]
                                       * weightScalarGridDown[1]
@@ -880,7 +885,7 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
                            * weightScalarGridUp[2] * (1. + f * localCubePhi[7]);
                 }
 
-                w = mass * q[0] * q[1] / e;
+                w = coeff * mass * q[0] * q[1] / e;
                 tij[0] += w * weightScalarGridDown[2]
                           * (1.
                              + f * 0.25
@@ -892,7 +897,7 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
                                    * (localCubePhi[1] + localCubePhi[3]
                                       + localCubePhi[5] + localCubePhi[7]));
 
-                w = mass * q[0] * q[2] / e;
+                w = coeff * mass * q[0] * q[2] / e;
                 tij[2] += w * weightScalarGridDown[1]
                           * (1.
                              + f * 0.25
@@ -904,7 +909,7 @@ void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
                                    * (localCubePhi[2] + localCubePhi[3]
                                       + localCubePhi[6] + localCubePhi[7]));
 
-                w = mass * q[1] * q[2] / e;
+                w = coeff * mass * q[1] * q[2] / e;
                 tij[4] += w * weightScalarGridDown[0]
                           * (1.
                              + f * 0.25
@@ -992,8 +997,7 @@ void projection_Ti0_project (Particles<part, part_info, part_dataType> *pcls,
     Real weightScalarGridDown[3];
     Real dx = pcls->res ();
 
-    double mass = coeff / (dx * dx * dx);
-    mass *= pcls->parts_info ()->mass;
+    coeff *= 1.0/(dx*dx*dx);
 
     Real localCube[24]; // XYZ = 000 | 001 | 010 | 011 | 100 | 101 | 110 | 111
     Real localCubePhi[8];
@@ -1044,6 +1048,7 @@ void projection_Ti0_project (Particles<part, part_info, part_dataType> *pcls,
                     weightScalarGridUp[i] = (p.pos[i] - referPos[i]) / dx;
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
+                double mass = p.mass;
 
                 const auto &q = p.vel;
 
@@ -1053,54 +1058,62 @@ void projection_Ti0_project (Particles<part, part_info, part_dataType> *pcls,
                     localCube[8 * i]
                         += weightScalarGridDown[0] * weightScalarGridDown[1]
                            * weightScalarGridDown[2] * q[i]
-                           * (1. + 6 * localCubePhi[0] - localCubeChi[0]);
+                           * (1. + 6 * localCubePhi[0] - localCubeChi[0])
+                           * mass;
                     // 001
                     localCube[8 * i + 1]
                         += weightScalarGridDown[0] * weightScalarGridDown[1]
                            * weightScalarGridUp[2] * q[i]
-                           * (1. + 6 * localCubePhi[1] - localCubeChi[1]);
+                           * (1. + 6 * localCubePhi[1] - localCubeChi[1])
+                           * mass;
                     // 010
                     localCube[8 * i + 2]
                         += weightScalarGridDown[0] * weightScalarGridUp[1]
                            * weightScalarGridDown[2] * q[i]
-                           * (1. + 6 * localCubePhi[2] - localCubeChi[2]);
+                           * (1. + 6 * localCubePhi[2] - localCubeChi[2])
+                           * mass;
                     // 011
                     localCube[8 * i + 3]
                         += weightScalarGridDown[0] * weightScalarGridUp[1]
                            * weightScalarGridUp[2] * q[i]
-                           * (1. + 6 * localCubePhi[3] - localCubeChi[3]);
+                           * (1. + 6 * localCubePhi[3] - localCubeChi[3])
+                           * mass;
                     // 100
                     localCube[8 * i + 4]
                         += weightScalarGridUp[0] * weightScalarGridDown[1]
                            * weightScalarGridDown[2] * q[i]
-                           * (1. + 6 * localCubePhi[4] - localCubeChi[4]);
+                           * (1. + 6 * localCubePhi[4] - localCubeChi[4])
+                           * mass;
                     // 101
                     localCube[8 * i + 5]
                         += weightScalarGridUp[0] * weightScalarGridDown[1]
                            * weightScalarGridUp[2] * q[i]
-                           * (1. + 6 * localCubePhi[5] - localCubeChi[5]);
+                           * (1. + 6 * localCubePhi[5] - localCubeChi[5])
+                           * mass;
                     // 110
                     localCube[8 * i + 6]
                         += weightScalarGridUp[0] * weightScalarGridUp[1]
                            * weightScalarGridDown[2] * q[i]
-                           * (1. + 6 * localCubePhi[6] - localCubeChi[6]);
+                           * (1. + 6 * localCubePhi[6] - localCubeChi[6])
+                           * mass;
                     // 111
                     localCube[8 * i + 7]
                         += weightScalarGridUp[0] * weightScalarGridUp[1]
                            * weightScalarGridUp[2] * q[i]
-                           * (1. + 6 * localCubePhi[7] - localCubeChi[7]);
+                           * (1. + 6 * localCubePhi[7] - localCubeChi[7])
+                           * mass;
                 }
             }
             for (int i = 0; i < 3; i++)
             {
-                (*Ti0) (xField, i) += localCube[8 * i] * mass;
-                (*Ti0) (xField + 2, i) += localCube[8 * i + 1] * mass;
-                (*Ti0) (xField + 1, i) += localCube[8 * i + 2] * mass;
-                (*Ti0) (xField + 1 + 2, i) += localCube[8 * i + 3] * mass;
-                (*Ti0) (xField + 0, i) += localCube[8 * i + 4] * mass;
-                (*Ti0) (xField + 0 + 2, i) += localCube[8 * i + 5] * mass;
-                (*Ti0) (xField + 0 + 1, i) += localCube[8 * i + 6] * mass;
-                (*Ti0) (xField + 0 + 1 + 2, i) += localCube[8 * i + 7] * mass;
+                (*Ti0) (xField, i) += localCube[8 * i] * coeff;
+                (*Ti0) (xField + 2, i) += localCube[8 * i + 1] * coeff;
+                (*Ti0) (xField + 1, i) += localCube[8 * i + 2] * coeff;
+                (*Ti0) (xField + 1 + 2, i) += localCube[8 * i + 3] * coeff;
+                (*Ti0) (xField + 0, i) += localCube[8 * i + 4] * coeff;
+                (*Ti0) (xField + 0 + 2, i) += localCube[8 * i + 5] * coeff;
+                (*Ti0) (xField + 0 + 1, i) += localCube[8 * i + 6] * coeff;
+                (*Ti0) (xField + 0 + 1 + 2, i) += localCube[8 * i + 7] * coeff;
             }
         }
     }
