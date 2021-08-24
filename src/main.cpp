@@ -40,6 +40,7 @@ namespace mpi = boost::mpi;
 
 #include "gevolution/gevolution.hpp"
 #include "gevolution/newtonian_pm.hpp"
+#include "gevolution/gr_pm.hpp"
 #include "gevolution/debugger.hpp"
 #include "version.h"
 #include <set>
@@ -403,7 +404,8 @@ int main (int argc, char **argv)
         // PM step 2. compute the potentials
         if (sim.gr_flag == gravity_theory::GR)
         {
-            grPM.compute_potential();
+            grPM.compute_potential(a,Hconf(a,cosmo),cosmo.fourpiG,dtau_old,
+                cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
         }
         else
         {
@@ -490,9 +492,12 @@ int main (int argc, char **argv)
         if (pkcount < sim.num_pk && 1. / tmp < sim.z_pk[pkcount] + 1.)
         {
             writeSpectra (sim, cosmo, a, pkcount,
-                          &pcls_cdm, &pcls_b, pcls_ncdm, &phi, &chi, &Bi,
-                          &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi,
-                          &plan_chi, &plan_Bi, &plan_source, &plan_Sij
+                          &pcls_cdm, &pcls_b, pcls_ncdm, 
+                          &grPM.phi, &grPM.chi, &grPM.Bi,
+                          &grPM.T00, &grPM.Tij, 
+                          &grPM.T00_FT, &grPM.Bi_FT, &grPM.Tij_FT, 
+                          &grPM.plan_phi, &grPM.plan_chi, 
+                          &grPM.plan_Bi, &grPM.plan_T00, &grPM.plan_Tij
             );
         }
 #endif // EXACT_OUTPUT_REDSHIFTS
