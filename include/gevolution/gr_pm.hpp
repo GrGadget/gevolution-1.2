@@ -15,29 +15,61 @@
 namespace gevolution
 {
 class relativistic_pm
-{
+{ 
+    public:
     using real_field_type = LATfield2::Field<Real>;
     using complex_field_type = LATfield2::Field<Cplx>;
     using fft_plan_type = LATfield2::PlanFFT<Cplx>;
+    using site_type = LATfield2::Site;
     
     // lattice for the real and transform spaces
     LATfield2::Lattice lat,latFT;
     
     // metric perturbations
+    public:
     real_field_type phi,chi,Bi;
+    real_field_type T00,T0i,Tij;
+    
     complex_field_type phi_FT, chi_FT, Bi_FT;
     
     // source fields
-    real_field_type T00,T0i,Tij;
     complex_field_type T00_FT, T0i_FT, Tij_FT;
     
     // FT plans
     fft_plan_type plan_phi, plan_chi, plan_Bi;
     fft_plan_type plan_T00, plan_T0i, plan_Tij;
     
+    void scalar_to_zero(real_field_type& F)
+    {
+        site_type x(lat);
+        for(x.first();x.test();x.next())
+            F(x) = 0.0;
+        F.updateHalo();
+    }
+    void vector_to_zero(real_field_type& F)
+    {
+        site_type x(lat);
+        for(x.first();x.test();x.next())
+        {
+            for(int i=0;i<3;++i)
+                F(x,i) = 0.0;
+        }
+        F.updateHalo();
+    }
+    void tensor_to_zero(real_field_type& F)
+    {
+        site_type x(lat);
+        for(x.first();x.test();x.next())
+        {
+            for(int i=0;i<3;++i)
+                for(int j=0;j<3;++j)
+                    F(x,i,j) = 0.0;
+        }
+        F.updateHalo();
+    }
     
     public:
-    newtonian_pm(int N):
+    relativistic_pm(int N):
         lat(/* dims        = */ 3,
             /* size        = */ N,
             /* ghost cells = */ 2),
@@ -56,7 +88,7 @@ class relativistic_pm
         // initialize k-fields, metric
         phi_FT(latFT,1),
         chi_FT(latFT,1),
-        Bi_FT (latFT,1),
+        Bi_FT (latFT,3),
         
         // initialize k-fields, sources
         T00_FT(latFT,1),
@@ -72,7 +104,13 @@ class relativistic_pm
         plan_T0i(&T0i,&T0i_FT),
         plan_Tij(&Tij,&Tij_FT)
     {
-        // TODO set phi,chi,Bi to zero
+        scalar_to_zero(phi);
+        scalar_to_zero(chi);
+        vector_to_zero(Bi);
+        
+        scalar_to_zero(T00);
+        vector_to_zero(T0i);
+        tensor_to_zero(Tij);
     }
     
     const LATfield2::Lattice& lattice() const 
@@ -119,61 +157,59 @@ class relativistic_pm
     {
     }
     
-    void compute_phi()
+    void compute_phi(
+        double a, double Hc, double fourpiG, double dt, double Omega)
     {
+        const double dx = 1.0/lat.size()[0];
         prepareFTsource<Real> (
             phi, 
             chi, 
             T00,
-            cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo),
+            Omega,
             T00, 
-            3. * Hconf (a, cosmo) * dx * dx / dtau_old,
-            cosmo.fourpiG * dx * dx / a,
-            3. * Hconf (a, cosmo) * Hconf (a, cosmo) * dx * dx); 
-        
+            3. * Hc * dx * dx / dt,
+            fourpiG * dx * dx / a,
+            3. * Hc * Hc * dx * dx); 
         plan_T00.execute (LATfield2::FFT_FORWARD);
         T00_FT.updateHalo ();
-        
         solveModifiedPoissonFT (/* source = */ T00_FT, 
                                 /* poten. = */ phi_FT, 
                                 1. / (dx * dx),
-                                3. * Hconf (a, cosmo)/ dtau_old);
-                                
+                                3. * Hc/ dt);
         plan_phi.execute (LATfield2::FFT_BACKWARD); // go back to position space
         phi.updateHalo (); // update ghost cells
     }
-    void compute_chi()
+    void compute_chi(double f = 1.0)
     {
         prepareFTsource<Real> (
             phi, 
             Tij, 
             Tij,
-            2. * cosmo.fourpiG * dx * dx / a);
-        
+            2. * f);
         plan_Tij.execute (LATfield2::FFT_FORWARD);
         Tij_FT.updateHalo ();
-        
         projectFTscalar (Tij_FT,chi_FT);
-        
         plan_chi.execute(LATfield2::FFT_BACKWARD);
         chi.updateHalo();
     }
-    void compute_Bi()
+    void compute_Bi(double f = 1.0)
     {
-        plan_Ti0.execute(LATfield2::FFT_FORWARD);
-        Ti0_FT.updateHalo();
+        plan_T0i.execute(LATfield2::FFT_FORWARD);
+        T0i_FT.updateHalo();
         
-        projectFTvector (T0i_FT, Bi_FT, cosmo.fourpiG * dx * dx);
+        projectFTvector (T0i_FT, Bi_FT, f);
         
         plan_Bi.execute(LATfield2::FFT_BACKWARD);
         Bi.updateHalo();
     }
-    
-    void compute_potential()
+    void compute_potential(
+        double a, double Hc, double fourpiG, double dt, double Omega)
+    // TODO: can we remove all of these dependencies?
     {
-        compute_phi();
-        compute_chi();
-        compute_Bi();
+        const double dx = 1.0/lat.size()[0];
+        compute_phi(a,Hc,fourpiG,dt,Omega);
+        compute_chi(fourpiG*dx*dx/a);
+        compute_Bi(fourpiG*dx*dx);
     }
     
     template<class Functor>
@@ -265,6 +301,6 @@ class relativistic_pm
         }
     }
     
-    virtual ~newtonian_pm(){}
+    virtual ~relativistic_pm(){}
 };
 } // namespace gevolution
