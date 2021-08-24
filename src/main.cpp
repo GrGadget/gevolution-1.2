@@ -367,6 +367,8 @@ int main (int argc, char **argv)
     newtonian_pm PM(sim.numpts);
     relativistic_pm grPM(sim.numpts);
     
+    pcls_cdm.update_mass(); // fix the mass legacy problem
+    
     do // main loop
     {
         
