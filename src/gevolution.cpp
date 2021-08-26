@@ -500,7 +500,7 @@ void solveModifiedPoissonFT (Field<Cplx> &sourceFT, Field<Cplx> &potFT,
             Real ki = 2*M_PI*signed_mode(k.coord(i));
             k2 += ki*ki;
         }
-        potFT (k) = sourceFT (k) * coeff / k2;
+        potFT (k) = sourceFT (k) * coeff / (k2 + modif);
     }
 }
 #endif
