@@ -77,6 +77,9 @@ namespace mpi = boost::mpi;
 
 #include <filesystem>
 namespace fs = std::filesystem;
+using namespace std;
+using namespace LATfield2;
+using namespace gevolution;
 
 // stop condition, by external file 'stop'
 // in the execution directory
@@ -92,10 +95,37 @@ bool stop()
     }
     return ret;
 }
+template<class F_type>
+void show_msq(F_type& F, std::string name,int i=-1, int j=-1)
+{
+    double rms =0 ;
+    LATfield2::Site x(F.lattice());
+    
+    if(i<0)
+    for(x.first();x.test();x.next())
+    {
+        double v = F(x);
+        rms += v*v;
+    }else if(j<0)
+    for(x.first();x.test();x.next())
+    {
+        double v = F(x,i);
+        rms += v*v;
+    }else
+    for(x.first();x.test();x.next())
+    {
+        double v = F(x,i,j);
+        rms += v*v;
+    }
+    parallel.sum<double>(rms);
+    COUT << "RMS of " << name << " = " << rms << "\n";
+}
 
-using namespace std;
-using namespace LATfield2;
-using namespace gevolution;
+void show_constant(double v, std::string name)
+{
+    COUT << "Constant " << name << " = " << v << "\n";
+}
+
 
 int main (int argc, char **argv)
 {
@@ -304,7 +334,7 @@ int main (int argc, char **argv)
             10 * cosmo.C_SPEED_OF_LIGHT * cosmo.C_SPEED_OF_LIGHT/sim.boxsize)};
 
     dtau = std::min(sim.Cf * dx, sim.steplimit/Hconf(a,cosmo));
-    dtau_old = 0.;
+    dtau_old = dtau;
 
     if (ic.generator == ICGEN_BASIC)
         generateIC_basic (sim, ic, cosmo, &pcls_cdm, &pcls_b,
@@ -371,9 +401,11 @@ int main (int argc, char **argv)
     
     do // main loop
     {
+        COUT << "Starting cycle: " << cycle << '\n';        
         
-        // construct stress-energy tensor
-        projection_init (&source);
+        show_msq(grPM.phi,"phi");
+        show_msq(grPM.chi,"chi");
+        show_msq(grPM.Bi,"Bi[0]",1);
 
         // PM step 1. construction of the energy momentum tensor
         if (sim.gr_flag == gravity_theory::GR)
@@ -384,8 +416,13 @@ int main (int argc, char **argv)
         {
             PM.sample(pcls_cdm);
         }
+        // EM tensor
+        show_msq(grPM.T00,"T00");
+        show_msq(grPM.T0i,"T0i",0);
+        show_msq(grPM.Tij,"Tij",0,0);
 
-        if (sim.gr_flag == gravity_theory::GR)
+        if (sim.gr_flag == gravity_theory::GR) 
+        // TODO: remove these conditions, just use NewtonPM or GRPM.
         {
             T00hom = 0.;
             for (x.first (); x.test (); x.next ())
@@ -413,6 +450,21 @@ int main (int argc, char **argv)
         {
             PM.compute_potential();
         }
+        show_constant(a,"a");
+        show_constant(cosmo.Omega_cdm+cosmo.Omega_b+bg_ncdm(a,cosmo),"Omega");
+        show_constant(Hconf(a,cosmo),"Hc");
+        show_constant(cosmo.fourpiG,"4PiG");
+        show_constant(dtau_old,"dt");
+        
+        // Sources
+        show_msq(grPM.T00,"T00");
+        show_msq(grPM.T0i,"T0i",0);
+        show_msq(grPM.Tij,"Tij",0,0);
+        
+        // Potentials
+        show_msq(grPM.phi,"phi");
+        show_msq(grPM.chi,"chi");
+        show_msq(grPM.Bi,"Bi[0]",1);
 
         // record some background data
         if (kFT.setCoord (0, 0, 0))
@@ -478,9 +530,12 @@ int main (int argc, char **argv)
                  << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
 
             writeSpectra (sim, cosmo, a, pkcount,
-                          &pcls_cdm, &pcls_b, pcls_ncdm, &phi, &chi, &Bi,
-                          &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi,
-                          &plan_chi, &plan_Bi, &plan_source, &plan_Sij
+                          &pcls_cdm, &pcls_b, pcls_ncdm, 
+                          &grPM.phi, &grPM.chi, &grPM.Bi,
+                          &grPM.T00, &grPM.Tij, 
+                          &grPM.T00_FT, &grPM.Bi_FT, &grPM.Tij_FT, 
+                          &grPM.plan_phi, &grPM.plan_chi, 
+                          &grPM.plan_Bi, &grPM.plan_T00, &grPM.plan_Tij
             );
 
             pkcount++;
@@ -521,31 +576,9 @@ int main (int argc, char **argv)
             COUT << " cycle " << cycle
                  << ", time integration information: max |v| = " << maxvel[0]
                  << " (cdm Courant factor = " << maxvel[0] * dtau / dx;
-            if (sim.baryon_flag)
-            {
-                COUT << "), baryon max |v| = " << maxvel[1]
-                     << " (Courant factor = " << maxvel[1] * dtau / dx;
-            }
-
+            
             COUT << "), time step / Hubble time = "
                  << Hconf (a, cosmo) * dtau;
-
-            for (i = 0; i < cosmo.num_ncdm; i++)
-            {
-                if (i == 0)
-                {
-                    COUT << endl
-                         << " time step subdivision for ncdm "
-                            "species: ";
-                }
-                COUT << numsteps_ncdm[i]
-                     << " (max |v| = " << maxvel[i + 1 + sim.baryon_flag]
-                     << ")";
-                if (i < cosmo.num_ncdm - 1)
-                {
-                    COUT << ", ";
-                }
-            }
 
             COUT << endl;
         }
@@ -559,8 +592,7 @@ int main (int argc, char **argv)
             update_cdm_fields[1] = &grPM.chi;
             update_cdm_fields[2] = &grPM.Bi;
             maxvel[0] = pcls_cdm.updateVel (
-                update_q, (dtau + dtau_old) / 2., update_cdm_fields,
-                (1. / a < ic.z_relax + 1. ? 3 : 2), f_params);
+                update_q, (dtau + dtau_old) / 2., update_cdm_fields,1, f_params);
         }
         else
         {
@@ -577,6 +609,7 @@ int main (int argc, char **argv)
                         update_q_Newton(part,dtau_eff)/a);
                });
         }
+        
         Debugger_ptr -> flush();
 
         rungekutta4bg (a, cosmo,
@@ -590,7 +623,7 @@ int main (int argc, char **argv)
             update_cdm_fields[1] = &grPM.chi;
             update_cdm_fields[2] = &grPM.Bi;
             pcls_cdm.moveParticles (update_pos, dtau, update_cdm_fields,
-                                    (1. / a < ic.z_relax + 1. ? 3 : 0),
+                                    1,
                                     f_params);
         }
         else
