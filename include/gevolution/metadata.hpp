@@ -19,6 +19,9 @@
 
 namespace gevolution
 {
+
+#define PHINONLINEAR
+
 #define GEVOLUTION_VERSION 1.2
 
 #ifndef MAX_OUTPUTS
@@ -52,7 +55,7 @@ namespace gevolution
 #endif
 
 #ifndef CYCLE_INFO_INTERVAL
-#define CYCLE_INFO_INTERVAL 10
+#define CYCLE_INFO_INTERVAL 1
 #endif
 
 #define MASK_PHI 1
