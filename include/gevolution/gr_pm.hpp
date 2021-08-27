@@ -237,13 +237,9 @@ class relativistic_pm
         compute forces
         factor = 4 pi G
     */
-    void compute_forces(Particles_gevolution& pcls, double factor = 1.0) const
+    void compute_forces(Particles_gevolution& pcls) const
     {
-        /*
-        Let's do like in Gadget4:
-        1. compute Fx field from phi at 4th order FD
-        2. interpolate Fx at particle's position using CIC
-        */
+        double factor = 1.0;
         const double dx = 1.0/pcls.lattice().size()[0];
         factor /= dx;
         
@@ -252,13 +248,13 @@ class relativistic_pm
         LATfield2::Site x(lat);
         LATfield2::Site xpart(pcls.lattice());
         
-        // phi.updateHalo();
         for(int i=0;i<3;++i)
         {
+            // - grad Phi (sqrt(a^2 + (p/m)^2) + (p/m)^2/sqrt(a^2 + (p/m)^2))
             for(x.first();x.test();x.next())
             {
                 Fx(x)
-                = (-1)*factor*( 
+                = factor*( 
                         2.0/3 * (phi(x+i) - phi(x-i)) 
                         - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
             }
@@ -267,35 +263,38 @@ class relativistic_pm
             {
                 for(auto& part : pcls.field()(xpart).parts )
                 {
-                    std::array<double,3> ref_dist;
+                    std::array<Real,3> ref_dist;
                     for(int l=0;l<3;++l)
                         ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
                     
                     part.acc[i] = 0.0;
+                    Real grad_i=0;
                     
-                    part.acc[i] +=
+                    grad_i +=
                     (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart);
                     
-                    part.acc[i] +=
+                    grad_i +=
                     (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart+0);
                     
-                    part.acc[i] +=
+                    grad_i +=
                     (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1);
                     
-                    part.acc[i] +=
+                    grad_i +=
                     (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1+0);
                     
-                    part.acc[i] +=
+                    grad_i +=
                     (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2);
                     
-                    part.acc[i] +=
+                    grad_i +=
                     (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2+0);
                     
-                    part.acc[i] +=
+                    grad_i +=
                     (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1);
                     
-                    part.acc[i] +=
+                    grad_i +=
                     (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1+0);
+                    
+                    part.acc[i]=-grad_i; 
                 }
             }
         }

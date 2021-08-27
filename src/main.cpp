@@ -403,9 +403,9 @@ int main (int argc, char **argv)
     {
         COUT << "Starting cycle: " << cycle << '\n';        
         
-        show_msq(grPM.phi,"phi");
-        show_msq(grPM.chi,"chi");
-        show_msq(grPM.Bi,"Bi[0]",1);
+        //show_msq(grPM.phi,"phi");
+        //show_msq(grPM.chi,"chi");
+        //show_msq(grPM.Bi,"Bi[0]",1);
 
         // PM step 1. construction of the energy momentum tensor
         if (sim.gr_flag == gravity_theory::GR)
@@ -450,11 +450,11 @@ int main (int argc, char **argv)
         {
             PM.compute_potential();
         }
-        show_constant(a,"a");
-        show_constant(cosmo.Omega_cdm+cosmo.Omega_b+bg_ncdm(a,cosmo),"Omega");
-        show_constant(Hconf(a,cosmo),"Hc");
-        show_constant(cosmo.fourpiG,"4PiG");
-        show_constant(dtau_old,"dt");
+        //show_constant(a,"a");
+        //show_constant(cosmo.Omega_cdm+cosmo.Omega_b+bg_ncdm(a,cosmo),"Omega");
+        //show_constant(Hconf(a,cosmo),"Hc");
+        //show_constant(cosmo.fourpiG,"4PiG");
+        //show_constant(dtau_old,"dt");
         
         // Sources
         show_msq(grPM.T00,"T00");
@@ -588,6 +588,29 @@ int main (int argc, char **argv)
         f_params[1] = a * a * sim.numpts;
         if (sim.gr_flag== gravity_theory::GR)
         {
+            // new version
+            //grPM.compute_forces(pcls_cdm);
+            //maxvel[0]=0;
+            //pcls_cdm.for_each(
+            //    [&]
+            //    (particle& part, const Site& /*xpart*/)
+            //    {
+            //       const double dtau_eff =  
+            //                       (dtau + dtau_old) * 0.5 ;
+            //       double v2 = 0;
+            //       for(int i=0;i<3;++i)
+            //       {
+            //           part.vel[i] += dtau_eff * part.acc[i];
+            //           v2 += part.vel[i]*part.vel[i];
+            //       }
+            //       maxvel[0]=std::max(
+            //            maxvel[0],
+            //            v2/a/a;
+            //    }
+            //    );
+            //  
+            
+            // old version
             update_cdm_fields[0] = &grPM.phi;
             update_cdm_fields[1] = &grPM.chi;
             update_cdm_fields[2] = &grPM.Bi;
@@ -606,7 +629,7 @@ int main (int argc, char **argv)
                                    (dtau + dtau_old) * 0.5 ;
                    maxvel[0]=std::max(
                         maxvel[0],
-                        update_q_Newton(part,dtau_eff)/a);
+                        update_q_Newton(part,dtau_eff)/a); // now this is wrong
                });
         }
         
