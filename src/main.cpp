@@ -584,8 +584,8 @@ int main (int argc, char **argv)
         }
 
         // cdm and baryon particle update
-        f_params[0] = a;
-        f_params[1] = a * a * sim.numpts;
+        // f_params[0] = a;
+        // f_params[1] = a * a * sim.numpts;
         if (sim.gr_flag== gravity_theory::GR)
         {
             // new version
@@ -636,19 +636,38 @@ int main (int argc, char **argv)
         rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
 
-        f_params[0] = a;
-        f_params[1] = a * a * sim.numpts;
+        // f_params[0] = a;
+        // f_params[1] = a * a * sim.numpts;
         if (sim.gr_flag == gravity_theory::GR)
         {
-            update_cdm_fields[0] = &grPM.phi;
-            update_cdm_fields[1] = &grPM.chi;
-            update_cdm_fields[2] = &grPM.Bi;
-            pcls_cdm.moveParticles (update_pos, dtau, update_cdm_fields,
-                                    1,
-                                    f_params);
+            // new version
+            pcls_cdm.for_each(
+                [&](particle& part, const Site& xpart)
+                {
+                    std::array<Real,3> velocity =
+                    grPM.momentum_to_velocity(
+                        {part.vel[0],part.vel[1],part.vel[2]},
+                        {part.pos[0],part.pos[1],part.pos[2]},
+                        xpart,
+                        a);
+                    for(int i=0;i<3;++i)
+                    {
+                        part.pos[i] += dtau * velocity[i];
+                    }
+                }
+            );
+            
+            // old version
+            // update_cdm_fields[0] = &grPM.phi;
+            // update_cdm_fields[1] = &grPM.chi;
+            // update_cdm_fields[2] = &grPM.Bi;
+            // pcls_cdm.moveParticles (update_pos, dtau, update_cdm_fields,
+            //                         1,
+            //                         f_params);
         }
         else
         {
+            // TODO: broken
             pcls_cdm.moveParticles (update_pos_Newton, dtau, NULL, 0, f_params);
         }
 

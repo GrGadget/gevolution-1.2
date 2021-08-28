@@ -402,6 +402,92 @@ class relativistic_pm
             }
         }
     }
+   
+    std::array<Real,3> vector_at(
+        const real_field_type& F, 
+        const LATfield2::Site& x,
+        const std::array<Real,3>& pos)const
+    {
+        const int N = size();
+        const Real dx = 1.0 / N;
+        
+        std::array<Real,3> ref_dist{0,0,0};
+        for(int i=0;i<3;++i)
+            ref_dist[i] = pos[i]/dx - x.coord(i);
+            
+        std::array<Real,3> xF{0,0,0};
+        
+        // CIC interpolation
+        for(int i=0;i<3;++i)
+        {
+            xF[i] = F(x,i) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * (1.-ref_dist[2]);
+            xF[i] += F(x+0,i) * ref_dist[0] * (1.-ref_dist[1]) * (1.-ref_dist[2]);
+            xF[i] += F(x+1,i) * (1.-ref_dist[0]) * ref_dist[1] * (1.-ref_dist[2]);
+            xF[i] += F(x+0+1,i) * ref_dist[0] * ref_dist[1] * (1.-ref_dist[2]);
+            xF[i] += F(x+2,i) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * ref_dist[2];
+            xF[i] += F(x+0+2,i) * ref_dist[0] * (1.-ref_dist[1]) * ref_dist[2];
+            xF[i] += F(x+1+2,i) * (1.-ref_dist[0]) * ref_dist[1] * ref_dist[2];
+            xF[i] += F(x+0+1+2,i) * ref_dist[0] * ref_dist[1] * ref_dist[2];
+        }
+        return xF;
+    }
+    Real scalar_at(
+        const real_field_type& F, 
+        const LATfield2::Site& x,
+        const std::array<Real,3>& pos)const
+    {
+        const int N = size();
+        const Real dx = 1.0 / N;
+        
+        std::array<Real,3> ref_dist{0,0,0};
+        for(int i=0;i<3;++i)
+            ref_dist[i] = pos[i]/dx - x.coord(i);
+            
+        Real xF{0};
+        
+        // CIC interpolation
+        xF = F(x) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * (1.-ref_dist[2]);
+        xF += F(x+0) * ref_dist[0] * (1.-ref_dist[1]) * (1.-ref_dist[2]);
+        xF += F(x+1) * (1.-ref_dist[0]) * ref_dist[1] * (1.-ref_dist[2]);
+        xF += F(x+0+1) * ref_dist[0] * ref_dist[1] * (1.-ref_dist[2]);
+        xF += F(x+2) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * ref_dist[2];
+        xF += F(x+0+2) * ref_dist[0] * (1.-ref_dist[1]) * ref_dist[2];
+        xF += F(x+1+2) * (1.-ref_dist[0]) * ref_dist[1] * ref_dist[2];
+        xF += F(x+0+1+2) * ref_dist[0] * ref_dist[1] * ref_dist[2];
+        
+        return xF;
+    }
+   
+    std::array<Real,3> momentum_to_velocity(
+                          const std::array<Real,3>& momentum,
+                          const std::array<Real,3>& position,
+                          const LATfield2::Site& xpart,
+                          const Real a) const
+    {
+        const int N = size();
+        std::array<Real,3> velocity{0,0,0};
+        Real xchi{0},xphi{0};
+        std::array<Real,3> xBi{0,0,0};
+        const Real momentum2 =    momentum[0]*momentum[0] 
+                                + momentum[1]*momentum[1]
+                                + momentum[2]*momentum[2];
+        const Real e2 = std::sqrt(momentum2 + a*a);
+                
+        
+        xphi = scalar_at(phi,xpart,{position[0],position[1],position[2]});
+        xchi = scalar_at(chi,xpart,{position[0],position[1],position[2]});
+        xBi  = vector_at(Bi,xpart,{position[0],position[1],position[2]});
+        
+        const Real velocity2 = 
+            (1. + (3. - momentum2 / e2/e2) * xphi - xchi) / e2;
+        
+        for(int i=0;i<3;++i)
+        {
+            velocity[i] = momentum[i] * velocity2 + xBi[i]/a/a/N; // TODO: why this strange scaling of Bi?
+        }
+        
+        return velocity;
+    }
     
     virtual ~relativistic_pm(){}
 };
