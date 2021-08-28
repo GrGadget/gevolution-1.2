@@ -603,10 +603,10 @@ int main (int argc, char **argv)
                        part.vel[i] += dtau_eff * part.acc[i];
                        v2 += part.vel[i]*part.vel[i];
                    }
-                   maxvel[0]=std::max(maxvel[0],v2/a/a);
+                   maxvel[0]=std::max(maxvel[0],v2);
                 }
                 );
-            maxvel[0] = std::sqrt(maxvel[0]);              
+            maxvel[0] = std::sqrt(maxvel[0])/a;              
             
             // old version
             // update_cdm_fields[0] = &grPM.phi;
