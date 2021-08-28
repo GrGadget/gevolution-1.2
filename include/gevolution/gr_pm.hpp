@@ -27,6 +27,7 @@ class relativistic_pm
     
     // metric perturbations
     public:
+    std::size_t my_size;
     real_field_type phi,chi,Bi;
     real_field_type T00,T0i,Tij;
     
@@ -70,6 +71,8 @@ class relativistic_pm
     
     public:
     relativistic_pm(int N):
+        my_size{N},
+        
         lat(/* dims        = */ 3,
             /* size        = */ N,
             /* ghost cells = */ 2),
@@ -121,6 +124,8 @@ class relativistic_pm
     {
         return lat;
     }
+    
+    std::size_t size() const { return my_size;  }
     
     /*
         sample particle masses into the source field
@@ -235,66 +240,164 @@ class relativistic_pm
     
     /*
         compute forces
-        factor = 4 pi G
     */
-    void compute_forces(Particles_gevolution& pcls) const
+    void compute_forces(Particles_gevolution& pcls, double a) const
     {
-        double factor = 1.0;
-        const double dx = 1.0/pcls.lattice().size()[0];
-        factor /= dx;
+        const int N = size();
+        const Real dx = 1.0 / N;
         
-        LATfield2::Field<Real> Fx(lat);
-        
-        LATfield2::Site x(lat);
         LATfield2::Site xpart(pcls.lattice());
-        
-        for(int i=0;i<3;++i)
+        for(xpart.first();xpart.test();xpart.next())
         {
-            // - grad Phi (sqrt(a^2 + (p/m)^2) + (p/m)^2/sqrt(a^2 + (p/m)^2))
-            for(x.first();x.test();x.next())
+            for(auto& part : pcls.field()(xpart).parts )
             {
-                Fx(x)
-                = factor*( 
-                        2.0/3 * (phi(x+i) - phi(x-i)) 
-                        - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
-            }
-            Fx.updateHalo();
-            for(xpart.first();xpart.test();xpart.next())
-            {
-                for(auto& part : pcls.field()(xpart).parts )
+                std::array<double,3> ref_dist;
+                for(int l=0;l<3;++l)
+                    ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
+                    
+                Real gradphi[3] = { 0, 0, 0 }, 
+                     pgradB[3] = { 0, 0, 0 },
+                     gradchi[3] = {0,0,0};
+                Real p2 =   part.vel[0] * part.vel[0] 
+                          + part.vel[1] * part.vel[1] 
+                          + part.vel[2] * part.vel[2];
+                Real e2 = std::sqrt(p2 + a*a);
+
+                gradphi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
+                             * (phi (xpart + 0) - phi (xpart));
+                gradphi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
+                             * (phi (xpart + 1) - phi (xpart));
+                gradphi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
+                             * (phi (xpart + 2) - phi (xpart));
+                gradphi[0] += ref_dist[1] * (1. - ref_dist[2])
+                              * (phi (xpart + 1 + 0) - phi (xpart + 1));
+                gradphi[1] += ref_dist[0] * (1. - ref_dist[2])
+                              * (phi (xpart + 1 + 0) - phi (xpart + 0));
+                gradphi[2] += ref_dist[0] * (1. - ref_dist[1])
+                              * (phi (xpart + 2 + 0) - phi (xpart + 0));
+                gradphi[0] += (1. - ref_dist[1]) * ref_dist[2]
+                              * (phi (xpart + 2 + 0) - phi (xpart + 2));
+                gradphi[1] += (1. - ref_dist[0]) * ref_dist[2]
+                              * (phi (xpart + 2 + 1) - phi (xpart + 2));
+                gradphi[2] += (1. - ref_dist[0]) * ref_dist[1]
+                              * (phi (xpart + 2 + 1) - phi (xpart + 1));
+                gradphi[0] += ref_dist[1] * ref_dist[2]
+                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 1));
+                gradphi[1] += ref_dist[0] * ref_dist[2]
+                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 0));
+                gradphi[2] += ref_dist[0] * ref_dist[1]
+                      * (phi (xpart + 2 + 1 + 0) - phi (xpart + 1 + 0));
+
+                gradchi[0] += (1. - ref_dist[1]) * (1. - ref_dist[2])
+                              * (chi (xpart + 0) - chi (xpart));
+                gradchi[1] += (1. - ref_dist[0]) * (1. - ref_dist[2])
+                              * (chi (xpart + 1) - chi (xpart));
+                gradchi[2] += (1. - ref_dist[0]) * (1. - ref_dist[1])
+                              * (chi (xpart + 2) - chi (xpart));
+                gradchi[0] += ref_dist[1] * (1. - ref_dist[2])
+                              * (chi (xpart + 1 + 0) - chi (xpart + 1));
+                gradchi[1] += ref_dist[0] * (1. - ref_dist[2])
+                              * (chi (xpart + 1 + 0) - chi (xpart + 0));
+                gradchi[2] += ref_dist[0] * (1. - ref_dist[1])
+                              * (chi (xpart + 2 + 0) - chi (xpart + 0));
+                gradchi[0] += (1. - ref_dist[1]) * ref_dist[2]
+                              * (chi (xpart + 2 + 0) - chi (xpart + 2));
+                gradchi[1] += (1. - ref_dist[0]) * ref_dist[2]
+                              * (chi (xpart + 2 + 1) - chi (xpart + 2));
+                gradchi[2] += (1. - ref_dist[0]) * ref_dist[1]
+                              * (chi (xpart + 2 + 1) - chi (xpart + 1));
+                gradchi[0] += ref_dist[1] * ref_dist[2]
+                              * (chi (xpart + 2 + 1 + 0) - chi (xpart + 2 + 1));
+                gradchi[1] += ref_dist[0] * ref_dist[2]
+                              * (chi (xpart + 2 + 1 + 0) - chi (xpart + 2 + 0));
+                gradchi[2] += ref_dist[0] * ref_dist[1]
+                      * (chi (xpart + 2 + 1 + 0) - chi (xpart + 1 + 0));
+        
+                pgradB[0] = ((1. - ref_dist[2]) * (Bi (xpart + 0, 1) - Bi (xpart, 1))
+                             + ref_dist[2] * (Bi (xpart + 2 + 0, 1) - Bi (xpart + 2, 1)))
+                            * part.vel[1];
+                pgradB[0] += ((1. - ref_dist[1]) * (Bi (xpart + 0, 2) - Bi (xpart, 2))
+                              + ref_dist[1] * (Bi (xpart + 1 + 0, 2) - Bi (xpart + 1, 2)))
+                             * part.vel[2];
+                pgradB[0] += (1. - ref_dist[1]) * (1. - ref_dist[2])
+                             * ((ref_dist[0] - 1.) * Bi (xpart - 0, 0)
+                                + (1. - 2. * ref_dist[0]) * Bi (xpart, 0)
+                                + ref_dist[0] * Bi (xpart + 0, 0))
+                             * part.vel[0];
+                pgradB[0] += ref_dist[1] * (1. - ref_dist[2])
+                             * ((ref_dist[0] - 1.) * Bi (xpart + 1 - 0, 0)
+                                + (1. - 2. * ref_dist[0]) * Bi (xpart + 1, 0)
+                                + ref_dist[0] * Bi (xpart + 1 + 0, 0))
+                             * part.vel[0];
+                pgradB[0] += (1. - ref_dist[1]) * ref_dist[2]
+                             * ((ref_dist[0] - 1.) * Bi (xpart + 2 - 0, 0)
+                                + (1. - 2. * ref_dist[0]) * Bi (xpart + 2, 0)
+                                + ref_dist[0] * Bi (xpart + 2 + 0, 0))
+                             * part.vel[0];
+                pgradB[0] += ref_dist[1] * ref_dist[2]
+                             * ((ref_dist[0] - 1.) * Bi (xpart + 2 + 1 - 0, 0)
+                                + (1. - 2. * ref_dist[0]) * Bi (xpart + 2 + 1, 0)
+                                + ref_dist[0] * Bi (xpart + 2 + 1 + 0, 0))
+                             * part.vel[0];
+
+                pgradB[1] = ((1. - ref_dist[0]) * (Bi (xpart + 1, 2) - Bi (xpart, 2))
+                             + ref_dist[0] * (Bi (xpart + 1 + 0, 2) - Bi (xpart + 0, 2)))
+                            * part.vel[2];
+                pgradB[1] += ((1. - ref_dist[2]) * (Bi (xpart + 1, 0) - Bi (xpart, 0))
+                              + ref_dist[2] * (Bi (xpart + 1 + 2, 0) - Bi (xpart + 2, 0)))
+                             * part.vel[0];
+                pgradB[1] += (1. - ref_dist[0]) * (1. - ref_dist[2])
+                             * ((ref_dist[1] - 1.) * Bi (xpart - 1, 1)
+                                + (1. - 2. * ref_dist[1]) * Bi (xpart, 1)
+                                + ref_dist[1] * Bi (xpart + 1, 1))
+                             * part.vel[1];
+                pgradB[1] += ref_dist[0] * (1. - ref_dist[2])
+                             * ((ref_dist[1] - 1.) * Bi (xpart + 0 - 1, 1)
+                                + (1. - 2. * ref_dist[1]) * Bi (xpart + 0, 1)
+                                + ref_dist[1] * Bi (xpart + 0 + 1, 1))
+                             * part.vel[1];
+                pgradB[1] += (1. - ref_dist[0]) * ref_dist[2]
+                             * ((ref_dist[1] - 1.) * Bi (xpart + 2 - 1, 1)
+                                + (1. - 2. * ref_dist[1]) * Bi (xpart + 2, 1)
+                                + ref_dist[1] * Bi (xpart + 2 + 1, 1))
+                             * part.vel[1];
+                pgradB[1] += ref_dist[0] * ref_dist[2]
+                             * ((ref_dist[1] - 1.) * Bi (xpart + 2 + 0 - 1, 1)
+                                + (1. - 2. * ref_dist[1]) * Bi (xpart + 2 + 0, 1)
+                                + ref_dist[1] * Bi (xpart + 2 + 0 + 1, 1))
+                             * part.vel[1];
+
+                pgradB[2] = ((1. - ref_dist[1]) * (Bi (xpart + 2, 0) - Bi (xpart, 0))
+                             + ref_dist[1] * (Bi (xpart + 2 + 1, 0) - Bi (xpart + 1, 0)))
+                            * part.vel[0];
+                pgradB[2] += ((1. - ref_dist[0]) * (Bi (xpart + 2, 1) - Bi (xpart, 1))
+                              + ref_dist[0] * (Bi (xpart + 2 + 0, 1) - Bi (xpart + 0, 1)))
+                             * part.vel[1];
+                pgradB[2] += (1. - ref_dist[0]) * (1. - ref_dist[1])
+                             * ((ref_dist[2] - 1.) * Bi (xpart - 2, 2)
+                                + (1. - 2. * ref_dist[2]) * Bi (xpart, 2)
+                                + ref_dist[2] * Bi (xpart + 2, 2))
+                             * part.vel[2];
+                pgradB[2] += ref_dist[0] * (1. - ref_dist[1])
+                             * ((ref_dist[2] - 1.) * Bi (xpart + 0 - 2, 2)
+                                + (1. - 2. * ref_dist[2]) * Bi (xpart + 0, 2)
+                                + ref_dist[2] * Bi (xpart + 0 + 2, 2))
+                             * part.vel[2];
+                pgradB[2] += (1. - ref_dist[0]) * ref_dist[1]
+                             * ((ref_dist[2] - 1.) * Bi (xpart + 1 - 2, 2)
+                                + (1. - 2. * ref_dist[2]) * Bi (xpart + 1, 2)
+                                + ref_dist[2] * Bi (xpart + 2 + 1, 2))
+                             * part.vel[2];
+                pgradB[2] += ref_dist[0] * ref_dist[1]
+                             * ((ref_dist[2] - 1.) * Bi (xpart + 1 + 0 - 2, 2)
+                                + (1. - 2. * ref_dist[2]) * Bi (xpart + 1 + 0, 2)
+                                + ref_dist[2] * Bi (xpart + 1 + 0 + 2, 2))
+                             * part.vel[2];
+                
+                for(int i=0;i<3;++i)
                 {
-                    std::array<Real,3> ref_dist;
-                    for(int l=0;l<3;++l)
-                        ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
-                    
-                    part.acc[i] = 0.0;
-                    Real grad_i=0;
-                    
-                    grad_i +=
-                    (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart);
-                    
-                    grad_i +=
-                    (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart+0);
-                    
-                    grad_i +=
-                    (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1);
-                    
-                    grad_i +=
-                    (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1+0);
-                    
-                    grad_i +=
-                    (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2);
-                    
-                    grad_i +=
-                    (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2+0);
-                    
-                    grad_i +=
-                    (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1);
-                    
-                    grad_i +=
-                    (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1+0);
-                    
-                    part.acc[i]=-grad_i; 
+                    part.acc[i] = (gradchi[i]*e2 - gradphi[i] * (e2 + p2/e2) 
+                                    - pgradB[i]/a/a/N)/dx;
                 }
             }
         }

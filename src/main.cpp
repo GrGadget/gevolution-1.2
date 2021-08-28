@@ -589,33 +589,31 @@ int main (int argc, char **argv)
         if (sim.gr_flag== gravity_theory::GR)
         {
             // new version
-            //grPM.compute_forces(pcls_cdm);
-            //maxvel[0]=0;
-            //pcls_cdm.for_each(
-            //    [&]
-            //    (particle& part, const Site& /*xpart*/)
-            //    {
-            //       const double dtau_eff =  
-            //                       (dtau + dtau_old) * 0.5 ;
-            //       double v2 = 0;
-            //       for(int i=0;i<3;++i)
-            //       {
-            //           part.vel[i] += dtau_eff * part.acc[i];
-            //           v2 += part.vel[i]*part.vel[i];
-            //       }
-            //       maxvel[0]=std::max(
-            //            maxvel[0],
-            //            v2/a/a;
-            //    }
-            //    );
-            //  
+            grPM.compute_forces(pcls_cdm,a);
+            maxvel[0]=0;
+            pcls_cdm.for_each(
+                [&]
+                (particle& part, const Site& /*xpart*/)
+                {
+                   const double dtau_eff =  
+                                   (dtau + dtau_old) * 0.5 ;
+                   double v2 = 0;
+                   for(int i=0;i<3;++i)
+                   {
+                       part.vel[i] += dtau_eff * part.acc[i];
+                       v2 += part.vel[i]*part.vel[i];
+                   }
+                   maxvel[0]=std::max(maxvel[0],v2/a/a);
+                }
+                );
+            maxvel[0] = std::sqrt(maxvel[0]);              
             
             // old version
-            update_cdm_fields[0] = &grPM.phi;
-            update_cdm_fields[1] = &grPM.chi;
-            update_cdm_fields[2] = &grPM.Bi;
-            maxvel[0] = pcls_cdm.updateVel (
-                update_q, (dtau + dtau_old) / 2., update_cdm_fields,1, f_params);
+            // update_cdm_fields[0] = &grPM.phi;
+            // update_cdm_fields[1] = &grPM.chi;
+            // update_cdm_fields[2] = &grPM.Bi;
+            // maxvel[0] = pcls_cdm.updateVel (
+            //     update_q, (dtau + dtau_old) / 2., update_cdm_fields,1, f_params);
         }
         else
         {
