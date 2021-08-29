@@ -270,10 +270,6 @@ int main (int argc, char **argv)
 
     Particles_gevolution
         pcls_cdm,pcls_b,pcls_ncdm[MAX_PCL_SPECIES-2];
-    Field<Real> *update_cdm_fields[3];
-    Field<Real> *update_b_fields[3];
-    Field<Real> *update_ncdm_fields[3];
-    double f_params[5];
     set<long> IDbacklog[MAX_PCL_SPECIES];
 
     Field<Real> phi;
@@ -298,14 +294,6 @@ int main (int argc, char **argv)
     BiFT.initialize (latFT, 3);
     PlanFFT<Cplx> plan_Bi (&Bi, &BiFT);
 
-
-    update_b_fields[0] = &phi;
-    update_b_fields[1] = &chi;
-    update_b_fields[2] = &Bi;
-
-    update_ncdm_fields[0] = &phi;
-    update_ncdm_fields[1] = &chi;
-    update_ncdm_fields[2] = &Bi;
 
     Site x (lat);
     rKSite kFT (latFT);
@@ -584,8 +572,6 @@ int main (int argc, char **argv)
         }
 
         // cdm and baryon particle update
-        // f_params[0] = a;
-        // f_params[1] = a * a * sim.numpts;
         if (sim.gr_flag== gravity_theory::GR)
         {
             // new version
@@ -636,8 +622,6 @@ int main (int argc, char **argv)
         rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
 
-        // f_params[0] = a;
-        // f_params[1] = a * a * sim.numpts;
         if (sim.gr_flag == gravity_theory::GR)
         {
             // new version
@@ -667,8 +651,16 @@ int main (int argc, char **argv)
         }
         else
         {
-            // TODO: broken
-            pcls_cdm.moveParticles (update_pos_Newton, dtau, NULL, 0, f_params);
+            // new version
+            pcls_cdm.for_each(
+                [&](particle& part, const Site& /*xpart*/)
+                {
+                    for(int i=0;i<3;++i)
+                    {
+                        part.pos[i] += dtau * part.vel[i]/a;
+                    }
+                }
+            );
         }
 
         rungekutta4bg (a, cosmo,
@@ -703,7 +695,7 @@ int main (int argc, char **argv)
                     && sim.gr_flag == gravity_theory::Newtonian)
                     plan_Bi.execute (FFT_BACKWARD);
                     hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm,
-                               phi, chi, Bi, a, tau, dtau, cycle);
+                               grPM.phi, grPM.chi, grPM.Bi, a, tau, dtau, cycle);
                 break;
             }
         }
@@ -717,8 +709,8 @@ int main (int argc, char **argv)
             if (sim.vector_flag == VECTOR_PARABOLIC 
                 && sim.gr_flag ==gravity_theory::Newtonian)
                 plan_Bi.execute (FFT_BACKWARD);
-                hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, phi,
-                           chi, Bi, a, tau, dtau, cycle, restartcount);
+                hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, grPM.phi,
+                           grPM.chi, grPM.Bi, a, tau, dtau, cycle, restartcount);
             restartcount++;
         }
 
