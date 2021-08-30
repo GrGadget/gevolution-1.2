@@ -237,6 +237,64 @@ class relativistic_pm
         }
         phi.updateHalo();
     }
+    std::array<Real,3> gradient(
+        const real_field_type& F, 
+        const LATfield2::Site& x,
+        const std::array<Real,3>& pos)const
+    // First order CIC gradient
+    {
+        const int N = size();
+        const Real dx = 1.0 / N;
+        
+        std::array<Real,3> ref_dist{0,0,0};
+        for(int i=0;i<3;++i)
+            ref_dist[i] = pos[i]/dx - x.coord(i);
+            
+        std::array<Real,3> grad{0,0,0};
+        for(int i=0;i<3;++i)
+        {
+            const int j=(i+1)%3,k=(j+1)%3;
+            grad[i] += (1. - ref_dist[j]) * (1. - ref_dist[k])
+                         * (F (x + i) - F (x));
+            grad[i] += ref_dist[j] * (1. - ref_dist[k])
+                          * (F (x + i + j) - F (x + j));
+            grad[i] += (1. - ref_dist[j]) * ref_dist[k]
+                          * (F (x + i + k) - F (x + k));
+            grad[i] += ref_dist[j] * ref_dist[k]
+                          * (F (x + i + j + k) - F (x + j + k));
+        }
+        return grad;
+    }
+    
+    //std::array<Real,3> gradient_vector(
+    //    const real_field_type& F, 
+    //    const std::array<Real,3>& momentum,
+    //    const LATfield2::Site& x,
+    //    const std::array<Real,3>& pos)const
+    //// First order CIC gradient
+    //{
+    //    const int N = size();
+    //    const Real dx = 1.0 / N;
+    //    
+    //    std::array<Real,3> ref_dist{0,0,0};
+    //    for(int i=0;i<3;++i)
+    //        ref_dist[i] = pos[i]/dx - x.coord(i);
+    //        
+    //    std::array<Real,3> grad{0,0,0};
+    //    for(int i=0;i<3;++i)
+    //    {
+    //        const int j=(i+1)%3,k=(j+1)%3;
+    //        grad[i] += (1. - ref_dist[j]) * (1. - ref_dist[k])
+    //                     * (F (x + i) - F (x));
+    //        grad[i] += ref_dist[j] * (1. - ref_dist[k])
+    //                      * (F (x + i + j) - F (x + j));
+    //        grad[i] += (1. - ref_dist[j]) * ref_dist[k]
+    //                      * (F (x + i + k) - F (x + k));
+    //        grad[i] += ref_dist[j] * ref_dist[k]
+    //                      * (F (x + i + j + k) - F (x + j + k));
+    //    }
+    //    return grad;
+    //}
     
     /*
         compute forces
@@ -251,68 +309,27 @@ class relativistic_pm
         {
             for(auto& part : pcls.field()(xpart).parts )
             {
-                std::array<double,3> ref_dist;
-                for(int l=0;l<3;++l)
-                    ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
+                std::array<Real,3> pos{part.pos[0],part.pos[1],part.pos[2]};
+                std::array<Real,3> momentum{part.vel[0],part.vel[1],part.vel[2]};
+                std::array<Real,3> 
+                    gradphi = gradient(phi,xpart,pos), 
+                    gradchi = gradient(chi,xpart,pos), 
+                    pgradB{0,0,0};
+                    //pgradB  = gradient_vector( Bi,momentum,xpart,pos );
                     
-                Real gradphi[3] = { 0, 0, 0 }, 
-                     pgradB[3] = { 0, 0, 0 },
-                     gradchi[3] = {0,0,0};
                 Real p2 =   part.vel[0] * part.vel[0] 
                           + part.vel[1] * part.vel[1] 
                           + part.vel[2] * part.vel[2];
                 Real e2 = std::sqrt(p2 + a*a);
-
-                gradphi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
-                             * (phi (xpart + 0) - phi (xpart));
-                gradphi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
-                             * (phi (xpart + 1) - phi (xpart));
-                gradphi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
-                             * (phi (xpart + 2) - phi (xpart));
-                gradphi[0] += ref_dist[1] * (1. - ref_dist[2])
-                              * (phi (xpart + 1 + 0) - phi (xpart + 1));
-                gradphi[1] += ref_dist[0] * (1. - ref_dist[2])
-                              * (phi (xpart + 1 + 0) - phi (xpart + 0));
-                gradphi[2] += ref_dist[0] * (1. - ref_dist[1])
-                              * (phi (xpart + 2 + 0) - phi (xpart + 0));
-                gradphi[0] += (1. - ref_dist[1]) * ref_dist[2]
-                              * (phi (xpart + 2 + 0) - phi (xpart + 2));
-                gradphi[1] += (1. - ref_dist[0]) * ref_dist[2]
-                              * (phi (xpart + 2 + 1) - phi (xpart + 2));
-                gradphi[2] += (1. - ref_dist[0]) * ref_dist[1]
-                              * (phi (xpart + 2 + 1) - phi (xpart + 1));
-                gradphi[0] += ref_dist[1] * ref_dist[2]
-                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 1));
-                gradphi[1] += ref_dist[0] * ref_dist[2]
-                              * (phi (xpart + 2 + 1 + 0) - phi (xpart + 2 + 0));
-                gradphi[2] += ref_dist[0] * ref_dist[1]
-                      * (phi (xpart + 2 + 1 + 0) - phi (xpart + 1 + 0));
-
-                gradchi[0] += (1. - ref_dist[1]) * (1. - ref_dist[2])
-                              * (chi (xpart + 0) - chi (xpart));
-                gradchi[1] += (1. - ref_dist[0]) * (1. - ref_dist[2])
-                              * (chi (xpart + 1) - chi (xpart));
-                gradchi[2] += (1. - ref_dist[0]) * (1. - ref_dist[1])
-                              * (chi (xpart + 2) - chi (xpart));
-                gradchi[0] += ref_dist[1] * (1. - ref_dist[2])
-                              * (chi (xpart + 1 + 0) - chi (xpart + 1));
-                gradchi[1] += ref_dist[0] * (1. - ref_dist[2])
-                              * (chi (xpart + 1 + 0) - chi (xpart + 0));
-                gradchi[2] += ref_dist[0] * (1. - ref_dist[1])
-                              * (chi (xpart + 2 + 0) - chi (xpart + 0));
-                gradchi[0] += (1. - ref_dist[1]) * ref_dist[2]
-                              * (chi (xpart + 2 + 0) - chi (xpart + 2));
-                gradchi[1] += (1. - ref_dist[0]) * ref_dist[2]
-                              * (chi (xpart + 2 + 1) - chi (xpart + 2));
-                gradchi[2] += (1. - ref_dist[0]) * ref_dist[1]
-                              * (chi (xpart + 2 + 1) - chi (xpart + 1));
-                gradchi[0] += ref_dist[1] * ref_dist[2]
-                              * (chi (xpart + 2 + 1 + 0) - chi (xpart + 2 + 1));
-                gradchi[1] += ref_dist[0] * ref_dist[2]
-                              * (chi (xpart + 2 + 1 + 0) - chi (xpart + 2 + 0));
-                gradchi[2] += ref_dist[0] * ref_dist[1]
-                      * (chi (xpart + 2 + 1 + 0) - chi (xpart + 1 + 0));
         
+        const int N = size();
+        const Real dx = 1.0 / N;
+        
+        std::array<Real,3> ref_dist{0,0,0};
+        for(int i=0;i<3;++i)
+            ref_dist[i] = pos[i]/dx - xpart.coord(i);
+
+
                 pgradB[0] = ((1. - ref_dist[2]) * (Bi (xpart + 0, 1) - Bi (xpart, 1))
                              + ref_dist[2] * (Bi (xpart + 2 + 0, 1) - Bi (xpart + 2, 1)))
                             * part.vel[1];
@@ -420,7 +437,7 @@ class relativistic_pm
         // CIC interpolation
         for(int i=0;i<3;++i)
         {
-            xF[i] = F(x,i) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * (1.-ref_dist[2]);
+            xF[i] += F(x,i) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * (1.-ref_dist[2]);
             xF[i] += F(x+0,i) * ref_dist[0] * (1.-ref_dist[1]) * (1.-ref_dist[2]);
             xF[i] += F(x+1,i) * (1.-ref_dist[0]) * ref_dist[1] * (1.-ref_dist[2]);
             xF[i] += F(x+0+1,i) * ref_dist[0] * ref_dist[1] * (1.-ref_dist[2]);
@@ -446,7 +463,7 @@ class relativistic_pm
         Real xF{0};
         
         // CIC interpolation
-        xF = F(x) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * (1.-ref_dist[2]);
+        xF += F(x) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * (1.-ref_dist[2]);
         xF += F(x+0) * ref_dist[0] * (1.-ref_dist[1]) * (1.-ref_dist[2]);
         xF += F(x+1) * (1.-ref_dist[0]) * ref_dist[1] * (1.-ref_dist[2]);
         xF += F(x+0+1) * ref_dist[0] * ref_dist[1] * (1.-ref_dist[2]);
