@@ -399,15 +399,16 @@ int main (int argc, char **argv)
         if (sim.gr_flag == gravity_theory::GR)
         {
             grPM.sample(pcls_cdm,a);
+            show_msq(grPM.T00,"T00");
+            show_msq(grPM.T0i,"T0i",0);
+            show_msq(grPM.Tij,"Tij",0,0);
         }
         else
         {
             PM.sample(pcls_cdm);
+            show_msq(PM.source,"T00");
         }
         // EM tensor
-        show_msq(grPM.T00,"T00");
-        show_msq(grPM.T0i,"T0i",0);
-        show_msq(grPM.Tij,"Tij",0,0);
 
         if (sim.gr_flag == gravity_theory::GR) 
         // TODO: remove these conditions, just use NewtonPM or GRPM.
@@ -436,7 +437,7 @@ int main (int argc, char **argv)
         }
         else
         {
-            PM.compute_potential();
+            PM.compute_potential(cosmo.fourpiG/a);
         }
         //show_constant(a,"a");
         //show_constant(cosmo.Omega_cdm+cosmo.Omega_b+bg_ncdm(a,cosmo),"Omega");
@@ -445,14 +446,28 @@ int main (int argc, char **argv)
         //show_constant(dtau_old,"dt");
         
         // Sources
-        show_msq(grPM.T00,"T00");
-        show_msq(grPM.T0i,"T0i",0);
-        show_msq(grPM.Tij,"Tij",0,0);
+        if (sim.gr_flag == gravity_theory::GR)
+        {
+            show_msq(grPM.T00,"T00");
+            show_msq(grPM.T0i,"T0i",0);
+            show_msq(grPM.Tij,"Tij",0,0);
+        }
+        else
+        {
+            show_msq(PM.source,"T00");
+        }
         
         // Potentials
-        show_msq(grPM.phi,"phi");
-        show_msq(grPM.chi,"chi");
-        show_msq(grPM.Bi,"Bi[0]",1);
+        if (sim.gr_flag == gravity_theory::GR)
+        {
+            show_msq(grPM.phi,"phi");
+            show_msq(grPM.chi,"chi");
+            show_msq(grPM.Bi,"Bi[0]",1);
+        }
+        else
+        {
+            show_msq(PM.phi,"phi");
+        }
 
         // record some background data
         if (kFT.setCoord (0, 0, 0))
@@ -603,7 +618,7 @@ int main (int argc, char **argv)
         }
         else
         {
-           PM.compute_forces(pcls_cdm,cosmo.fourpiG);
+           PM.compute_forces(pcls_cdm,1.0);//cosmo.fourpiG/a);
            maxvel[0]=.0;
            pcls_cdm.for_each(
                [&]
@@ -611,10 +626,15 @@ int main (int argc, char **argv)
                {
                    const double dtau_eff =  
                                    (dtau + dtau_old) * 0.5 ;
-                   maxvel[0]=std::max(
-                        maxvel[0],
-                        update_q_Newton(part,dtau_eff)/a); // now this is wrong
+                   double v2 = 0;
+                   for(int i=0;i<3;++i)
+                   {
+                       part.vel[i] += dtau_eff * part.acc[i] *a;
+                       v2 += part.vel[i]*part.vel[i];
+                   }
+                   maxvel[0]=std::max(maxvel[0],v2);
                });
+            maxvel[0] = std::sqrt(maxvel[0])/a;              
         }
         
         Debugger_ptr -> flush();
