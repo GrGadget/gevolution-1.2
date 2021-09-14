@@ -492,7 +492,7 @@ void update_pos_Newton (double dtau, double dx, particle *part,
 //////////////////////////
 
 template <typename part, typename part_info, typename part_dataType>
-void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
+void projection_T00_project (const Particles<part, part_info, part_dataType> *pcls,
                              Field<Real> *T00, double a = 1.,
                              Field<Real> *phi = NULL, double coeff = 1.)
 {
@@ -635,7 +635,7 @@ void projection_T00_project (Particles<part, part_info, part_dataType> *pcls,
 //////////////////////////
 
 template <typename part, typename part_info, typename part_dataType>
-void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
+void projection_T0i_project (const Particles<part, part_info, part_dataType> *pcls,
                              Field<Real> *T0i, Field<Real> *phi = NULL,
                              double coeff = 1.)
 {
@@ -775,7 +775,7 @@ void projection_T0i_project (Particles<part, part_info, part_dataType> *pcls,
 //////////////////////////
 
 template <typename part, typename part_info, typename part_dataType>
-void projection_Tij_project (Particles<part, part_info, part_dataType> *pcls,
+void projection_Tij_project (const Particles<part, part_info, part_dataType> *pcls,
                              Field<Real> *Tij, double a = 1.,
                              Field<Real> *phi = NULL, double coeff = 1.)
 {
