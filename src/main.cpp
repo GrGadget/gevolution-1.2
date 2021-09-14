@@ -272,27 +272,6 @@ int main (int argc, char **argv)
         pcls_cdm,pcls_b,pcls_ncdm[MAX_PCL_SPECIES-2];
     set<long> IDbacklog[MAX_PCL_SPECIES];
 
-    Field<Real> phi;
-    Field<Real> source;
-    Field<Real> chi;
-    Field<Real> Sij;
-    Field<Real> Bi;
-    Field<Cplx> scalarFT;
-    Field<Cplx> SijFT;
-    Field<Cplx> BiFT;
-    source.initialize (lat, 1);
-    phi.initialize (lat, 1);
-    chi.initialize (lat, 1);
-    scalarFT.initialize (latFT, 1);
-    PlanFFT<Cplx> plan_source (&source, &scalarFT);
-    PlanFFT<Cplx> plan_phi (&phi, &scalarFT);
-    PlanFFT<Cplx> plan_chi (&chi, &scalarFT);
-    Sij.initialize (lat, 3, 3, matrix_symmetry::symmetric);
-    SijFT.initialize (latFT, 3, 3, matrix_symmetry::symmetric);
-    PlanFFT<Cplx> plan_Sij (&Sij, &SijFT);
-    Bi.initialize (lat, 3);
-    BiFT.initialize (latFT, 3);
-    PlanFFT<Cplx> plan_Bi (&Bi, &BiFT);
 
 
     Site x (lat);
@@ -324,6 +303,28 @@ int main (int argc, char **argv)
     dtau = std::min(sim.Cf * dx, sim.steplimit/Hconf(a,cosmo));
     dtau_old = dtau;
 
+    {
+    Field<Real> phi;
+    Field<Real> source;
+    Field<Real> chi;
+    Field<Real> Sij;
+    Field<Real> Bi;
+    Field<Cplx> scalarFT;
+    Field<Cplx> SijFT;
+    Field<Cplx> BiFT;
+    source.initialize (lat, 1);
+    phi.initialize (lat, 1);
+    chi.initialize (lat, 1);
+    scalarFT.initialize (latFT, 1);
+    PlanFFT<Cplx> plan_source (&source, &scalarFT);
+    PlanFFT<Cplx> plan_phi (&phi, &scalarFT);
+    PlanFFT<Cplx> plan_chi (&chi, &scalarFT);
+    Sij.initialize (lat, 3, 3, matrix_symmetry::symmetric);
+    SijFT.initialize (latFT, 3, 3, matrix_symmetry::symmetric);
+    PlanFFT<Cplx> plan_Sij (&Sij, &SijFT);
+    Bi.initialize (lat, 3);
+    BiFT.initialize (latFT, 3);
+    PlanFFT<Cplx> plan_Bi (&Bi, &BiFT);
     if (ic.generator == ICGEN_BASIC)
         generateIC_basic (sim, ic, cosmo, &pcls_cdm, &pcls_b,
                           pcls_ncdm, maxvel, &phi, &chi, &Bi, &source, &Sij,
@@ -357,7 +358,8 @@ int main (int argc, char **argv)
         COUT << " error: IC generator not implemented!" << endl;
         parallel.abortForce ();
     }
-
+    }
+    
     if (sim.baryon_flag > 1)
     {
         COUT << " error: baryon_flag > 1 after IC generation, something "
@@ -489,7 +491,7 @@ int main (int argc, char **argv)
                 fprintf (outfile, " %6d   %e   %e   %e   %e   %e\n", cycle, tau,
                          a,
                          Hconf (a, cosmo) / Hconf (1., cosmo),
-                         scalarFT (kFT).real (), T00hom);
+                         grPM.phi_FT (kFT).real (), T00hom);
                 fclose (outfile);
             }
         }
@@ -500,8 +502,9 @@ int main (int argc, char **argv)
             writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
                              maxvel[0], cycle,
                              h5filename + sim.basename_lightcone, &pcls_cdm,
-                             &pcls_b, pcls_ncdm, &phi, &chi, &Bi, &Sij, &BiFT,
-                             &SijFT, &plan_Bi, &plan_Sij, done_hij, IDbacklog);
+                             &pcls_b, pcls_ncdm, &grPM.phi, &grPM.chi, &grPM.Bi,
+                             &grPM.Tij, &grPM.Bi_FT,
+                             &grPM.Tij_FT, &grPM.plan_Bi, &grPM.plan_Tij, done_hij, IDbacklog);
         else
             done_hij = 0;
 
@@ -516,9 +519,12 @@ int main (int argc, char **argv)
 
             writeSnapshots (sim, cosmo, a, dtau_old, done_hij,
                             snapcount, h5filename + sim.basename_snapshot,
-                            &pcls_cdm, &pcls_b, pcls_ncdm, &phi, &chi, &Bi,
-                            &source, &Sij, &scalarFT, &BiFT, &SijFT, &plan_phi,
-                            &plan_chi, &plan_Bi, &plan_source, &plan_Sij
+                            &pcls_cdm, &pcls_b, pcls_ncdm, &grPM.phi, &grPM.chi,
+                            &grPM.Bi,
+                            &grPM.T00, &grPM.Tij, &grPM.T00_FT, &grPM.Bi_FT,
+                            &grPM.Tij_FT, &grPM.plan_phi,
+                            &grPM.plan_chi, &grPM.plan_Bi, &grPM.plan_T00,
+                            &grPM.plan_Tij
             );
 
             snapcount++;
@@ -713,7 +719,7 @@ int main (int argc, char **argv)
                      << endl;
                 if (sim.vector_flag == VECTOR_PARABOLIC 
                     && sim.gr_flag == gravity_theory::Newtonian)
-                    plan_Bi.execute (FFT_BACKWARD);
+                    grPM.plan_Bi.execute (FFT_BACKWARD);
                     hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm,
                                grPM.phi, grPM.chi, grPM.Bi, a, tau, dtau, cycle);
                 break;
@@ -728,7 +734,7 @@ int main (int argc, char **argv)
                  << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
             if (sim.vector_flag == VECTOR_PARABOLIC 
                 && sim.gr_flag ==gravity_theory::Newtonian)
-                plan_Bi.execute (FFT_BACKWARD);
+                grPM.plan_Bi.execute (FFT_BACKWARD);
                 hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, grPM.phi,
                            grPM.chi, grPM.Bi, a, tau, dtau, cycle, restartcount);
             restartcount++;
