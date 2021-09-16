@@ -9,5 +9,6 @@
 #mesondefine CHECK_B
 #mesondefine HAVE_CLASS
 #mesondefine HAVE_HEALPIX
+#mesondefine GEVOLUTION_OLD_VERSION
 
 #endif

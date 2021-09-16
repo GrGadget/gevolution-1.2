@@ -139,72 +139,7 @@ class newtonian_pm
     */
     void compute_forces(Particles_gevolution& pcls, double factor = 1.0) const
     {
-        
-        // new code
-        ///*
-        //Let's do like in Gadget4:
-        //1. compute Fx field from phi at 4th order FD
-        //2. interpolate Fx at particle's position using CIC
-        //*/
-        //const double dx = 1.0/pcls.lattice().size()[0];
-        //factor /= dx;
-        //
-        //LATfield2::Field<Real> Fx(lat);
-        //
-        //LATfield2::Site x(lat);
-        //LATfield2::Site xpart(pcls.lattice());
-        //
-        //// phi.updateHalo();
-        //for(int i=0;i<3;++i)
-        //{
-        //    for(x.first();x.test();x.next())
-        //    {
-        //        Fx(x)
-        //        = (-1)*factor*( 
-        //                2.0/3 * (phi(x+i) - phi(x-i)) 
-        //                - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
-        //    }
-        //    Fx.updateHalo();
-        //    for(xpart.first();xpart.test();xpart.next())
-        //    {
-        //        for(auto& part : pcls.field()(xpart).parts )
-        //        {
-        //            std::array<double,3> ref_dist;
-        //            for(int l=0;l<3;++l)
-        //                ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
-        //            
-        //            part.acc[i] = 0.0;
-        //            
-        //            part.acc[i] +=
-        //            (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart);
-        //            
-        //            part.acc[i] +=
-        //            (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart+0);
-        //            
-        //            part.acc[i] +=
-        //            (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1);
-        //            
-        //            part.acc[i] +=
-        //            (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1+0);
-        //            
-        //            part.acc[i] +=
-        //            (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2);
-        //            
-        //            part.acc[i] +=
-        //            (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2+0);
-        //            
-        //            part.acc[i] +=
-        //            (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1);
-        //            
-        //            part.acc[i] +=
-        //            (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1+0);
-        //        }
-        //    }
-        //}
-        
-        // old code
-        
-        
+    #ifdef GEVOLUTION_OLD_VERSION
         const double dx = 1.0/size();
         factor /= dx;
         
@@ -223,6 +158,68 @@ class newtonian_pm
                 }
             }
         }
+    #else
+        /*
+        Let's do like in Gadget4:
+        1. compute Fx field from phi at 4th order FD
+        2. interpolate Fx at particle's position using CIC
+        */
+        const double dx = 1.0/pcls.lattice().size()[0];
+        factor /= dx;
+        
+        LATfield2::Field<Real> Fx(lat);
+        
+        LATfield2::Site x(lat);
+        LATfield2::Site xpart(pcls.lattice());
+        
+        // phi.updateHalo();
+        for(int i=0;i<3;++i)
+        {
+            for(x.first();x.test();x.next())
+            {
+                Fx(x)
+                = (-1)*factor*( 
+                        2.0/3 * (phi(x+i) - phi(x-i)) 
+                        - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
+            }
+            Fx.updateHalo();
+            for(xpart.first();xpart.test();xpart.next())
+            {
+                for(auto& part : pcls.field()(xpart).parts )
+                {
+                    std::array<double,3> ref_dist;
+                    for(int l=0;l<3;++l)
+                        ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
+                    
+                    part.acc[i] = 0.0;
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart+0);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1+0);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2+0);
+                    
+                    part.acc[i] +=
+                    (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1);
+                    
+                    part.acc[i] +=
+                    (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1+0);
+                }
+            }
+        }
+    #endif
     } 
     virtual ~newtonian_pm(){}
 };

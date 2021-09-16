@@ -23,7 +23,8 @@ conf_data = configuration_data({
     'COLORTERMINAL' :get_option('COLORTERMINAL'),
     'CHECK_B' :get_option('CHECK_B'),
     'HAVE_CLASS' :get_option('HAVE_CLASS'),
-    'HAVE_HEALPIX' :get_option('HAVE_HEALPIX')
+    'HAVE_HEALPIX' :get_option('HAVE_HEALPIX'),
+    'GEVOLUTION_OLD_VERSION' :get_option('GEVOLUTION_OLD_VERSION')
     })
 
 deps = [mpi,fftw3,hdf5,gsl,boost,latfield]
