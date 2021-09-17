@@ -14,6 +14,7 @@ gevolution_headers = files([
     'ic_read.hpp',
     'metadata.hpp',
     'newtonian_pm.hpp',
+    'gr_pm.hpp',
     'output.hpp',
     'parser.hpp',
     'Particles_gevolution.hpp',
