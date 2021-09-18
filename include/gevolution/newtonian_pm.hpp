@@ -13,6 +13,7 @@ class newtonian_pm
 {
     public:
     using real_field_type = LATfield2::Field<Real>;
+    using site_type = LATfield2::Site;
     std::size_t my_size;
     LATfield2::Lattice lat,latFT;
     LATfield2::Field<Real> source,phi;
@@ -48,12 +49,24 @@ class newtonian_pm
         return lat;
     }
     
+    void scalar_to_zero(real_field_type& F)
+    {
+        site_type x(lat);
+        for(x.first();x.test();x.next())
+            F(x) = 0.0;
+        F.updateHalo();
+    }
+    
+    void clear_sources()
+    {
+        scalar_to_zero(source);
+    }
+    
     /*
         sample particle masses into the source field
     */
     void sample(const Particles_gevolution& pcls)
     {
-        projection_init (&source); // sets to zero the field
         scalarProjectionCIC_project (&pcls, &source); // samples
         scalarProjectionCIC_comm (&source); // communicates the ghost cells
     }

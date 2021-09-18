@@ -400,6 +400,7 @@ int main (int argc, char **argv)
         // PM step 1. construction of the energy momentum tensor
         if (sim.gr_flag == gravity_theory::GR)
         {
+            grPM.clear_sources();
             grPM.sample(pcls_cdm,a);
             show_msq(grPM.T00,"T00");
             show_msq(grPM.T0i,"T0i",0);
@@ -407,6 +408,7 @@ int main (int argc, char **argv)
         }
         else
         {
+            PM.clear_sources();
             PM.sample(pcls_cdm);
             show_msq(PM.source,"T00");
         }

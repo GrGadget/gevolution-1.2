@@ -127,6 +127,13 @@ class relativistic_pm
     
     std::size_t size() const { return my_size;  }
     
+    void clear_sources()
+    {
+        scalar_to_zero(T00);
+        vector_to_zero(T0i);
+        tensor_to_zero(Tij);
+    }
+    
     /*
         sample particle masses into the source field
     */
@@ -135,16 +142,12 @@ class relativistic_pm
     // canonical momentum normalized q = p/mca.
     {
         // WARNING: has phi been initialized? 
-        
-        projection_init (&T00); // sets to zero the field
         projection_T00_project(&pcls, &T00, a, &phi); // samples
         projection_T00_comm (&T00); // communicates the ghost cells
         
-        projection_init(&T0i);
         projection_T0i_project(&pcls,&T0i,&phi);
         projection_T0i_comm(&T0i);
         
-        projection_init(&Tij);
         projection_Tij_project(&pcls,&Tij,a,&phi);
         projection_Tij_comm(&Tij);
     }
