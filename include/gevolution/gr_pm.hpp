@@ -133,6 +133,26 @@ class relativistic_pm
         vector_to_zero(T0i);
         tensor_to_zero(Tij);
     }
+    double test_velocities(const Particles_gevolution& pcls) const
+    {
+        double mass{},massvel{};
+        pcls_cdm.for_each(
+            [&]
+            (particle& part, const LATfield2::Site& /*xpart*/)
+            {
+               double v2 = 0;
+               for(int i=0;i<3;++i)
+               {
+                   v2 += part.vel[i]*part.vel[i];
+               }
+               massvel += v2*part.mass;
+               mass += part.mass;
+            }
+            );
+        LATfield2::parallel.sum(massvel);
+        LATfield2::parallel.sum(mass);
+        return massvel/mass;
+    }
     
     /*
         sample particle masses into the source field
