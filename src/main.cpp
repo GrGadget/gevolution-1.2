@@ -438,6 +438,15 @@ int main (int argc, char **argv)
                  << ", average T00 = " << T00hom << ", background model = "
                  << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
                  << endl;
+            
+            double v2{};
+            
+            if(sim.gr_flag==gravity_theory::GR)
+                v2 = grPM.test_velocities(pcls_cdm);
+            else
+                v2 = PM.test_velocities(pcls_cdm);
+            
+            COUT << " mean sqr(vel): " << v2 << "\n";
         }
          
         // PM step 2. compute the potentials
