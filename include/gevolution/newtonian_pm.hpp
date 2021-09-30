@@ -65,9 +65,9 @@ class newtonian_pm
     double test_velocities(const Particles_gevolution& pcls) const
     {
         double mass{},massvel{};
-        pcls_cdm.for_each(
-            [&]
-            (particle& part, const LATfield2::Site& /*xpart*/)
+        pcls.for_each(
+            [&mass,&massvel]
+            (const particle& part, const site_type& /*xpart*/)
             {
                double v2 = 0;
                for(int i=0;i<3;++i)
