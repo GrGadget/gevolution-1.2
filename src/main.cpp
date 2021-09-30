@@ -423,14 +423,21 @@ int main (int argc, char **argv)
             parallel.sum<double> (T00hom);
             T00hom /= (double)numpts3d;
 
-            if (cycle % CYCLE_INFO_INTERVAL == 0)
-            {
-                COUT << " cycle " << cycle
-                     << ", background information: z = " << (1. / a) - 1.
-                     << ", average T00 = " << T00hom << ", background model = "
-                     << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
-                     << endl;
-            }
+        }else
+        {
+            T00hom = 0.;
+            for (x.first (); x.test (); x.next ())
+                T00hom += PM.source (x);
+            parallel.sum<double> (T00hom);
+            T00hom /= (double)numpts3d;
+        }
+        if (cycle % CYCLE_INFO_INTERVAL == 0)
+        {
+            COUT << " cycle " << cycle
+                 << ", background information: z = " << (1. / a) - 1.
+                 << ", average T00 = " << T00hom << ", background model = "
+                 << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
+                 << endl;
         }
          
         // PM step 2. compute the potentials
