@@ -1,92 +1,54 @@
 #pragma once
 
 #include "gevolution/config.h"
+#include "gevolution/particle_mesh.hpp"
 #include "LATfield2.hpp"
-#include "gevolution/real_type.hpp"
 #include "gevolution/gevolution.hpp"
-#include "gevolution/Particles_gevolution.hpp"
 
 namespace gevolution
 {
 
-class newtonian_pm
+template<typename complex_type, typename particle_container>
+class newtonian_pm : public particle_mesh<complex_type,particle_container>
 {
     public:
-    using real_field_type = LATfield2::Field<Real>;
-    using site_type = LATfield2::Site;
-    std::size_t my_size;
-    LATfield2::Lattice lat,latFT;
-    LATfield2::Field<Real> source,phi;
-    LATfield2::Field<Cplx> phi_FT;
-    LATfield2::PlanFFT<Cplx> plan_source;
-    LATfield2::PlanFFT<Cplx> plan_phi;
+    using base_type = particle_mesh<complex_type,particle_container>;
+    using typename base_type::real_type;
+    using typename base_type::real_field_type;
+    using typename base_type::complex_field_type;
+    using typename base_type::site_type;
+    using base_type::size;
+    using base_type::scalar_to_zero;
+    using base_type::gradient;
+    
+    
+    real_field_type source,phi;
+    complex_field_type phi_FT;
+    LATfield2::PlanFFT<Cplx> plan_source, plan_phi;
     
     public:
-    std::size_t size() const { return my_size;  }
     newtonian_pm(int N):
-        my_size{N},
-        lat(/* dims        = */ 3,
-            /* size        = */ N,
-            /* ghost cells = */ 2),
-        latFT(lat,0,LATfield2::Lattice::FFT::RealToComplex),
+        base_type(N),
         
-        source(lat,1),
-        phi(lat,1),
+        source(base_type::lat,1),
+        phi(base_type::lat,1),
         
-        phi_FT(latFT,1),
+        phi_FT(base_type::latFT,1),
         
         plan_source(&source,&phi_FT),
         plan_phi (&phi, &phi_FT)
     {
     }
     
-    const LATfield2::Lattice& lattice() const 
-    {
-        return lat;
-    }
-    LATfield2::Lattice& lattice()
-    {
-        return lat;
-    }
-    
-    void scalar_to_zero(real_field_type& F)
-    {
-        site_type x(lat);
-        for(x.first();x.test();x.next())
-            F(x) = 0.0;
-        F.updateHalo();
-    }
-    
-    void clear_sources()
+    void clear_sources() override
     {
         scalar_to_zero(source);
-    }
-    
-    double test_velocities(const Particles_gevolution& pcls) const
-    {
-        double mass{},massvel{};
-        pcls.for_each(
-            [&mass,&massvel]
-            (const particle& part, const site_type& /*xpart*/)
-            {
-               double v2 = 0;
-               for(int i=0;i<3;++i)
-               {
-                   v2 += part.vel[i]*part.vel[i];
-               }
-               massvel += v2*part.mass;
-               mass += part.mass;
-            }
-            );
-        LATfield2::parallel.sum(massvel);
-        LATfield2::parallel.sum(mass);
-        return massvel/mass;
     }
     
     /*
         sample particle masses into the source field
     */
-    void sample(const Particles_gevolution& pcls)
+    void sample(const particle_container& pcls) override
     {
         scalarProjectionCIC_project (&pcls, &source); // samples
         scalarProjectionCIC_comm (&source); // communicates the ghost cells
@@ -110,7 +72,7 @@ class newtonian_pm
         solveModifiedPoissonFT (phi_FT, phi_FT,factor); // Newton: in k-space
         // (4 pi G)/a = 1
     }
-    void compute_potential(double factor=1)
+    void compute_potential(double factor=1) override
     {
         update_kspace();
         solve_poisson_eq(factor);
@@ -138,54 +100,25 @@ class newtonian_pm
         phi.updateHalo();
     }
     
-    std::array<Real,3> gradient(
-        const real_field_type& F, 
-        const LATfield2::Site& x,
-        const std::array<Real,3>& pos)const
-    // First order CIC gradient
-    {
-        const int N = size();
-        const Real dx = 1.0 / N;
-        
-        std::array<Real,3> ref_dist{0,0,0};
-        for(int i=0;i<3;++i)
-            ref_dist[i] = pos[i]/dx - x.coord(i);
-            
-        std::array<Real,3> grad{0,0,0};
-        for(int i=0;i<3;++i)
-        {
-            const int j=(i+1)%3,k=(j+1)%3;
-            grad[i] += (1. - ref_dist[j]) * (1. - ref_dist[k])
-                         * (F (x + i) - F (x));
-            grad[i] += ref_dist[j] * (1. - ref_dist[k])
-                          * (F (x + i + j) - F (x + j));
-            grad[i] += (1. - ref_dist[j]) * ref_dist[k]
-                          * (F (x + i + k) - F (x + k));
-            grad[i] += ref_dist[j] * ref_dist[k]
-                          * (F (x + i + j + k) - F (x + j + k));
-        }
-        return grad;
-    }
-    
     /*
         compute forces
         factor = 4 pi G
     */
-    void compute_forces(Particles_gevolution& pcls, double factor = 1.0) const
+    void compute_forces(particle_container& pcls, double factor = 1.0) const
+    override
     {
     #ifdef GEVOLUTION_OLD_VERSION
         const double dx = 1.0/size();
         factor /= dx;
         
-        LATfield2::Site x(lat);
-        LATfield2::Site xpart(pcls.lattice());
+        site_type xpart(pcls.lattice());
         
         for(xpart.first();xpart.test();xpart.next())
         {
             for(auto& part : pcls.field()(xpart).parts )
             {
-                std::array<Real,3> pos{part.pos[0],part.pos[1],part.pos[2]};
-                std::array<Real,3> gradphi=gradient(phi,xpart,pos);
+                std::array<real_type,3> pos{part.pos[0],part.pos[1],part.pos[2]};
+                std::array<real_type,3> gradphi=gradient(phi,xpart,pos);
                 for (int i=0;i<3;i++)
                 {
                     part.acc[i] = -gradphi[i] * factor;
@@ -201,10 +134,10 @@ class newtonian_pm
         const double dx = 1.0/pcls.lattice().size()[0];
         factor /= dx;
         
-        LATfield2::Field<Real> Fx(lat);
+        real_field_type Fx(base_type::lat);
         
-        LATfield2::Site x(lat);
-        LATfield2::Site xpart(pcls.lattice());
+        site_type x(base_type::lat);
+        site_type xpart(pcls.lattice());
         
         // phi.updateHalo();
         for(int i=0;i<3;++i)
@@ -255,7 +188,7 @@ class newtonian_pm
         }
     #endif
     } 
-    virtual ~newtonian_pm(){}
+    ~newtonian_pm() override {}
 };
 
 }

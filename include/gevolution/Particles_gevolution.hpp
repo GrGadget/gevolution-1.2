@@ -55,6 +55,8 @@ class Particles_gevolution :
         particle_dataType>
 {
   public:
+    using value_type = particle; // helper attribute used in containers for metaprogramming
+    
     void saveGadget2 (std::string filename, gadget2_header &hdr,
                       const int tracer_factor = 1, double dtau_pos = 0.,
                       double dtau_vel = 0., Field<Real> *phi = NULL);

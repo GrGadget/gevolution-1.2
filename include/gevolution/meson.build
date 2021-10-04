@@ -4,6 +4,7 @@ config=configure_file(
     configuration: conf_data)
     
 gevolution_headers = files([
+    'particle_mesh.hpp',
     'background.hpp',
     'class_tools.hpp',
     'debugger.hpp',

@@ -384,7 +384,7 @@ int main (int argc, char **argv)
              << endl;
 
     
-    newtonian_pm PM(sim.numpts);
+    newtonian_pm<Cplx,Particles_gevolution> PM(sim.numpts);
     relativistic_pm grPM(sim.numpts);
     
     pcls_cdm.update_mass(); // fix the mass legacy problem
@@ -439,14 +439,16 @@ int main (int argc, char **argv)
                  << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
                  << endl;
             
-            double v2{};
+            std::array<double,3> mpv;
             
             if(sim.gr_flag==gravity_theory::GR)
-                v2 = grPM.test_velocities(pcls_cdm);
+                mpv = grPM.test_velocities(pcls_cdm);
             else
-                v2 = PM.test_velocities(pcls_cdm);
+                mpv = PM.test_velocities(pcls_cdm);
             
-            COUT << " mean sqr(vel): " << v2 << "\n";
+            COUT << " mean     mass: " << mpv[0] << "\n";
+            COUT << " mean sqr(pos): " << mpv[1] << "\n";
+            COUT << " mean sqr(vel): " << mpv[2] << "\n";
         }
          
         // PM step 2. compute the potentials

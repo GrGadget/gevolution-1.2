@@ -21,6 +21,8 @@ class relativistic_pm
     using complex_field_type = LATfield2::Field<Cplx>;
     using fft_plan_type = LATfield2::PlanFFT<Cplx>;
     using site_type = LATfield2::Site;
+    using particle_container = Particles_gevolution;
+    using particle_type = particle;
     
     // lattice for the real and transform spaces
     LATfield2::Lattice lat,latFT;
@@ -133,25 +135,35 @@ class relativistic_pm
         vector_to_zero(T0i);
         tensor_to_zero(Tij);
     }
-    double test_velocities(const Particles_gevolution& pcls) const
+    
+    std::array<double,3> test_velocities(const particle_container& pcls) const
     {
-        double mass{},massvel{};
+        double mass{},massvel{},masspos{};
+        int count{};
         pcls.for_each(
-            [&mass,&massvel]
-            (const particle& part, const site_type& /*xpart*/)
+            [&mass,&massvel,&masspos,&count]
+            (const particle_type& part, const site_type& /*xpart*/)
             {
-               double v2 = 0;
+               double v2 = 0,p2=0;
                for(int i=0;i<3;++i)
                {
                    v2 += part.vel[i]*part.vel[i];
+                   p2 += part.pos[i]*part.pos[i];
                }
+               masspos += p2*part.mass;
                massvel += v2*part.mass;
                mass += part.mass;
+               count++;
             }
             );
+        LATfield2::parallel.sum(count);
+        LATfield2::parallel.sum(masspos);
         LATfield2::parallel.sum(massvel);
         LATfield2::parallel.sum(mass);
-        return massvel/mass;
+        massvel /= mass;
+        masspos /= mass;
+        mass /= count;
+        return {mass,std::sqrt(masspos),std::sqrt(massvel)};
     }
     
     /*
