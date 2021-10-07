@@ -385,7 +385,7 @@ int main (int argc, char **argv)
 
     
     newtonian_pm<Cplx,Particles_gevolution> PM(sim.numpts);
-    relativistic_pm grPM(sim.numpts);
+    relativistic_pm<Cplx,Particles_gevolution> grPM(sim.numpts);
     
     pcls_cdm.update_mass(); // fix the mass legacy problem
     
@@ -454,7 +454,7 @@ int main (int argc, char **argv)
         // PM step 2. compute the potentials
         if (sim.gr_flag == gravity_theory::GR)
         {
-            grPM.compute_potential(a,Hconf(a,cosmo),cosmo.fourpiG,dtau_old,
+            grPM.compute_potential(cosmo.fourpiG, a,Hconf(a,cosmo),dtau_old,
                 cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
         }
         else

@@ -20,11 +20,12 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     using base_type::size;
     using base_type::scalar_to_zero;
     using base_type::gradient;
+    using typename base_type::fft_plan_type;
     
     
     real_field_type source,phi;
     complex_field_type phi_FT;
-    LATfield2::PlanFFT<Cplx> plan_source, plan_phi;
+    fft_plan_type plan_source, plan_phi;
     
     public:
     newtonian_pm(int N):
@@ -48,7 +49,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     /*
         sample particle masses into the source field
     */
-    void sample(const particle_container& pcls) override
+    void sample(const particle_container& pcls, double /* a */=0) override
     {
         scalarProjectionCIC_project (&pcls, &source); // samples
         scalarProjectionCIC_comm (&source); // communicates the ghost cells
@@ -72,10 +73,11 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         solveModifiedPoissonFT (phi_FT, phi_FT,factor); // Newton: in k-space
         // (4 pi G)/a = 1
     }
-    void compute_potential(double factor=1) override
+    void compute_potential(double fourpiG, 
+        double =0, double =0, double =0, double =0) override
     {
         update_kspace();
-        solve_poisson_eq(factor);
+        solve_poisson_eq(fourpiG);
         update_rspace();
     }
     

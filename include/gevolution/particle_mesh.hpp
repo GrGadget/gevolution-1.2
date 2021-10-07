@@ -17,6 +17,7 @@ class particle_mesh
     using real_field_type = LATfield2::Field<real_type>;
     using complex_field_type = LATfield2::Field<complex_type>;
     using site_type = LATfield2::Site;
+    using fft_plan_type = LATfield2::PlanFFT<complex_type>;
     
     
     std::size_t my_size;
@@ -113,8 +114,8 @@ class particle_mesh
     
     
     virtual void clear_sources() = 0 ;
-    virtual void sample(const particle_container& pcls) = 0;
-    virtual void compute_potential(double factor=1) = 0;
+    virtual void sample(const particle_container& pcls, double a) = 0;
+    virtual void compute_potential(double fourpiG, double a, double Hc,double dt, double Omega) = 0;
     virtual void compute_forces(particle_container& pcls, double factor = 1.0) const = 0;
     virtual ~particle_mesh(){}
 };

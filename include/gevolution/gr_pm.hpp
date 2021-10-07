@@ -1,10 +1,9 @@
 #pragma once
 
 #include "gevolution/config.h"
+#include "gevolution/particle_mesh.hpp"
 #include "LATfield2.hpp"
-#include "gevolution/real_type.hpp"
 #include "gevolution/gevolution.hpp"
-#include "gevolution/Particles_gevolution.hpp"
 
 /*
     TODO:
@@ -14,15 +13,19 @@
 
 namespace gevolution
 {
-class relativistic_pm
+template<typename complex_type, typename particle_container>
+class relativistic_pm : public particle_mesh<complex_type,particle_container>
 { 
     public:
-    using real_field_type = LATfield2::Field<Real>;
-    using complex_field_type = LATfield2::Field<Cplx>;
-    using fft_plan_type = LATfield2::PlanFFT<Cplx>;
-    using site_type = LATfield2::Site;
-    using particle_container = Particles_gevolution;
-    using particle_type = particle;
+    using base_type = particle_mesh<complex_type,particle_container>;
+    using typename base_type::real_type;
+    using typename base_type::real_field_type;
+    using typename base_type::complex_field_type;
+    using typename base_type::site_type;
+    using base_type::size;
+    using base_type::scalar_to_zero;
+    using base_type::gradient;
+    using typename base_type::fft_plan_type;
     
     // lattice for the real and transform spaces
     LATfield2::Lattice lat,latFT;
@@ -72,8 +75,9 @@ class relativistic_pm
     }
     
     public:
-    relativistic_pm(int N):
-        my_size{N},
+    
+    relativistic_pm(int N): 
+        base_type(N),
         
         lat(/* dims        = */ 3,
             /* size        = */ N,
@@ -118,58 +122,17 @@ class relativistic_pm
         tensor_to_zero(Tij);
     }
     
-    const LATfield2::Lattice& lattice() const 
-    {
-        return lat;
-    }
-    LATfield2::Lattice& lattice()
-    {
-        return lat;
-    }
-    
-    std::size_t size() const { return my_size;  }
-    
-    void clear_sources()
+    void clear_sources() override
     {
         scalar_to_zero(T00);
         vector_to_zero(T0i);
         tensor_to_zero(Tij);
     }
     
-    std::array<double,3> test_velocities(const particle_container& pcls) const
-    {
-        double mass{},massvel{},masspos{};
-        int count{};
-        pcls.for_each(
-            [&mass,&massvel,&masspos,&count]
-            (const particle_type& part, const site_type& /*xpart*/)
-            {
-               double v2 = 0,p2=0;
-               for(int i=0;i<3;++i)
-               {
-                   v2 += part.vel[i]*part.vel[i];
-                   p2 += part.pos[i]*part.pos[i];
-               }
-               masspos += p2*part.mass;
-               massvel += v2*part.mass;
-               mass += part.mass;
-               count++;
-            }
-            );
-        LATfield2::parallel.sum(count);
-        LATfield2::parallel.sum(masspos);
-        LATfield2::parallel.sum(massvel);
-        LATfield2::parallel.sum(mass);
-        massvel /= mass;
-        masspos /= mass;
-        mass /= count;
-        return {mass,std::sqrt(masspos),std::sqrt(massvel)};
-    }
-    
     /*
         sample particle masses into the source field
     */
-    void sample(const Particles_gevolution& pcls, double a) 
+    void sample(const particle_container& pcls, double a) override
     // TODO: we don't actually need the scale factor here if we use particles'
     // canonical momentum normalized q = p/mca.
     {
@@ -184,24 +147,11 @@ class relativistic_pm
         projection_Tij_comm(&Tij);
     }
     
-    /*
-        computes the potential
-    */
-    void update_kspace()
-    {
-    }
-    void update_rspace()
-    {
-    }
-    void solve_poisson_eq()
-    {
-    }
-    
     void compute_phi(
         double a, double Hc, double fourpiG, double dt, double Omega)
     {
         const double dx = 1.0/lat.size()[0];
-        prepareFTsource<Real> (
+        prepareFTsource<real_type> (
             phi, 
             chi, 
             T00,
@@ -221,7 +171,7 @@ class relativistic_pm
     }
     void compute_chi(double f = 1.0)
     {
-        prepareFTsource<Real> (
+        prepareFTsource<real_type> (
             phi, 
             Tij, 
             Tij,
@@ -243,7 +193,7 @@ class relativistic_pm
         Bi.updateHalo();
     }
     void compute_potential(
-        double a, double Hc, double fourpiG, double dt, double Omega)
+        double fourpiG, double a, double Hc, double dt, double Omega) override
     // TODO: can we remove all of these dependencies?
     {
         const double dx = 1.0/lat.size()[0];
@@ -272,20 +222,20 @@ class relativistic_pm
         }
         phi.updateHalo();
     }
-    std::array<Real,3> gradient(
+    std::array<real_type,3> gradient(
         const real_field_type& F, 
         const LATfield2::Site& x,
-        const std::array<Real,3>& pos)const
+        const std::array<real_type,3>& pos)const
     // First order CIC gradient
     {
         const int N = size();
-        const Real dx = 1.0 / N;
+        const real_type dx = 1.0 / N;
         
-        std::array<Real,3> ref_dist{0,0,0};
+        std::array<real_type,3> ref_dist{0,0,0};
         for(int i=0;i<3;++i)
             ref_dist[i] = pos[i]/dx - x.coord(i);
             
-        std::array<Real,3> grad{0,0,0};
+        std::array<real_type,3> grad{0,0,0};
         for(int i=0;i<3;++i)
         {
             const int j=(i+1)%3,k=(j+1)%3;
@@ -301,21 +251,21 @@ class relativistic_pm
         return grad;
     }
     
-    //std::array<Real,3> gradient_vector(
+    //std::array<real_type,3> gradient_vector(
     //    const real_field_type& F, 
-    //    const std::array<Real,3>& momentum,
+    //    const std::array<real_type,3>& momentum,
     //    const LATfield2::Site& x,
-    //    const std::array<Real,3>& pos)const
+    //    const std::array<real_type,3>& pos)const
     //// First order CIC gradient
     //{
     //    const int N = size();
-    //    const Real dx = 1.0 / N;
+    //    const real_type dx = 1.0 / N;
     //    
-    //    std::array<Real,3> ref_dist{0,0,0};
+    //    std::array<real_type,3> ref_dist{0,0,0};
     //    for(int i=0;i<3;++i)
     //        ref_dist[i] = pos[i]/dx - x.coord(i);
     //        
-    //    std::array<Real,3> grad{0,0,0};
+    //    std::array<real_type,3> grad{0,0,0};
     //    for(int i=0;i<3;++i)
     //    {
     //        const int j=(i+1)%3,k=(j+1)%3;
@@ -334,33 +284,33 @@ class relativistic_pm
     /*
         compute forces
     */
-    void compute_forces(Particles_gevolution& pcls, double a) const
+    void compute_forces(particle_container& pcls, double a) const
     {
         const int N = size();
-        const Real dx = 1.0 / N;
+        const real_type dx = 1.0 / N;
         
         LATfield2::Site xpart(pcls.lattice());
         for(xpart.first();xpart.test();xpart.next())
         {
             for(auto& part : pcls.field()(xpart).parts )
             {
-                std::array<Real,3> pos{part.pos[0],part.pos[1],part.pos[2]};
-                std::array<Real,3> momentum{part.vel[0],part.vel[1],part.vel[2]};
-                std::array<Real,3> 
+                std::array<real_type,3> pos{part.pos[0],part.pos[1],part.pos[2]};
+                std::array<real_type,3> momentum{part.vel[0],part.vel[1],part.vel[2]};
+                std::array<real_type,3> 
                     gradphi = gradient(phi,xpart,pos), 
                     gradchi = gradient(chi,xpart,pos), 
                     pgradB{0,0,0};
                     //pgradB  = gradient_vector( Bi,momentum,xpart,pos );
                     
-                Real p2 =   part.vel[0] * part.vel[0] 
+                real_type p2 =   part.vel[0] * part.vel[0] 
                           + part.vel[1] * part.vel[1] 
                           + part.vel[2] * part.vel[2];
-                Real e2 = std::sqrt(p2 + a*a);
+                real_type e2 = std::sqrt(p2 + a*a);
         
         const int N = size();
-        const Real dx = 1.0 / N;
+        const real_type dx = 1.0 / N;
         
-        std::array<Real,3> ref_dist{0,0,0};
+        std::array<real_type,3> ref_dist{0,0,0};
         for(int i=0;i<3;++i)
             ref_dist[i] = pos[i]/dx - xpart.coord(i);
 
@@ -455,19 +405,19 @@ class relativistic_pm
         }
     }
    
-    std::array<Real,3> vector_at(
+    std::array<real_type,3> vector_at(
         const real_field_type& F, 
         const LATfield2::Site& x,
-        const std::array<Real,3>& pos)const
+        const std::array<real_type,3>& pos)const
     {
         const int N = size();
-        const Real dx = 1.0 / N;
+        const real_type dx = 1.0 / N;
         
-        std::array<Real,3> ref_dist{0,0,0};
+        std::array<real_type,3> ref_dist{0,0,0};
         for(int i=0;i<3;++i)
             ref_dist[i] = pos[i]/dx - x.coord(i);
             
-        std::array<Real,3> xF{0,0,0};
+        std::array<real_type,3> xF{0,0,0};
         
         // CIC interpolation
         for(int i=0;i<3;++i)
@@ -483,19 +433,19 @@ class relativistic_pm
         }
         return xF;
     }
-    Real scalar_at(
+    real_type scalar_at(
         const real_field_type& F, 
         const LATfield2::Site& x,
-        const std::array<Real,3>& pos)const
+        const std::array<real_type,3>& pos)const
     {
         const int N = size();
-        const Real dx = 1.0 / N;
+        const real_type dx = 1.0 / N;
         
-        std::array<Real,3> ref_dist{0,0,0};
+        std::array<real_type,3> ref_dist{0,0,0};
         for(int i=0;i<3;++i)
             ref_dist[i] = pos[i]/dx - x.coord(i);
             
-        Real xF{0};
+        real_type xF{0};
         
         // CIC interpolation
         xF += F(x) * (1.-ref_dist[0]) * (1.-ref_dist[1]) * (1.-ref_dist[2]);
@@ -510,27 +460,27 @@ class relativistic_pm
         return xF;
     }
    
-    std::array<Real,3> momentum_to_velocity(
-                          const std::array<Real,3>& momentum,
-                          const std::array<Real,3>& position,
+    std::array<real_type,3> momentum_to_velocity(
+                          const std::array<real_type,3>& momentum,
+                          const std::array<real_type,3>& position,
                           const LATfield2::Site& xpart,
-                          const Real a) const
+                          const real_type a) const
     {
         const int N = size();
-        std::array<Real,3> velocity{0,0,0};
-        Real xchi{0},xphi{0};
-        std::array<Real,3> xBi{0,0,0};
-        const Real momentum2 =    momentum[0]*momentum[0] 
+        std::array<real_type,3> velocity{0,0,0};
+        real_type xchi{0},xphi{0};
+        std::array<real_type,3> xBi{0,0,0};
+        const real_type momentum2 =    momentum[0]*momentum[0] 
                                 + momentum[1]*momentum[1]
                                 + momentum[2]*momentum[2];
-        const Real e2 = std::sqrt(momentum2 + a*a);
+        const real_type e2 = std::sqrt(momentum2 + a*a);
                 
         
         xphi = scalar_at(phi,xpart,{position[0],position[1],position[2]});
         xchi = scalar_at(chi,xpart,{position[0],position[1],position[2]});
         xBi  = vector_at(Bi,xpart,{position[0],position[1],position[2]});
         
-        const Real velocity2 = 
+        const real_type velocity2 = 
             (1. + (3. - momentum2 / e2/e2) * xphi - xchi) / e2;
         
         for(int i=0;i<3;++i)
