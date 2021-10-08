@@ -7,6 +7,58 @@
 namespace gevolution
 {
 
+template<class F_type>
+double show_msq(const F_type& F,int i=-1, int j=-1)
+{
+    double rms =0 ;
+    LATfield2::Site x(F.lattice());
+    
+    if(i<0)
+    for(x.first();x.test();x.next())
+    {
+        double v = F(x);
+        rms += v*v;
+    }else if(j<0)
+    for(x.first();x.test();x.next())
+    {
+        double v = F(x,i);
+        rms += v*v;
+    }else
+    for(x.first();x.test();x.next())
+    {
+        double v = F(x,i,j);
+        rms += v*v;
+    }
+    LATfield2::parallel.sum(rms);
+    return rms;
+}
+template<class F_type>
+double show_mean(const F_type& F,int i=-1, int j=-1)
+{
+    double mean =0 ;
+    LATfield2::Site x(F.lattice());
+    
+    if(i<0)
+    for(x.first();x.test();x.next())
+    {
+        double f = F(x);
+        mean += f;
+    }else if(j<0)
+    for(x.first();x.test();x.next())
+    {
+        double f = F(x,i);
+        mean += f;
+    }else
+    for(x.first();x.test();x.next())
+    {
+        double f = F(x,i,j);
+        mean += f;
+    }
+    LATfield2::parallel.sum(mean);
+    const long N = F.lattice().size(0);
+    return mean/N/N/N;
+}
+
 template<typename complex_type, typename particle_container>
 class particle_mesh
 {
@@ -112,12 +164,19 @@ class particle_mesh
         return grad;
     }
     
-    
+    virtual std::string report() const = 0;
+    virtual double density() const = 0;
     virtual void clear_sources() = 0 ;
     virtual void sample(const particle_container& pcls, double a) = 0;
     virtual void compute_potential(double fourpiG, double a, double Hc,double dt, double Omega) = 0;
     virtual void compute_forces(particle_container& pcls, double factor = 1.0) const = 0;
     virtual ~particle_mesh(){}
+    
+    virtual std::array<real_type,3> momentum_to_velocity(
+                          const std::array<real_type,3>& momentum,
+                          const std::array<real_type,3>& position,
+                          const LATfield2::Site& xpart,
+                          const real_type a) const = 0;
 };
 
 }

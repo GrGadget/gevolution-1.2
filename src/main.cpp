@@ -95,31 +95,6 @@ bool stop()
     }
     return ret;
 }
-template<class F_type>
-void show_msq(F_type& F, std::string name,int i=-1, int j=-1)
-{
-    double rms =0 ;
-    LATfield2::Site x(F.lattice());
-    
-    if(i<0)
-    for(x.first();x.test();x.next())
-    {
-        double v = F(x);
-        rms += v*v;
-    }else if(j<0)
-    for(x.first();x.test();x.next())
-    {
-        double v = F(x,i);
-        rms += v*v;
-    }else
-    for(x.first();x.test();x.next())
-    {
-        double v = F(x,i,j);
-        rms += v*v;
-    }
-    parallel.sum<double>(rms);
-    COUT << "RMS of " << name << " = " << rms << "\n";
-}
 
 void show_constant(double v, std::string name)
 {
@@ -384,8 +359,19 @@ int main (int argc, char **argv)
              << endl;
 
     
-    newtonian_pm<Cplx,Particles_gevolution> PM(sim.numpts);
-    relativistic_pm<Cplx,Particles_gevolution> grPM(sim.numpts);
+    std::unique_ptr< particle_mesh<Cplx,Particles_gevolution> > PM;
+    
+    if(sim.gr_flag==gravity_theory::GR)
+    {
+        PM.reset(
+            new relativistic_pm<Cplx,Particles_gevolution>(sim.numpts)
+        );
+    }else
+    {
+        PM.reset(
+            new newtonian_pm<Cplx,Particles_gevolution>(sim.numpts)
+        );
+    }
     
     pcls_cdm.update_mass(); // fix the mass legacy problem
     
@@ -393,44 +379,17 @@ int main (int argc, char **argv)
     {
         COUT << "Starting cycle: " << cycle << '\n';        
         
-        //show_msq(grPM.phi,"phi");
-        //show_msq(grPM.chi,"chi");
-        //show_msq(grPM.Bi,"Bi[0]",1);
+        //show_msq(PM->phi,"phi");
+        //show_msq(PM->chi,"chi");
+        //show_msq(PM->Bi,"Bi[0]",1);
 
         // PM step 1. construction of the energy momentum tensor
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            grPM.clear_sources();
-            grPM.sample(pcls_cdm,a);
-            show_msq(grPM.T00,"T00");
-            show_msq(grPM.T0i,"T0i",0);
-            show_msq(grPM.Tij,"Tij",0,0);
-        }
-        else
-        {
-            PM.clear_sources();
-            PM.sample(pcls_cdm);
-            show_msq(PM.source,"T00");
-        }
+        PM->clear_sources();
+        PM->sample(pcls_cdm,a);
+        COUT << PM->report() << '\n';
+        
         // EM tensor
-
-        if (sim.gr_flag == gravity_theory::GR) 
-        // TODO: remove these conditions, just use NewtonPM or GRPM.
-        {
-            T00hom = 0.;
-            for (x.first (); x.test (); x.next ())
-                T00hom += grPM.T00 (x);
-            parallel.sum<double> (T00hom);
-            T00hom /= (double)numpts3d;
-
-        }else
-        {
-            T00hom = 0.;
-            for (x.first (); x.test (); x.next ())
-                T00hom += PM.source (x);
-            parallel.sum<double> (T00hom);
-            T00hom /= (double)numpts3d;
-        }
+        T00hom = PM->density();
         if (cycle % CYCLE_INFO_INTERVAL == 0)
         {
             COUT << " cycle " << cycle
@@ -440,11 +399,7 @@ int main (int argc, char **argv)
                  << endl;
             
             std::array<double,3> mpv;
-            
-            if(sim.gr_flag==gravity_theory::GR)
-                mpv = grPM.test_velocities(pcls_cdm);
-            else
-                mpv = PM.test_velocities(pcls_cdm);
+            mpv = PM->test_velocities(pcls_cdm);
             
             COUT << " mean     mass: " << mpv[0] << "\n";
             COUT << " mean sqr(pos): " << mpv[1] << "\n";
@@ -452,15 +407,9 @@ int main (int argc, char **argv)
         }
          
         // PM step 2. compute the potentials
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            grPM.compute_potential(cosmo.fourpiG, a,Hconf(a,cosmo),dtau_old,
-                cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
-        }
-        else
-        {
-            PM.compute_potential(cosmo.fourpiG/a);
-        }
+        PM->compute_potential(cosmo.fourpiG, a,Hconf(a,cosmo),dtau_old,
+            cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
+        
         //show_constant(a,"a");
         //show_constant(cosmo.Omega_cdm+cosmo.Omega_b+bg_ncdm(a,cosmo),"Omega");
         //show_constant(Hconf(a,cosmo),"Hc");
@@ -468,124 +417,103 @@ int main (int argc, char **argv)
         //show_constant(dtau_old,"dt");
         
         // Sources
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            show_msq(grPM.T00,"T00");
-            show_msq(grPM.T0i,"T0i",0);
-            show_msq(grPM.Tij,"Tij",0,0);
-        }
-        else
-        {
-            show_msq(PM.source,"T00");
-        }
-        
-        // Potentials
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            show_msq(grPM.phi,"phi");
-            show_msq(grPM.chi,"chi");
-            show_msq(grPM.Bi,"Bi[0]",1);
-        }
-        else
-        {
-            show_msq(PM.phi,"phi");
-        }
+        PM->report();
 
         // record some background data
-        if (kFT.setCoord (0, 0, 0))
-        {
-            sprintf (filename, "%s%s_background.dat", sim.output_path,
-                     sim.basename_generic);
-            outfile = fopen (filename, "a");
-            if (outfile == NULL)
-            {
-                cout << " error opening file for background output!" << endl;
-            }
-            else
-            {
-                if (cycle == 0)
-                    fprintf (outfile, "# background statistics\n# cycle   "
-                                      "tau/boxsize    a      "
-                                      "       conformal H/H0  phi(k=0)      "
-                                      " T00(k=0)\n");
-                fprintf (outfile, " %6d   %e   %e   %e   %e   %e\n", cycle, tau,
-                         a,
-                         Hconf (a, cosmo) / Hconf (1., cosmo),
-                         grPM.phi_FT (kFT).real (), T00hom);
-                fclose (outfile);
-            }
-        }
+        // if (kFT.setCoord (0, 0, 0))
+        // {
+        //     sprintf (filename, "%s%s_background.dat", sim.output_path,
+        //              sim.basename_generic);
+        //     outfile = fopen (filename, "a");
+        //     if (outfile == NULL)
+        //     {
+        //         cout << " error opening file for background output!" << endl;
+        //     }
+        //     else
+        //     {
+        //         if (cycle == 0)
+        //             fprintf (outfile, "# background statistics\n# cycle   "
+        //                               "tau/boxsize    a      "
+        //                               "       conformal H/H0  phi(k=0)      "
+        //                               " T00(k=0)\n");
+        //         fprintf (outfile, " %6d   %e   %e   %e   %e   %e\n", cycle, tau,
+        //                  a,
+        //                  Hconf (a, cosmo) / Hconf (1., cosmo),
+        //                  PM->phi_FT (kFT).real (), T00hom);
+        //         fclose (outfile);
+        //     }
+        // }
         // done recording background data
 
         // lightcone output
-        if (sim.num_lightcone > 0)
-            writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
-                             maxvel[0], cycle,
-                             h5filename + sim.basename_lightcone, &pcls_cdm,
-                             &pcls_b, pcls_ncdm, &grPM.phi, &grPM.chi, &grPM.Bi,
-                             &grPM.Tij, &grPM.Bi_FT,
-                             &grPM.Tij_FT, &grPM.plan_Bi, &grPM.plan_Tij, done_hij, IDbacklog);
-        else
-            done_hij = 0;
+        // if (sim.num_lightcone > 0)
+        //     writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
+        //                      maxvel[0], cycle,
+        //                      h5filename + sim.basename_lightcone, &pcls_cdm,
+        //                      &pcls_b, pcls_ncdm, &PM->phi, &PM->chi, &PM->Bi,
+        //                      &PM->Tij, &PM->Bi_FT,
+        //                      &PM->Tij_FT, &PM->plan_Bi, &PM->plan_Tij, done_hij, IDbacklog);
+        // else
+        //     done_hij = 0;
 
 
-        // snapshot output
-        if (snapcount < sim.num_snapshot
-            && 1. / a < sim.z_snapshot[snapcount] + 1.)
-        {
-            COUT << COLORTEXT_CYAN << " writing snapshot" << COLORTEXT_RESET
-                 << " at z = " << ((1. / a) - 1.) << " (cycle " << cycle
-                 << "), tau/boxsize = " << tau << endl;
+        // TODO: snapshot output
+        // if (snapcount < sim.num_snapshot
+        //     && 1. / a < sim.z_snapshot[snapcount] + 1.)
+        // {
+        //     COUT << COLORTEXT_CYAN << " writing snapshot" << COLORTEXT_RESET
+        //          << " at z = " << ((1. / a) - 1.) << " (cycle " << cycle
+        //          << "), tau/boxsize = " << tau << endl;
 
-            writeSnapshots (sim, cosmo, a, dtau_old, done_hij,
-                            snapcount, h5filename + sim.basename_snapshot,
-                            &pcls_cdm, &pcls_b, pcls_ncdm, &grPM.phi, &grPM.chi,
-                            &grPM.Bi,
-                            &grPM.T00, &grPM.Tij, &grPM.T00_FT, &grPM.Bi_FT,
-                            &grPM.Tij_FT, &grPM.plan_phi,
-                            &grPM.plan_chi, &grPM.plan_Bi, &grPM.plan_T00,
-                            &grPM.plan_Tij
-            );
+        //     writeSnapshots (sim, cosmo, a, dtau_old, done_hij,
+        //                     snapcount, h5filename + sim.basename_snapshot,
+        //                     &pcls_cdm, &pcls_b, pcls_ncdm, &PM->phi, &PM->chi,
+        //                     &PM->Bi,
+        //                     &PM->T00, &PM->Tij, &PM->T00_FT, &PM->Bi_FT,
+        //                     &PM->Tij_FT, &PM->plan_phi,
+        //                     &PM->plan_chi, &PM->plan_Bi, &PM->plan_T00,
+        //                     &PM->plan_Tij
+        //     );
 
-            snapcount++;
-        }
+        //     snapcount++;
+        // }
 
 
-        // power spectra
-        if (pkcount < sim.num_pk && 1. / a < sim.z_pk[pkcount] + 1.)
-        {
-            COUT << COLORTEXT_CYAN << " writing power spectra"
-                 << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
-                 << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
+        // TODO: power spectra output
+        // if (pkcount < sim.num_pk && 1. / a < sim.z_pk[pkcount] + 1.)
+        // {
+        //     COUT << COLORTEXT_CYAN << " writing power spectra"
+        //          << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
+        //          << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
 
-            writeSpectra (sim, cosmo, a, pkcount,
-                          &pcls_cdm, &pcls_b, pcls_ncdm, 
-                          &grPM.phi, &grPM.chi, &grPM.Bi,
-                          &grPM.T00, &grPM.Tij, 
-                          &grPM.T00_FT, &grPM.Bi_FT, &grPM.Tij_FT, 
-                          &grPM.plan_phi, &grPM.plan_chi, 
-                          &grPM.plan_Bi, &grPM.plan_T00, &grPM.plan_Tij
-            );
+        //     writeSpectra (sim, cosmo, a, pkcount,
+        //                   &pcls_cdm, &pcls_b, pcls_ncdm, 
+        //                   &PM->phi,     &PM->chi,    &PM->Bi,
+        //                   &PM->T00,     &PM->Tij, 
+        //                   &PM->T00_FT,  &PM->Bi_FT,  &PM->Tij_FT, 
+        //                   &PM->plan_phi,&PM->plan_chi, 
+        //                   &PM->plan_Bi, &PM->plan_T00, &PM->plan_Tij
+        //     );
 
-            pkcount++;
-        }
+        //     pkcount++;
+        // }
 
 #ifdef EXACT_OUTPUT_REDSHIFTS
-        tmp = a;
-        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
-        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
+        // tmp = a;
+        // rungekutta4bg (tmp, cosmo, 0.5 * dtau);
+        // rungekutta4bg (tmp, cosmo, 0.5 * dtau);
 
-        if (pkcount < sim.num_pk && 1. / tmp < sim.z_pk[pkcount] + 1.)
-        {
-            writeSpectra (sim, cosmo, a, pkcount,
-                          &pcls_cdm, &pcls_b, pcls_ncdm, 
-                          &grPM.phi, &grPM.chi, &grPM.Bi,
-                          &grPM.T00, &grPM.Tij, 
-                          &grPM.T00_FT, &grPM.Bi_FT, &grPM.Tij_FT, 
-                          &grPM.plan_phi, &grPM.plan_chi, 
-                          &grPM.plan_Bi, &grPM.plan_T00, &grPM.plan_Tij
-            );
-        }
+        // if (pkcount < sim.num_pk && 1. / tmp < sim.z_pk[pkcount] + 1.)
+        // {
+        //     writeSpectra (sim, cosmo, a, pkcount,
+        //                   &pcls_cdm, &pcls_b, pcls_ncdm, 
+        //                   &PM->phi, &PM->chi, &PM->Bi,
+        //                   &PM->T00, &PM->Tij, 
+        //                   &PM->T00_FT,   &PM->Bi_FT, &PM->Tij_FT, 
+        //                   &PM->plan_phi, &PM->plan_chi, 
+        //                   &PM->plan_Bi,  &PM->plan_T00, &PM->plan_Tij
+        //     );
+        // }
 #endif // EXACT_OUTPUT_REDSHIFTS
 
 
@@ -613,102 +541,47 @@ int main (int argc, char **argv)
         }
 
         // cdm and baryon particle update
-        if (sim.gr_flag== gravity_theory::GR)
-        {
-            // new version
-            grPM.compute_forces(pcls_cdm,a);
-            maxvel[0]=0;
-            pcls_cdm.for_each(
-                [&]
-                (particle& part, const Site& /*xpart*/)
-                {
-                   const double dtau_eff =  
-                                   (dtau + dtau_old) * 0.5 ;
-                   double v2 = 0;
-                   for(int i=0;i<3;++i)
-                   {
-                       part.vel[i] += dtau_eff * part.acc[i];
-                       v2 += part.vel[i]*part.vel[i];
-                   }
-                   maxvel[0]=std::max(maxvel[0],v2);
-                }
-                );
-            maxvel[0] = std::sqrt(maxvel[0])/a;              
-            
-            // old version
-            // update_cdm_fields[0] = &grPM.phi;
-            // update_cdm_fields[1] = &grPM.chi;
-            // update_cdm_fields[2] = &grPM.Bi;
-            // maxvel[0] = pcls_cdm.updateVel (
-            //     update_q, (dtau + dtau_old) / 2., update_cdm_fields,1, f_params);
-        }
-        else
-        {
-           PM.compute_forces(pcls_cdm,1.0);//cosmo.fourpiG/a);
-           maxvel[0]=.0;
-           pcls_cdm.for_each(
-               [&]
-               (particle& part,const Site& /*xpart*/)
+        // TODO: for gr     PM->compute_forces(pcls_cdm,a);
+        // TODO: for newton PM->compute_forces(pcls_cdm,1.0);//cosmo.fourpiG/a);
+        maxvel[0]=0;
+        pcls_cdm.for_each(
+            [&]
+            (particle& part, const Site& /*xpart*/)
+            {
+               const double dtau_eff =  
+                               (dtau + dtau_old) * 0.5 ;
+               double v2 = 0;
+               for(int i=0;i<3;++i)
                {
-                   const double dtau_eff =  
-                                   (dtau + dtau_old) * 0.5 ;
-                   double v2 = 0;
-                   for(int i=0;i<3;++i)
-                   {
-                       part.vel[i] += dtau_eff * part.acc[i] *a;
-                       v2 += part.vel[i]*part.vel[i];
-                   }
-                   maxvel[0]=std::max(maxvel[0],v2);
-               });
-            maxvel[0] = std::sqrt(maxvel[0])/a;              
-        }
+                   part.vel[i] += dtau_eff * part.acc[i];
+                   v2 += part.vel[i]*part.vel[i];
+               }
+               maxvel[0]=std::max(maxvel[0],v2);
+            }
+            );
+        maxvel[0] = std::sqrt(maxvel[0])/a;              
         
         Debugger_ptr -> flush();
 
         rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
 
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            // new version
-            pcls_cdm.for_each(
-                [&](particle& part, const Site& xpart)
+        pcls_cdm.for_each(
+            [&](particle& part, const Site& xpart)
+            {
+                std::array<Real,3> velocity =
+                PM->momentum_to_velocity(
+                    {part.vel[0],part.vel[1],part.vel[2]},
+                    {part.pos[0],part.pos[1],part.pos[2]},
+                    xpart,
+                    a);
+                for(int i=0;i<3;++i)
                 {
-                    std::array<Real,3> velocity =
-                    grPM.momentum_to_velocity(
-                        {part.vel[0],part.vel[1],part.vel[2]},
-                        {part.pos[0],part.pos[1],part.pos[2]},
-                        xpart,
-                        a);
-                    for(int i=0;i<3;++i)
-                    {
-                        part.pos[i] += dtau * velocity[i];
-                    }
+                    part.pos[i] += dtau * velocity[i];
                 }
-            );
+            }
+        );
             
-            // old version
-            // update_cdm_fields[0] = &grPM.phi;
-            // update_cdm_fields[1] = &grPM.chi;
-            // update_cdm_fields[2] = &grPM.Bi;
-            // pcls_cdm.moveParticles (update_pos, dtau, update_cdm_fields,
-            //                         1,
-            //                         f_params);
-        }
-        else
-        {
-            // new version
-            pcls_cdm.for_each(
-                [&](particle& part, const Site& /*xpart*/)
-                {
-                    for(int i=0;i<3;++i)
-                    {
-                        part.pos[i] += dtau * part.vel[i]/a;
-                    }
-                }
-            );
-        }
-
         rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
 
@@ -723,42 +596,42 @@ int main (int argc, char **argv)
 
         tau += dtau;
 
-        if (sim.wallclocklimit > 0.) // check for wallclock time limit
-        {
-            tmp = MPI_Wtime () - start_time;
-            parallel.max (tmp);
-            if (tmp > sim.wallclocklimit) // hibernate
-            {
-                COUT << COLORTEXT_YELLOW
-                     << " reaching hibernation wallclock limit, "
-                        "hibernating..."
-                     << COLORTEXT_RESET << endl;
-                COUT << COLORTEXT_CYAN << " writing hibernation point"
-                     << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
-                     << " (cycle " << cycle << "), tau/boxsize = " << tau
-                     << endl;
-                if (sim.vector_flag == VECTOR_PARABOLIC 
-                    && sim.gr_flag == gravity_theory::Newtonian)
-                    grPM.plan_Bi.execute (FFT_BACKWARD);
-                    hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm,
-                               grPM.phi, grPM.chi, grPM.Bi, a, tau, dtau, cycle);
-                break;
-            }
-        }
+        // if (sim.wallclocklimit > 0.) // check for wallclock time limit
+        // {
+        //     tmp = MPI_Wtime () - start_time;
+        //     parallel.max (tmp);
+        //     if (tmp > sim.wallclocklimit) // hibernate
+        //     {
+        //         COUT << COLORTEXT_YELLOW
+        //              << " reaching hibernation wallclock limit, "
+        //                 "hibernating..."
+        //              << COLORTEXT_RESET << endl;
+        //         COUT << COLORTEXT_CYAN << " writing hibernation point"
+        //              << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
+        //              << " (cycle " << cycle << "), tau/boxsize = " << tau
+        //              << endl;
+        //         if (sim.vector_flag == VECTOR_PARABOLIC 
+        //             && sim.gr_flag == gravity_theory::Newtonian)
+        //             PM->plan_Bi.execute (FFT_BACKWARD);
+        //             hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm,
+        //                        PM->phi, PM->chi, PM->Bi, a, tau, dtau, cycle);
+        //         break;
+        //     }
+        // }
 
-        if (restartcount < sim.num_restart
-            && 1. / a < sim.z_restart[restartcount] + 1.)
-        {
-            COUT << COLORTEXT_CYAN << " writing hibernation point"
-                 << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
-                 << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
-            if (sim.vector_flag == VECTOR_PARABOLIC 
-                && sim.gr_flag ==gravity_theory::Newtonian)
-                grPM.plan_Bi.execute (FFT_BACKWARD);
-                hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, grPM.phi,
-                           grPM.chi, grPM.Bi, a, tau, dtau, cycle, restartcount);
-            restartcount++;
-        }
+        // if (restartcount < sim.num_restart
+        //     && 1. / a < sim.z_restart[restartcount] + 1.)
+        // {
+        //     COUT << COLORTEXT_CYAN << " writing hibernation point"
+        //          << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
+        //          << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
+        //     if (sim.vector_flag == VECTOR_PARABOLIC 
+        //         && sim.gr_flag ==gravity_theory::Newtonian)
+        //         PM->plan_Bi.execute (FFT_BACKWARD);
+        //         hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, PM->phi,
+        //                    PM->chi, PM->Bi, a, tau, dtau, cycle, restartcount);
+        //     restartcount++;
+        // }
 
         dtau_old = dtau;
         dtau = std::min(sim.Cf,sim.steplimit/Hconf(a,cosmo));

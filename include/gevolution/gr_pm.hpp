@@ -464,7 +464,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
                           const std::array<real_type,3>& momentum,
                           const std::array<real_type,3>& position,
                           const LATfield2::Site& xpart,
-                          const real_type a) const
+                          const real_type a) const override
     {
         const int N = size();
         std::array<real_type,3> velocity{0,0,0};
@@ -492,5 +492,28 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     }
     
     virtual ~relativistic_pm(){}
+    std::string report() const override
+    {
+        std::stringstream ss;
+        // sources
+        double std_t00 = show_msq(T00);
+        double std_t0i = show_msq(T0i,0);
+        double std_tij = show_msq(T0i,0,0);
+        // potentials
+        double std_phi = show_msq(phi);
+        double std_chi = show_msq(chi);
+        double std_Bi = show_msq(Bi,0);
+        ss << "RMS(T00) = " << std_t00 << '\n';
+        ss << "RMS(T0i) = " << std_t0i << '\n';
+        ss << "RMS(Tij) = " << std_tij << '\n';
+        ss << "RMS(Phi) = " << std_phi << '\n';
+        ss << "RMS(Chi) = " << std_chi << '\n';
+        ss << "RMS(Bi)  = " << std_Bi << '\n';
+        return ss.str();
+    }
+    double density() const override
+    {
+        return show_mean(T00);
+    }
 };
 } // namespace gevolution

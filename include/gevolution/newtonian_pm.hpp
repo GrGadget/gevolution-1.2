@@ -191,6 +191,39 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     #endif
     } 
     ~newtonian_pm() override {}
+    
+    std::string report() const override
+    {
+        std::stringstream ss;
+        // sources
+        double std_t00 = show_msq(source);
+        // potentials
+        double std_phi = show_msq(phi);
+        ss << "RMS(T00) = " << std_t00 << '\n';
+        ss << "RMS(Phi) = " << std_phi << '\n';
+        return ss.str();
+    }
+    double density() const override
+    {
+        return show_mean(source);
+    }
+    std::array<real_type,3> momentum_to_velocity(
+                          const std::array<real_type,3>& momentum,
+                          const std::array<real_type,3>& /* position */,
+                          const LATfield2::Site& /* xpart */,
+                          const real_type a) const override
+    {
+        std::array<real_type,3> velocity{0,0,0};
+        
+        const real_type inv_a =  1/a;
+        
+        for(int i=0;i<3;++i)
+        {
+            velocity[i] = momentum[i] * inv_a ;
+        }
+        
+        return velocity;
+    }
 };
 
 }
