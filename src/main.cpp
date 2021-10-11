@@ -379,14 +379,15 @@ int main (int argc, char **argv)
     {
         COUT << "Starting cycle: " << cycle << '\n';        
         
-        //show_msq(PM->phi,"phi");
-        //show_msq(PM->chi,"chi");
-        //show_msq(PM->Bi,"Bi[0]",1);
-
         // PM step 1. construction of the energy momentum tensor
         PM->clear_sources();
         PM->sample(pcls_cdm,a);
-        COUT << PM->report() << '\n';
+        
+        for(auto report = PM->report();;)
+        {
+            COUT << report << "\n";
+            break;
+        }
         
         // EM tensor
         T00hom = PM->density();
@@ -410,14 +411,12 @@ int main (int argc, char **argv)
         PM->compute_potential(cosmo.fourpiG, a,Hconf(a,cosmo),dtau_old,
             cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
         
-        //show_constant(a,"a");
-        //show_constant(cosmo.Omega_cdm+cosmo.Omega_b+bg_ncdm(a,cosmo),"Omega");
-        //show_constant(Hconf(a,cosmo),"Hc");
-        //show_constant(cosmo.fourpiG,"4PiG");
-        //show_constant(dtau_old,"dt");
-        
         // Sources
-        PM->report();
+        for(auto report = PM->report();;)
+        {
+            COUT << report << "\n";
+            break;
+        }
 
         // record some background data
         // if (kFT.setCoord (0, 0, 0))
@@ -446,74 +445,75 @@ int main (int argc, char **argv)
         // done recording background data
 
         // lightcone output
-        // if (sim.num_lightcone > 0)
-        //     writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
-        //                      maxvel[0], cycle,
-        //                      h5filename + sim.basename_lightcone, &pcls_cdm,
-        //                      &pcls_b, pcls_ncdm, &PM->phi, &PM->chi, &PM->Bi,
-        //                      &PM->Tij, &PM->Bi_FT,
-        //                      &PM->Tij_FT, &PM->plan_Bi, &PM->plan_Tij, done_hij, IDbacklog);
-        // else
-        //     done_hij = 0;
+        if (sim.num_lightcone > 0)
+            //writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
+            //                 maxvel[0], cycle,
+            //                 h5filename + sim.basename_lightcone, &pcls_cdm,
+            //                 &pcls_b, pcls_ncdm, &PM->phi, &PM->chi, &PM->Bi,
+            //                 &PM->Tij, &PM->Bi_FT,
+            //                 &PM->Tij_FT, &PM->plan_Bi, &PM->plan_Tij, done_hij, IDbacklog);
+            ;
+        else
+            done_hij = 0;
 
 
         // TODO: snapshot output
-        // if (snapcount < sim.num_snapshot
-        //     && 1. / a < sim.z_snapshot[snapcount] + 1.)
-        // {
-        //     COUT << COLORTEXT_CYAN << " writing snapshot" << COLORTEXT_RESET
-        //          << " at z = " << ((1. / a) - 1.) << " (cycle " << cycle
-        //          << "), tau/boxsize = " << tau << endl;
+        if (snapcount < sim.num_snapshot
+            && 1. / a < sim.z_snapshot[snapcount] + 1.)
+        {
+            COUT << COLORTEXT_CYAN << " writing snapshot" << COLORTEXT_RESET
+                 << " at z = " << ((1. / a) - 1.) << " (cycle " << cycle
+                 << "), tau/boxsize = " << tau << endl;
 
-        //     writeSnapshots (sim, cosmo, a, dtau_old, done_hij,
-        //                     snapcount, h5filename + sim.basename_snapshot,
-        //                     &pcls_cdm, &pcls_b, pcls_ncdm, &PM->phi, &PM->chi,
-        //                     &PM->Bi,
-        //                     &PM->T00, &PM->Tij, &PM->T00_FT, &PM->Bi_FT,
-        //                     &PM->Tij_FT, &PM->plan_phi,
-        //                     &PM->plan_chi, &PM->plan_Bi, &PM->plan_T00,
-        //                     &PM->plan_Tij
-        //     );
+            // writeSnapshots (sim, cosmo, a, dtau_old, done_hij,
+            //                 snapcount, h5filename + sim.basename_snapshot,
+            //                 &pcls_cdm, &pcls_b, pcls_ncdm, &PM->phi, &PM->chi,
+            //                 &PM->Bi,
+            //                 &PM->T00, &PM->Tij, &PM->T00_FT, &PM->Bi_FT,
+            //                 &PM->Tij_FT, &PM->plan_phi,
+            //                 &PM->plan_chi, &PM->plan_Bi, &PM->plan_T00,
+            //                 &PM->plan_Tij
+            // );
 
-        //     snapcount++;
-        // }
+            snapcount++;
+        }
 
 
         // TODO: power spectra output
-        // if (pkcount < sim.num_pk && 1. / a < sim.z_pk[pkcount] + 1.)
-        // {
-        //     COUT << COLORTEXT_CYAN << " writing power spectra"
-        //          << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
-        //          << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
+        if (pkcount < sim.num_pk && 1. / a < sim.z_pk[pkcount] + 1.)
+        {
+            COUT << COLORTEXT_CYAN << " writing power spectra"
+                 << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
+                 << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
 
-        //     writeSpectra (sim, cosmo, a, pkcount,
-        //                   &pcls_cdm, &pcls_b, pcls_ncdm, 
-        //                   &PM->phi,     &PM->chi,    &PM->Bi,
-        //                   &PM->T00,     &PM->Tij, 
-        //                   &PM->T00_FT,  &PM->Bi_FT,  &PM->Tij_FT, 
-        //                   &PM->plan_phi,&PM->plan_chi, 
-        //                   &PM->plan_Bi, &PM->plan_T00, &PM->plan_Tij
-        //     );
+            // writeSpectra (sim, cosmo, a, pkcount,
+            //               &pcls_cdm, &pcls_b, pcls_ncdm, 
+            //               &PM->phi,     &PM->chi,    &PM->Bi,
+            //               &PM->T00,     &PM->Tij, 
+            //               &PM->T00_FT,  &PM->Bi_FT,  &PM->Tij_FT, 
+            //               &PM->plan_phi,&PM->plan_chi, 
+            //               &PM->plan_Bi, &PM->plan_T00, &PM->plan_Tij
+            // );
 
-        //     pkcount++;
-        // }
+            pkcount++;
+        }
 
 #ifdef EXACT_OUTPUT_REDSHIFTS
-        // tmp = a;
-        // rungekutta4bg (tmp, cosmo, 0.5 * dtau);
-        // rungekutta4bg (tmp, cosmo, 0.5 * dtau);
+        tmp = a;
+        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
+        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
 
-        // if (pkcount < sim.num_pk && 1. / tmp < sim.z_pk[pkcount] + 1.)
-        // {
-        //     writeSpectra (sim, cosmo, a, pkcount,
-        //                   &pcls_cdm, &pcls_b, pcls_ncdm, 
-        //                   &PM->phi, &PM->chi, &PM->Bi,
-        //                   &PM->T00, &PM->Tij, 
-        //                   &PM->T00_FT,   &PM->Bi_FT, &PM->Tij_FT, 
-        //                   &PM->plan_phi, &PM->plan_chi, 
-        //                   &PM->plan_Bi,  &PM->plan_T00, &PM->plan_Tij
-        //     );
-        // }
+        if (pkcount < sim.num_pk && 1. / tmp < sim.z_pk[pkcount] + 1.)
+        {
+            // writeSpectra (sim, cosmo, a, pkcount,
+            //               &pcls_cdm, &pcls_b, pcls_ncdm, 
+            //               &PM->phi, &PM->chi, &PM->Bi,
+            //               &PM->T00, &PM->Tij, 
+            //               &PM->T00_FT,   &PM->Bi_FT, &PM->Tij_FT, 
+            //               &PM->plan_phi, &PM->plan_chi, 
+            //               &PM->plan_Bi,  &PM->plan_T00, &PM->plan_Tij
+            // );
+        }
 #endif // EXACT_OUTPUT_REDSHIFTS
 
 
@@ -596,42 +596,46 @@ int main (int argc, char **argv)
 
         tau += dtau;
 
-        // if (sim.wallclocklimit > 0.) // check for wallclock time limit
-        // {
-        //     tmp = MPI_Wtime () - start_time;
-        //     parallel.max (tmp);
-        //     if (tmp > sim.wallclocklimit) // hibernate
-        //     {
-        //         COUT << COLORTEXT_YELLOW
-        //              << " reaching hibernation wallclock limit, "
-        //                 "hibernating..."
-        //              << COLORTEXT_RESET << endl;
-        //         COUT << COLORTEXT_CYAN << " writing hibernation point"
-        //              << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
-        //              << " (cycle " << cycle << "), tau/boxsize = " << tau
-        //              << endl;
-        //         if (sim.vector_flag == VECTOR_PARABOLIC 
-        //             && sim.gr_flag == gravity_theory::Newtonian)
-        //             PM->plan_Bi.execute (FFT_BACKWARD);
-        //             hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm,
-        //                        PM->phi, PM->chi, PM->Bi, a, tau, dtau, cycle);
-        //         break;
-        //     }
-        // }
+        if (sim.wallclocklimit > 0.) // check for wallclock time limit
+        {
+            tmp = MPI_Wtime () - start_time;
+            parallel.max (tmp);
+            if (tmp > sim.wallclocklimit) // hibernate
+            {
+                COUT << COLORTEXT_YELLOW
+                     << " reaching hibernation wallclock limit, "
+                        "hibernating..."
+                     << COLORTEXT_RESET << endl;
+                COUT << COLORTEXT_CYAN << " writing hibernation point"
+                     << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
+                     << " (cycle " << cycle << "), tau/boxsize = " << tau
+                     << endl;
+                if (sim.vector_flag == VECTOR_PARABOLIC 
+                    && sim.gr_flag == gravity_theory::Newtonian)
+                {
+                    // PM->plan_Bi.execute (FFT_BACKWARD);
+                }
+                // hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm,
+                //            PM->phi, PM->chi, PM->Bi, a, tau, dtau, cycle);
+                break;
+            }
+        }
 
-        // if (restartcount < sim.num_restart
-        //     && 1. / a < sim.z_restart[restartcount] + 1.)
-        // {
-        //     COUT << COLORTEXT_CYAN << " writing hibernation point"
-        //          << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
-        //          << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
-        //     if (sim.vector_flag == VECTOR_PARABOLIC 
-        //         && sim.gr_flag ==gravity_theory::Newtonian)
-        //         PM->plan_Bi.execute (FFT_BACKWARD);
-        //         hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, PM->phi,
-        //                    PM->chi, PM->Bi, a, tau, dtau, cycle, restartcount);
-        //     restartcount++;
-        // }
+        if (restartcount < sim.num_restart
+            && 1. / a < sim.z_restart[restartcount] + 1.)
+        {
+            COUT << COLORTEXT_CYAN << " writing hibernation point"
+                 << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
+                 << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
+            if (sim.vector_flag == VECTOR_PARABOLIC 
+                && sim.gr_flag ==gravity_theory::Newtonian)
+            {
+                // PM->plan_Bi.execute (FFT_BACKWARD);
+            }
+            // hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, PM->phi,
+            //               PM->chi, PM->Bi, a, tau, dtau, cycle, restartcount);
+            restartcount++;
+        }
 
         dtau_old = dtau;
         dtau = std::min(sim.Cf,sim.steplimit/Hconf(a,cosmo));
