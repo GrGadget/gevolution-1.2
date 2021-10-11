@@ -490,7 +490,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         // sources
         double std_t00 = show_msq(T00);
         double std_t0i = show_msq(T0i,0);
-        double std_tij = show_msq(T0i,0,0);
+        double std_tij = show_msq(Tij,0,0);
         // potentials
         double std_phi = show_msq(phi);
         double std_chi = show_msq(chi);
