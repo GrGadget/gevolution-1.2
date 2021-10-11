@@ -29,7 +29,6 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     
     // metric perturbations
     public:
-    std::size_t my_size;
     real_field_type phi,chi,Bi;
     real_field_type T00,T0i,Tij;
     
