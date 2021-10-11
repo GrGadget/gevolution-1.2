@@ -284,7 +284,8 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     /*
         compute forces
     */
-    void compute_forces(particle_container& pcls, double a) const
+    void compute_forces(particle_container& pcls, 
+        double /* fourpiG */, double a) const override
     {
         const int N = size();
         const real_type dx = 1.0 / N;

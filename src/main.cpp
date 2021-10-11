@@ -541,8 +541,7 @@ int main (int argc, char **argv)
         }
 
         // cdm and baryon particle update
-        // TODO: for gr     PM->compute_forces(pcls_cdm,a);
-        // TODO: for newton PM->compute_forces(pcls_cdm,1.0);//cosmo.fourpiG/a);
+        PM->compute_forces(pcls_cdm,1.0,a);
         maxvel[0]=0;
         pcls_cdm.for_each(
             [&]

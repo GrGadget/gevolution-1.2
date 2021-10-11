@@ -106,8 +106,8 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         compute forces
         factor = 4 pi G
     */
-    void compute_forces(particle_container& pcls, double factor = 1.0) const
-    override
+    void compute_forces(particle_container& pcls, double factor, double /* a */) 
+        const override
     {
     #ifdef GEVOLUTION_OLD_VERSION
         const double dx = 1.0/size();
