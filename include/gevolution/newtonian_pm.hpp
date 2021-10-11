@@ -94,7 +94,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     template<class Functor>
     void apply_filter_rspace(Functor f)
     {
-        Site x(phi.lattice());
+        site_type x(phi.lattice());
         for (x.first(); x.test(); x.next())
         {
             phi(x) *= f({x.coord(0),x.coord(1),x.coord(2)});
@@ -210,7 +210,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     std::array<real_type,3> momentum_to_velocity(
                           const std::array<real_type,3>& momentum,
                           const std::array<real_type,3>& /* position */,
-                          const LATfield2::Site& /* xpart */,
+                          const site_type& /* xpart */,
                           const real_type a) const override
     {
         std::array<real_type,3> velocity{0,0,0};

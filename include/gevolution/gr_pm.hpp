@@ -27,9 +27,6 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     using base_type::gradient;
     using typename base_type::fft_plan_type;
     
-    // lattice for the real and transform spaces
-    LATfield2::Lattice lat,latFT;
-    
     // metric perturbations
     public:
     std::size_t my_size;
@@ -47,14 +44,14 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     
     void scalar_to_zero(real_field_type& F)
     {
-        site_type x(lat);
+        site_type x(base_type::lat);
         for(x.first();x.test();x.next())
             F(x) = 0.0;
         F.updateHalo();
     }
     void vector_to_zero(real_field_type& F)
     {
-        site_type x(lat);
+        site_type x(base_type::lat);
         for(x.first();x.test();x.next())
         {
             for(int i=0;i<3;++i)
@@ -64,7 +61,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     }
     void tensor_to_zero(real_field_type& F)
     {
-        site_type x(lat);
+        site_type x(base_type::lat);
         for(x.first();x.test();x.next())
         {
             for(int i=0;i<3;++i)
@@ -79,30 +76,25 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     relativistic_pm(int N): 
         base_type(N),
         
-        lat(/* dims        = */ 3,
-            /* size        = */ N,
-            /* ghost cells = */ 2),
-        latFT(lat,0,LATfield2::Lattice::FFT::RealToComplex),
-        
         // initialize fields, metric
-        phi(lat,1),
-        chi(lat,1),
-        Bi (lat,3),
+        phi(base_type::lat,1),
+        chi(base_type::lat,1),
+        Bi (base_type::lat,3),
         
         // initialize fields, sources
-        T00(lat,1),
-        T0i(lat,3),
-        Tij(lat,3,3,LATfield2::matrix_symmetry::symmetric),
+        T00(base_type::lat,1),
+        T0i(base_type::lat,3),
+        Tij(base_type::lat,3,3,LATfield2::matrix_symmetry::symmetric),
         
         // initialize k-fields, metric
-        phi_FT(latFT,1),
-        chi_FT(latFT,1),
-        Bi_FT (latFT,3),
+        phi_FT(base_type::latFT,1),
+        chi_FT(base_type::latFT,1),
+        Bi_FT (base_type::latFT,3),
         
         // initialize k-fields, sources
-        T00_FT(latFT,1),
-        T0i_FT(latFT,3),
-        Tij_FT(latFT,3,3,LATfield2::matrix_symmetry::symmetric),
+        T00_FT(base_type::latFT,1),
+        T0i_FT(base_type::latFT,3),
+        Tij_FT(base_type::latFT,3,3,LATfield2::matrix_symmetry::symmetric),
         
         // initialize plans
         plan_phi(&phi, &phi_FT),
@@ -150,7 +142,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     void compute_phi(
         double a, double Hc, double fourpiG, double dt, double Omega)
     {
-        const double dx = 1.0/lat.size()[0];
+        const double dx = 1.0/base_type::lat.size()[0];
         prepareFTsource<real_type> (
             phi, 
             chi, 
@@ -196,7 +188,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         double fourpiG, double a, double Hc, double dt, double Omega) override
     // TODO: can we remove all of these dependencies?
     {
-        const double dx = 1.0/lat.size()[0];
+        const double dx = 1.0/base_type::lat.size()[0];
         compute_phi(a,Hc,fourpiG,dt,Omega);
         compute_chi(fourpiG*dx*dx/a);
         compute_Bi(fourpiG*dx*dx);
@@ -215,7 +207,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     template<class Functor>
     void apply_filter_rspace(Functor f)
     {
-        Site x(phi.lattice());
+        site_type x(phi.lattice());
         for (x.first(); x.test(); x.next())
         {
             phi(x) *= f({x.coord(0),x.coord(1),x.coord(2)});
@@ -224,7 +216,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     }
     std::array<real_type,3> gradient(
         const real_field_type& F, 
-        const LATfield2::Site& x,
+        const site_type& x,
         const std::array<real_type,3>& pos)const
     // First order CIC gradient
     {
@@ -290,7 +282,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         const int N = size();
         const real_type dx = 1.0 / N;
         
-        LATfield2::Site xpart(pcls.lattice());
+        site_type xpart(pcls.lattice());
         for(xpart.first();xpart.test();xpart.next())
         {
             for(auto& part : pcls.field()(xpart).parts )
@@ -408,7 +400,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
    
     std::array<real_type,3> vector_at(
         const real_field_type& F, 
-        const LATfield2::Site& x,
+        const site_type& x,
         const std::array<real_type,3>& pos)const
     {
         const int N = size();
@@ -436,7 +428,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     }
     real_type scalar_at(
         const real_field_type& F, 
-        const LATfield2::Site& x,
+        const site_type& x,
         const std::array<real_type,3>& pos)const
     {
         const int N = size();
@@ -464,7 +456,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     std::array<real_type,3> momentum_to_velocity(
                           const std::array<real_type,3>& momentum,
                           const std::array<real_type,3>& position,
-                          const LATfield2::Site& xpart,
+                          const site_type& xpart,
                           const real_type a) const override
     {
         const int N = size();
