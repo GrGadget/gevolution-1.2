@@ -408,7 +408,11 @@ int main (int argc, char **argv)
         }
          
         // PM step 2. compute the potentials
-        PM->compute_potential(cosmo.fourpiG, a,Hconf(a,cosmo),dtau_old,
+        PM->compute_potential(
+            cosmo.fourpiG, 
+            a,
+            Hconf(a,cosmo),
+            dtau_old,
             cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
         
         // Sources

@@ -73,11 +73,15 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         solveModifiedPoissonFT (phi_FT, phi_FT,factor); // Newton: in k-space
         // (4 pi G)/a = 1
     }
-    void compute_potential(double fourpiG, 
-        double =0, double =0, double =0, double =0) override
+    void compute_potential(
+        double fourpiG    =1, 
+        double a          =1, 
+        double /* Hc */   =0, 
+        double /* dt */   =0, 
+        double /* Omega*/ =0) override
     {
         update_kspace();
-        solve_poisson_eq(fourpiG);
+        solve_poisson_eq(fourpiG/a);
         update_rspace();
     }
     
@@ -104,14 +108,16 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     
     /*
         compute forces
-        factor = 4 pi G
     */
-    void compute_forces(particle_container& pcls, double factor, double /* a */) 
+    void compute_forces(
+        particle_container& pcls, 
+        double fourpiG =1, 
+        double a = 1) 
         const override
     {
     #ifdef GEVOLUTION_OLD_VERSION
         const double dx = 1.0/size();
-        factor /= dx;
+        fourpiG /= dx;
         
         site_type xpart(pcls.lattice());
         
@@ -123,7 +129,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
                 std::array<real_type,3> gradphi=gradient(phi,xpart,pos);
                 for (int i=0;i<3;i++)
                 {
-                    part.acc[i] = -gradphi[i] * factor;
+                    part.acc[i] = -gradphi[i] * fourpiG * a;
                 }
             }
         }
@@ -134,7 +140,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         2. interpolate Fx at particle's position using CIC
         */
         const double dx = 1.0/pcls.lattice().size()[0];
-        factor /= dx;
+        fourpiG /= dx;
         
         real_field_type Fx(base_type::lat);
         
@@ -147,7 +153,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
             for(x.first();x.test();x.next())
             {
                 Fx(x)
-                = (-1)*factor*( 
+                = (-1)*fourpiG*( 
                         2.0/3 * (phi(x+i) - phi(x-i)) 
                         - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
             }

@@ -184,7 +184,11 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         Bi.updateHalo();
     }
     void compute_potential(
-        double fourpiG, double a, double Hc, double dt, double Omega) override
+        double fourpiG, 
+        double a, 
+        double Hc, 
+        double dt, 
+        double Omega) override
     // TODO: can we remove all of these dependencies?
     {
         const double dx = 1.0/base_type::lat.size()[0];
@@ -276,7 +280,8 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         compute forces
     */
     void compute_forces(particle_container& pcls, 
-        double /* fourpiG */, double a) const override
+        double /* fourpiG */, 
+        double a) const override
     {
         const int N = size();
         const real_type dx = 1.0 / N;
