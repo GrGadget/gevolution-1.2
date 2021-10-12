@@ -39,6 +39,8 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         plan_source(&source,&phi_FT),
         plan_phi (&phi, &phi_FT)
     {
+        scalar_to_zero(source);
+        scalar_to_zero(phi);
     }
     
     void clear_sources() override
