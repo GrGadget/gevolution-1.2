@@ -140,6 +140,7 @@ class particle_mesh
         const site_type& x,
         const std::array<real_type,3>& pos)const
     // First order CIC gradient
+    // precondition: F has valid ghost cells
     {
         const int N = size();
         const real_type dx = 1.0 / N;
