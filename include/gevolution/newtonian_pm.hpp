@@ -87,27 +87,6 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         update_rspace();
     }
     
-    template<class Functor>
-    void apply_filter_kspace(Functor f)
-    {
-        rKSite k(phi_FT.lattice());
-        for (k.first(); k.test(); k.next())
-        {
-            phi_FT(k) *= f({k.coord(0),k.coord(1),k.coord(2)});
-        }
-        phi_FT.updateHalo();
-    }
-    template<class Functor>
-    void apply_filter_rspace(Functor f)
-    {
-        site_type x(phi.lattice());
-        for (x.first(); x.test(); x.next())
-        {
-            phi(x) *= f({x.coord(0),x.coord(1),x.coord(2)});
-        }
-        phi.updateHalo();
-    }
-    
     /*
         compute forces
     */

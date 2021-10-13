@@ -58,6 +58,25 @@ double show_mean(const F_type& F,int i=-1, int j=-1)
     const long N = F.lattice().size(0);
     return mean/N/N/N;
 }
+    
+// TODO: simplify this template
+template<class functor_type, class field_type1, class field_type2, class fft_plan_type >
+void apply_filter_kspace(
+    field_type1 &phi, 
+    field_type2 &phi_FT,
+    fft_plan_type &plan,
+    functor_type f)
+{
+    plan.execute(::LATfield2::FFT_FORWARD);
+    ::LATfield2::rKSite k(phi_FT.lattice());
+    for (k.first(); k.test(); k.next())
+    {
+        phi_FT(k) *= f({k.coord(0),k.coord(1),k.coord(2)});
+    }
+    phi_FT.updateHalo();
+    plan.execute(LATfield2::FFT_BACKWARD);
+    phi.updateHalo();
+}
 
 template<typename complex_type, typename particle_container>
 class particle_mesh
@@ -178,6 +197,7 @@ class particle_mesh
                           const std::array<real_type,3>& position,
                           const LATfield2::Site& xpart,
                           const real_type a) const = 0;
+    
 };
 
 }
