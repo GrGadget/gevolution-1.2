@@ -213,4 +213,12 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     }
 };
 
+template<class functor_type, typename complex_type, typename particle_container>
+void apply_filter_kspace(
+    newtonian_pm<complex_type,particle_container> &pm,
+    functor_type f)
+{
+    apply_filter_kspace(pm.phi,pm.phi_FT,pm.plan_phi,f);
+}
+
 }

@@ -69,9 +69,11 @@ void apply_filter_kspace(
 {
     plan.execute(::LATfield2::FFT_FORWARD);
     ::LATfield2::rKSite k(phi_FT.lattice());
+    const double N = phi.lattice().size(0);
+    const double inv_N3 = 1.0/N/N/N;
     for (k.first(); k.test(); k.next())
     {
-        phi_FT(k) *= f({k.coord(0),k.coord(1),k.coord(2)});
+        phi_FT(k) *= f({k.coord(0),k.coord(1),k.coord(2)}) * inv_N3;
     }
     phi_FT.updateHalo();
     plan.execute(LATfield2::FFT_BACKWARD);
