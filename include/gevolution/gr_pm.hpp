@@ -487,6 +487,43 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         
         return velocity;
     }
+    // TODO: check if the inversion works
+    std::array<real_type,3> velocity_to_momentum(
+                          const std::array<real_type,3>& velocity,
+                          const std::array<real_type,3>& position,
+                          const site_type& xpart,
+                          const real_type a) const override
+    {
+        const int N = size();
+        std::array<real_type,3> momentum{0,0,0};
+        real_type xchi{0},xphi{0};
+        std::array<real_type,3> xBi{0,0,0};
+        
+        xphi = scalar_at(phi,xpart,{position[0],position[1],position[2]});
+        xchi = scalar_at(chi,xpart,{position[0],position[1],position[2]});
+        xBi  = vector_at(Bi,xpart,{position[0],position[1],position[2]});
+        
+        for(int i=0;i<3;++i) xBi[i] = xBi[i]/a/a/N; // TODO: why the strange scaling of Bi?
+        
+        real_type u2{0};
+        for(int i=0;i<3;++i)
+            u2 += velocity[i]*velocity[i];
+        
+        real_type Biui{0};
+        
+        for(int i=0;i<3;++i)
+            Biui += velocity[i]*xBi[i];
+            
+        const real_type fact_B = 1.0/std::sqrt(1-u2);
+        const real_type fact_A = 1 - fact_B*fact_B*(Biui - xchi + xphi*(3-u2));
+        
+        for(int i=0;i<3;++i)
+        {
+            momentum[i] = (velocity[i]*fact_A - xBi[i])*fact_B;
+        }
+        
+        return momentum;
+    }
     
     virtual ~relativistic_pm(){}
     std::string report() const override

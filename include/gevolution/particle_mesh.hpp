@@ -199,6 +199,11 @@ class particle_mesh
                           const std::array<real_type,3>& position,
                           const LATfield2::Site& xpart,
                           const real_type a) const = 0;
+    virtual std::array<real_type,3> velocity_to_momentum(
+                          const std::array<real_type,3>& velocity,
+                          const std::array<real_type,3>& position,
+                          const LATfield2::Site& xpart,
+                          const real_type a) const = 0;
     
 };
 

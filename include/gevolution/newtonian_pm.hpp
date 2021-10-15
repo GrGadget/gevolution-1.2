@@ -211,6 +211,19 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         
         return velocity;
     }
+    std::array<real_type,3> velocity_to_momentum(
+                          const std::array<real_type,3>& velocity,
+                          const std::array<real_type,3>& /* position */,
+                          const site_type& /* xpart */,
+                          const real_type a) const override
+    {
+        std::array<real_type,3> momentum{0,0,0};
+        for(int i=0;i<3;++i)
+        {
+            momentum[i] = velocity[i] * a ;
+        }
+        return momentum;
+    }
 };
 
 template<class functor_type, typename complex_type, typename particle_container>
