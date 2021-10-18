@@ -83,16 +83,19 @@ using namespace gevolution;
 
 // stop condition, by external file 'stop'
 // in the execution directory
-bool stop()
+bool stop(mpi::communicator &com_world)
 {
-    fs::path p{"stop"};
     bool ret = false;
-    
-    if(fs::exists(p))
+    if(com_world.rank()==0)
     {
-        ret = true;
-        fs::remove(p);
+        fs::path p{"stop"};
+        if(fs::exists(p))
+        {
+            ret = true;
+            fs::remove(p);
+        }
     }
+    mpi::all_reduce(com_world,ret,ret,std::logical_or());
     return ret;
 }
 
@@ -643,7 +646,7 @@ int main (int argc, char **argv)
         dtau_old = dtau;
         dtau = std::min(sim.Cf,sim.steplimit/Hconf(a,cosmo));
         cycle++;
-    }while( not stop() );
+    }while( not stop(com_world) );
 
     COUT << COLORTEXT_GREEN << " simulation complete." << COLORTEXT_RESET
          << endl;
