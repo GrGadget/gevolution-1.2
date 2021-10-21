@@ -125,22 +125,24 @@ class particle_mesh
     }
     
     
-    std::array<double,3> test_velocities(const particle_container& pcls) const
+    std::array<double,4> test_velocities(const particle_container& pcls) const
     {
-        double mass{},massvel{},masspos{};
+        double mass{},massvel{},masspos{},massacc{};
         int count{};
         pcls.for_each(
-            [&mass,&massvel,&masspos,&count]
+            [&mass,&massvel,&masspos,&massacc,&count]
             (const particle_type& part, const site_type& /*xpart*/)
             {
-               double v2 = 0,p2=0;
+               double v2 = 0,p2=0,a2=0;
                for(int i=0;i<3;++i)
                {
                    v2 += part.vel[i]*part.vel[i];
                    p2 += part.pos[i]*part.pos[i];
+                   a2 += part.acc[i]*part.acc[i];
                }
                masspos += p2*part.mass;
                massvel += v2*part.mass;
+               massacc += a2*part.mass;
                mass += part.mass;
                count++;
             }
@@ -148,11 +150,14 @@ class particle_mesh
         LATfield2::parallel.sum(count);
         LATfield2::parallel.sum(masspos);
         LATfield2::parallel.sum(massvel);
+        LATfield2::parallel.sum(massacc);
         LATfield2::parallel.sum(mass);
         massvel /= mass;
         masspos /= mass;
         mass /= count;
-        return {mass,std::sqrt(masspos),std::sqrt(massvel)};
+        massacc /= mass;
+        using std::sqrt;
+        return {mass,sqrt(masspos),sqrt(massvel),sqrt(massacc)};
     }
     
     

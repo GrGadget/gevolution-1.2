@@ -402,12 +402,12 @@ int main (int argc, char **argv)
                  << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
                  << endl;
             
-            std::array<double,3> mpv;
-            mpv = PM->test_velocities(pcls_cdm);
+            auto [mass,pos,vel,acc]  = PM->test_velocities(pcls_cdm);
             
-            COUT << " mean     mass: " << mpv[0] << "\n";
-            COUT << " mean sqr(pos): " << mpv[1] << "\n";
-            COUT << " mean sqr(vel): " << mpv[2] << "\n";
+            COUT << " mean     mass: " << mass << "\n";
+            COUT << " mean sqr(pos): " << pos << "\n";
+            COUT << " mean sqr(vel): " << vel << "\n";
+            COUT << " mean sqr(acc): " << acc << "\n";
         }
          
         // PM step 2. compute the potentials
