@@ -134,7 +134,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
             for(x.first();x.test();x.next())
             {
                 Fx(x)
-                = (-1)*fourpiG*( 
+                = (-1)*a*fourpiG*( 
                         2.0/3 * (phi(x+i) - phi(x-i)) 
                         - 1.0/12 * (phi(x+i+i) - phi(x-i-i))  );
             }
