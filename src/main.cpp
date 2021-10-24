@@ -394,21 +394,6 @@ int main (int argc, char **argv)
         
         // EM tensor
         T00hom = PM->density();
-        if (cycle % CYCLE_INFO_INTERVAL == 0)
-        {
-            COUT << " cycle " << cycle
-                 << ", background information: z = " << (1. / a) - 1.
-                 << ", average T00 = " << T00hom << ", background model = "
-                 << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
-                 << endl;
-            
-            auto [mass,pos,vel,acc]  = PM->test_velocities(pcls_cdm);
-            
-            COUT << " mean     mass: " << mass << "\n";
-            COUT << " mean sqr(pos): " << pos << "\n";
-            COUT << " mean sqr(vel): " << vel << "\n";
-            COUT << " mean sqr(acc): " << acc << "\n";
-        }
          
         // PM step 2. compute the potentials
         PM->compute_potential(
@@ -549,6 +534,21 @@ int main (int argc, char **argv)
 
         // cdm and baryon particle update
         PM->compute_forces(pcls_cdm,1.0,a);
+        if (cycle % CYCLE_INFO_INTERVAL == 0)
+        {
+            COUT << " cycle " << cycle
+                 << ", background information: z = " << (1. / a) - 1.
+                 << ", average T00 = " << T00hom << ", background model = "
+                 << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
+                 << endl;
+            
+            auto [mass,pos,vel,acc]  = PM->test_velocities(pcls_cdm);
+            
+            COUT << " mean     mass: " << mass << "\n";
+            COUT << " mean sqr(pos): " << pos << "\n";
+            COUT << " mean sqr(vel): " << vel << "\n";
+            COUT << " mean sqr(acc): " << acc << "\n";
+        }
         maxvel[0]=0;
         pcls_cdm.for_each(
             [&]
