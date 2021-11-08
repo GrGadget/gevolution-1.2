@@ -154,7 +154,6 @@ int main (int argc, char **argv)
     metadata sim;
     cosmology cosmo;
     icsettings ic;
-    double T00hom;
 
 #ifndef H5_DEBUG
     H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
@@ -378,6 +377,39 @@ int main (int argc, char **argv)
     
     pcls_cdm.update_mass(); // fix the mass legacy problem
     
+    // TODO: remove this ugly fix for 'vel' legacy
+    pcls_cdm.for_each(
+            []
+            (particle& part, const Site& /*xpart*/)
+            {
+               for(int i=0;i<3;++i)
+               {
+                   part.momentum[i] = part.vel[i];
+               }
+            }
+    
+    );
+        
+    // background file initialization
+    fs::path BackgroundPath{sim.output_path};
+    BackgroundPath /= std::string(sim.basename_generic) + "_background.dat";
+    constexpr int tabwidth = 16;
+    
+    if(com_world.rank()==0)
+    // select main process
+    {
+        std::ofstream f(BackgroundPath);
+        f << "# background statistics\n"
+          << "#" 
+          << std::setw(tabwidth-1) << "cycle"
+          << std::setw(tabwidth) << "tau"
+          << std::setw(tabwidth) << "a"
+          << std::setw(tabwidth) << "conformal H/H0"
+          << std::setw(tabwidth) << "sum(phi)"
+          << std::setw(tabwidth) << "<T00>"
+          << "\n";
+    }
+    
     do // main loop
     {
         COUT << "Starting cycle: " << cycle << '\n';        
@@ -393,7 +425,7 @@ int main (int argc, char **argv)
         }
         
         // EM tensor
-        T00hom = PM->density();
+        double T00hom = PM->density();
          
         // PM step 2. compute the potentials
         PM->compute_potential(
@@ -403,6 +435,8 @@ int main (int argc, char **argv)
             dtau_old,
             cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
         
+        double Phihom = PM->sum_phi();
+        
         // Sources
         for(auto report = PM->report();;)
         {
@@ -411,30 +445,26 @@ int main (int argc, char **argv)
         }
 
         // record some background data
-        // if (kFT.setCoord (0, 0, 0))
-        // {
-        //     sprintf (filename, "%s%s_background.dat", sim.output_path,
-        //              sim.basename_generic);
-        //     outfile = fopen (filename, "a");
-        //     if (outfile == NULL)
-        //     {
-        //         cout << " error opening file for background output!" << endl;
-        //     }
-        //     else
-        //     {
-        //         if (cycle == 0)
-        //             fprintf (outfile, "# background statistics\n# cycle   "
-        //                               "tau/boxsize    a      "
-        //                               "       conformal H/H0  phi(k=0)      "
-        //                               " T00(k=0)\n");
-        //         fprintf (outfile, " %6d   %e   %e   %e   %e   %e\n", cycle, tau,
-        //                  a,
-        //                  Hconf (a, cosmo) / Hconf (1., cosmo),
-        //                  PM->phi_FT (kFT).real (), T00hom);
-        //         fclose (outfile);
-        //     }
-        // }
-        // done recording background data
+        {
+            if(com_world.rank()==0)
+            {
+                // select main process
+                std::ofstream f(BackgroundPath,std::ios_base::app);
+                if(!f)
+                {
+                    std::cerr << "Could not open the background file: " 
+                              << BackgroundPath << '\n';
+                }else
+                {
+                    f << std::setw(tabwidth) << cycle 
+                      << std::setw(tabwidth) << tau
+                      << std::setw(tabwidth) << a
+                      << std::setw(tabwidth) << Hconf(a,cosmo)/Hconf(1.0,cosmo)
+                      << std::setw(tabwidth) << Phihom 
+                      << std::setw(tabwidth) << T00hom << '\n';
+                }
+            }
+        }
 
         // lightcone output
         if (sim.num_lightcone > 0)
