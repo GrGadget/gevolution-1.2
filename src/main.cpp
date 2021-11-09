@@ -377,19 +377,6 @@ int main (int argc, char **argv)
     
     pcls_cdm.update_mass(); // fix the mass legacy problem
     
-    // TODO: remove this ugly fix for 'vel' legacy
-    pcls_cdm.for_each(
-            []
-            (particle& part, const Site& /*xpart*/)
-            {
-               for(int i=0;i<3;++i)
-               {
-                   part.momentum[i] = part.vel[i];
-               }
-            }
-    
-    );
-        
     // background file initialization
     fs::path BackgroundPath{sim.output_path};
     BackgroundPath /= std::string(sim.basename_generic) + "_background.dat";
