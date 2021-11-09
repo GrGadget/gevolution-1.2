@@ -196,8 +196,9 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     }
     double sum_phi() const override
     {
-        const double N = size();
-        return show_mean(phi) * N * N *N;
+        // const double N = size();
+        // return show_mean(phi) * N * N *N;
+        return show_mean(phi);
     }
     std::array<real_type,3> momentum_to_velocity(
                           const std::array<real_type,3>& momentum,

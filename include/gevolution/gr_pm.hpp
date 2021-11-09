@@ -551,8 +551,9 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     }
     double sum_phi() const override
     {
-        const double N = size();
-        return show_mean(phi) * N * N *N;
+        // const double N = size();
+        // return show_mean(phi) * N * N *N;
+        return show_mean(phi);
     }
 };
 } // namespace gevolution
