@@ -29,17 +29,24 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     
     // metric perturbations
     public:
-    real_field_type phi,chi,Bi;
-    real_field_type T00,T0i,Tij;
     
+    // potentials
+    real_field_type phi,chi,Bi;
     complex_field_type phi_FT, chi_FT, Bi_FT;
     
-    // source fields
-    complex_field_type T00_FT, T0i_FT, Tij_FT;
+    // Energy-Momentum tensor
+    real_field_type T00,T0i,Tij;
+    // complex_field_type T00_FT, T0i_FT, Tij_FT;
+    
+    // Sources
+    mutable real_field_type S00, S0i, Sij; // source fields
+    mutable complex_field_type S00_FT, S0i_FT, Sij_FT; // source fields
+    
     
     // FT plans
     fft_plan_type plan_phi, plan_chi, plan_Bi;
-    fft_plan_type plan_T00, plan_T0i, plan_Tij;
+    // fft_plan_type plan_T00, plan_T0i, plan_Tij;
+    fft_plan_type plan_S00, plan_S0i, plan_Sij;
     
     void scalar_to_zero(real_field_type& F)
     {
@@ -80,29 +87,44 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         chi(base_type::lat,1),
         Bi (base_type::lat,3),
         
-        // initialize fields, sources
-        T00(base_type::lat,1),
-        T0i(base_type::lat,3),
-        Tij(base_type::lat,3,3,LATfield2::matrix_symmetry::symmetric),
-        
         // initialize k-fields, metric
         phi_FT(base_type::latFT,1),
         chi_FT(base_type::latFT,1),
         Bi_FT (base_type::latFT,3),
         
+        // initialize fields, Energy-momentum tensor
+        T00(base_type::lat,1),
+        T0i(base_type::lat,3),
+        Tij(base_type::lat,3,3,LATfield2::matrix_symmetry::symmetric),
+        
+        // initialize k-fields, Energy-momentum tensor
+        // T00_FT(base_type::latFT,1),
+        // T0i_FT(base_type::latFT,3),
+        // Tij_FT(base_type::latFT,3,3,LATfield2::matrix_symmetry::symmetric),
+        
+        // initialize fields, sources
+        S00(base_type::lat,1),
+        S0i(base_type::lat,3),
+        Sij(base_type::lat,3,3,LATfield2::matrix_symmetry::symmetric),
+        
         // initialize k-fields, sources
-        T00_FT(base_type::latFT,1),
-        T0i_FT(base_type::latFT,3),
-        Tij_FT(base_type::latFT,3,3,LATfield2::matrix_symmetry::symmetric),
+        S00_FT(base_type::latFT,1),
+        S0i_FT(base_type::latFT,3),
+        Sij_FT(base_type::latFT,3,3,LATfield2::matrix_symmetry::symmetric),
+        
         
         // initialize plans
         plan_phi(&phi, &phi_FT),
         plan_chi(&chi, &chi_FT),
         plan_Bi (&Bi, &Bi_FT),
         
-        plan_T00(&T00,&T00_FT),
-        plan_T0i(&T0i,&T0i_FT),
-        plan_Tij(&Tij,&Tij_FT)
+        // plan_T00(&T00,&T00_FT),
+        // plan_T0i(&T0i,&T0i_FT),
+        // plan_Tij(&Tij,&Tij_FT),
+        
+        plan_S00(&S00,&S00_FT),
+        plan_S0i(&S0i,&S0i_FT),
+        plan_Sij(&Sij,&Sij_FT)
     {
         scalar_to_zero(phi);
         scalar_to_zero(chi);
@@ -111,6 +133,10 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         scalar_to_zero(T00);
         vector_to_zero(T0i);
         tensor_to_zero(Tij);
+        
+        scalar_to_zero(S00);
+        vector_to_zero(S0i);
+        tensor_to_zero(Sij);
     }
     
     void clear_sources() override
@@ -147,13 +173,13 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
             chi, 
             T00,
             Omega,
-            T00, 
+            S00, 
             3. * Hc * dx * dx / dt,
             fourpiG * dx * dx / a,
             3. * Hc * Hc * dx * dx); 
-        plan_T00.execute (LATfield2::FFT_FORWARD);
-        T00_FT.updateHalo ();
-        solveModifiedPoissonFT (/* source = */ T00_FT, 
+        plan_S00.execute (LATfield2::FFT_FORWARD);
+        S00_FT.updateHalo ();
+        solveModifiedPoissonFT (/* source = */ S00_FT, 
                                 /* poten. = */ phi_FT, 
                                 1. / (dx * dx),
                                 3. * Hc/ dt);
@@ -165,20 +191,28 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         prepareFTsource<real_type> (
             phi, 
             Tij, 
-            Tij,
+            Sij,
             2. * f);
-        plan_Tij.execute (LATfield2::FFT_FORWARD);
-        Tij_FT.updateHalo ();
-        projectFTscalar (Tij_FT,chi_FT);
+        plan_Sij.execute (LATfield2::FFT_FORWARD);
+        Sij_FT.updateHalo ();
+        projectFTscalar (Sij_FT,chi_FT);
         plan_chi.execute(LATfield2::FFT_BACKWARD);
         chi.updateHalo();
     }
     void compute_Bi(double f = 1.0)
     {
-        plan_T0i.execute(LATfield2::FFT_FORWARD);
-        T0i_FT.updateHalo();
+        // prepare source S0i from T0i
+        Site x(base_type::lat);
+        for(x.first();x.test();x.next())
+        {
+            for(int i=0;i<3;++i)
+                S0i(x,i) = T0i(x,i);
+        }
         
-        projectFTvector (T0i_FT, Bi_FT, f);
+        plan_S0i.execute(LATfield2::FFT_FORWARD);
+        S0i_FT.updateHalo();
+        
+        projectFTvector (S0i_FT, Bi_FT, f);
         
         plan_Bi.execute(LATfield2::FFT_BACKWARD);
         Bi.updateHalo();
@@ -192,6 +226,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     // TODO: can we remove all of these dependencies?
     {
         const double dx = 1.0/base_type::lat.size()[0];
+        
         compute_phi(a,Hc,fourpiG,dt,Omega);
         compute_chi(fourpiG*dx*dx/a);
         compute_Bi(fourpiG*dx*dx);

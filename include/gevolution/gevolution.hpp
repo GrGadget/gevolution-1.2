@@ -64,7 +64,7 @@ using LATfield2::Site;
 //////////////////////////
 
 template <class FieldType>
-void prepareFTsource (Field<FieldType> &phi, Field<FieldType> &Tij,
+void prepareFTsource (const Field<FieldType> &phi, const Field<FieldType> &Tij,
                       Field<FieldType> &Sij, const double coeff)
 {
     Site x (phi.lattice ());
@@ -188,8 +188,8 @@ void prepareFTsource (Field<FieldType> &phi, Field<FieldType> &Tij,
 //////////////////////////
 
 template <class FieldType>
-void prepareFTsource (Field<FieldType> &phi, Field<FieldType> &chi,
-                      Field<FieldType> &source, const FieldType bgmodel,
+void prepareFTsource (const Field<FieldType> &phi, const Field<FieldType> &chi,
+                      const Field<FieldType> &T00, const FieldType bgmodel,
                       Field<FieldType> &result, const double coeff,
                       const double coeff2, const double coeff3)
 {
@@ -197,7 +197,7 @@ void prepareFTsource (Field<FieldType> &phi, Field<FieldType> &chi,
 
     for (x.first (); x.test (); x.next ())
     {
-        result (x) = coeff2 * (source (x) - bgmodel);
+        result (x) = coeff2 * (T00 (x) - bgmodel);
 #ifdef PHINONLINEAR
 #ifdef ORIGINALMETRIC
         result (x) *= 1. - 4. * phi (x);
