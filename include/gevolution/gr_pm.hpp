@@ -165,7 +165,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     }
     
     void compute_phi(
-        double a, double Hc, double fourpiG, double dt, double Omega)
+        double a, double Hc, double fourpiG, double Omega)
     {
         const double dx = 1.0/base_type::lat.size()[0];
         prepareFTsource<real_type> (
@@ -174,15 +174,15 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
             T00,
             Omega,
             S00, 
-            3. * Hc * dx * dx / dt,
+            // 3. * Hc * dx * dx / dt,
             fourpiG * dx * dx / a,
             3. * Hc * Hc * dx * dx); 
         plan_S00.execute (LATfield2::FFT_FORWARD);
         S00_FT.updateHalo ();
         solveModifiedPoissonFT (/* source = */ S00_FT, 
                                 /* poten. = */ phi_FT, 
-                                1. / (dx * dx),
-                                3. * Hc/ dt);
+                                1. / (dx * dx) );
+                                // 3. * Hc/ dt);
         plan_phi.execute (LATfield2::FFT_BACKWARD); // go back to position space
         phi.updateHalo (); // update ghost cells
     }
@@ -221,13 +221,12 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         double fourpiG, 
         double a, 
         double Hc, 
-        double dt, 
         double Omega) override
     // TODO: can we remove all of these dependencies?
     {
         const double dx = 1.0/base_type::lat.size()[0];
         
-        compute_phi(a,Hc,fourpiG,dt,Omega);
+        compute_phi(a,Hc,fourpiG,Omega);
         compute_chi(fourpiG*dx*dx/a);
         compute_Bi(fourpiG*dx*dx);
     }

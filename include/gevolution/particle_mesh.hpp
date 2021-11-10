@@ -196,7 +196,7 @@ class particle_mesh
     virtual double sum_phi() const = 0;
     virtual void clear_sources() = 0 ;
     virtual void sample(const particle_container& pcls, double a) = 0;
-    virtual void compute_potential(double fourpiG, double a, double Hc,double dt, double Omega) = 0;
+    virtual void compute_potential(double fourpiG, double a, double Hc,double Omega) = 0;
     virtual void compute_forces(particle_container& pcls, double fourpiG, double a) const = 0;
     virtual ~particle_mesh(){}
     

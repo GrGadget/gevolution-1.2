@@ -190,8 +190,10 @@ void prepareFTsource (const Field<FieldType> &phi, const Field<FieldType> &Tij,
 template <class FieldType>
 void prepareFTsource (const Field<FieldType> &phi, const Field<FieldType> &chi,
                       const Field<FieldType> &T00, const FieldType bgmodel,
-                      Field<FieldType> &result, const double coeff,
-                      const double coeff2, const double coeff3)
+                      Field<FieldType> &result, 
+                      // const double coeff,
+                      const double coeff2, 
+                      const double coeff3)
 {
     Site x (phi.lattice ());
 
@@ -217,7 +219,8 @@ void prepareFTsource (const Field<FieldType> &phi, const Field<FieldType> &chi,
                       * (phi (x - 2) - phi (x + 2));
 #endif
 #endif
-        result (x) += (coeff3 - coeff) * phi (x) - coeff3 * chi (x);
+        result (x) += (coeff3) * phi (x) - coeff3 * chi (x);
+        // result (x) += (coeff3 - coeff) * phi (x) - coeff3 * chi (x);
     }
 }
 

@@ -431,7 +431,7 @@ int main (int argc, char **argv)
             cosmo.fourpiG, 
             a,
             Hconf(a,cosmo),
-            dtau_old,
+            // dtau_old,
             cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
         
         double Phihom = PM->sum_phi();

@@ -79,7 +79,6 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         double fourpiG    =1, 
         double a          =1, 
         double /* Hc */   =0, 
-        double /* dt */   =0, 
         double /* Omega*/ =0) override
     {
         update_kspace();
