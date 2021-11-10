@@ -487,8 +487,12 @@ void projectFTtensor (Field<Cplx> &SijFT, Field<Cplx> &hijFT)
 //////////////////////////
 
 Real update_q (double dtau, double dx, particle *part, double *ref_dist,
-               particle_info partInfo, Field<Real> **fields, Site *sites,
-               int nfield, double *params, double *outputs, int noutputs)
+               particle_info /* partInfo */, 
+               Field<Real> **fields, Site *sites,
+               int nfield, 
+               double *params, 
+               double * /* outputs */, 
+               int /* noutputs */)
 {
 #define phi (*fields[0])
 #define chi (*fields[1])
@@ -775,9 +779,17 @@ Real update_q_Newton (
 //
 //////////////////////////
 
-void update_pos (double dtau, double dx, particle *part, double *ref_dist,
-                 particle_info partInfo, Field<Real> **fields, Site *sites,
-                 int nfield, double *params, double *outputs, int noutputs)
+void update_pos (double dtau, 
+                 double /* dx */, 
+                 particle *part, 
+                 double *ref_dist,
+                 particle_info /* partInfo */, 
+                 Field<Real> **fields, 
+                 Site *sites,
+                 int nfield, 
+                 double *params, 
+                 double * /* outputs */, 
+                 int /* noutputs */)
 {
     Real v[3];
     Real v2 = (*part).vel[0] * (*part).vel[0] + (*part).vel[1] * (*part).vel[1]
@@ -894,10 +906,17 @@ void update_pos (double dtau, double dx, particle *part, double *ref_dist,
 //
 //////////////////////////
 
-void update_pos_Newton (double dtau, double dx, particle *part,
-                        double *ref_dist, particle_info partInfo,
-                        Field<Real> **fields, Site *sites, int nfield,
-                        double *params, double *outputs, int noutputs)
+void update_pos_Newton (double dtau, 
+                        double /* dx */, 
+                        particle *part,
+                        double * /* ref_dist */, 
+                        particle_info /* partInfo */,
+                        Field<Real> ** /* fields */, 
+                        Site * /* sites */, 
+                        int /* nfield */,
+                        double *params, 
+                        double * /* outputs */, 
+                        int /* noutputs */)
 {
     for (int l = 0; l < 3; l++)
         (*part).pos[l] += dtau * (*part).vel[l] / params[0];

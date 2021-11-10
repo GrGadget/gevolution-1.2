@@ -98,7 +98,7 @@ class particle_mesh
     
     std::size_t size() const { return my_size;  }
     
-    particle_mesh(int N):
+    particle_mesh(unsigned int N):
         my_size{N},
         lat(/* dims        = */ 3,
             /* size        = */ N,

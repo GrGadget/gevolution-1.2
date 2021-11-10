@@ -53,9 +53,13 @@ using LATfield2::PlanFFT;
 
 void displace_pcls_ic_basic (double coeff, double lat_resolution,
                              particle *part, double *ref_dist,
-                             particle_info partInfo, Field<Real> **fields,
-                             Site *sites, int nfield, double *params,
-                             double *outputs, int noutputs)
+                             particle_info /* partInfo */, 
+                             Field<Real> **fields,
+                             Site *sites, 
+                             int nfield, 
+                             double * /* params */,
+                             double *outputs, 
+                             int noutputs)
 {
     int i;
     Real gradxi[3] = { 0, 0, 0 };
@@ -136,9 +140,13 @@ void displace_pcls_ic_basic (double coeff, double lat_resolution,
 
 Real initialize_q_ic_basic (double coeff, double lat_resolution,
                             particle *part, double *ref_dist,
-                            particle_info partInfo, Field<Real> **fields,
-                            Site *sites, int nfield, double *params,
-                            double *outputs, int noutputs)
+                            particle_info /* partInfo */, 
+                            Field<Real> **fields,
+                            Site *sites, 
+                            int nfield, 
+                            double * /* params */,
+                            double * /* outputs */, 
+                            int /* noutputs */)
 {
     int i;
     Real gradPhi[3] = { 0, 0, 0 };
@@ -1312,7 +1320,7 @@ void initializeParticlePositions (
     long xtile, ytile, ztile, i;
     Site p (pcls.lattice ());
 
-    particle part;
+    particle part{};
 
     part.vel[0] = 0.;
     part.vel[1] = 0.;
@@ -1574,7 +1582,7 @@ void generateIC_basic (
     Field<Real> *source, Field<Real> *Sij, Field<Cplx> *scalarFT,
     Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi,
     PlanFFT<Cplx> *plan_chi, PlanFFT<Cplx> *plan_Bi, PlanFFT<Cplx> *plan_source,
-    PlanFFT<Cplx> *plan_Sij, parameter *params, int &numparam)
+    PlanFFT<Cplx> *plan_Sij, parameter * /* params */, int & /* numparam */)
 {
     // int j, p;
     int i;

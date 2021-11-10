@@ -121,24 +121,24 @@ int main (int argc, char **argv)
     mpi::environment env;
     mpi::communicator com_world;
     
-#ifdef BENCHMARK
-    // benchmarking variables
-    double ref_time, ref2_time, cycle_start_time;
-    double initialization_time;
-    double run_time;
-    double cycle_time = 0;
-    double projection_time = 0;
-    double snapshot_output_time = 0;
-    double spectra_output_time = 0;
-    double lightcone_output_time = 0;
-    double gravity_solver_time = 0;
-    double fft_time = 0;
-    int fft_count = 0;
-    double update_q_time = 0;
-    int update_q_count = 0;
-    double moveParts_time = 0;
-    int moveParts_count = 0;
-#endif // BENCHMARK
+// #ifdef BENCHMARK
+//     // benchmarking variables
+//     double ref_time, ref2_time, cycle_start_time;
+//     double initialization_time;
+//     double run_time;
+//     double cycle_time = 0;
+//     double projection_time = 0;
+//     double snapshot_output_time = 0;
+//     double spectra_output_time = 0;
+//     double lightcone_output_time = 0;
+//     double gravity_solver_time = 0;
+//     double fft_time = 0;
+//     int fft_count = 0;
+//     double update_q_time = 0;
+//     int update_q_count = 0;
+//     double moveParts_time = 0;
+//     int moveParts_count = 0;
+// #endif // BENCHMARK
 
     int n = 0, m = 0;
 #ifdef EXTERNAL_IO
@@ -146,14 +146,15 @@ int main (int argc, char **argv)
     int io_group_size = 0;
 #endif
 
-    int i, j, cycle = 0, snapcount = 0, pkcount = 0, restartcount = 0,
-              usedparams, numparam = 0, numspecies, done_hij;
-    int numsteps_ncdm[MAX_PCL_SPECIES - 2];
-    long numpts3d;
+    int cycle = 0, snapcount = 0, pkcount = 0, restartcount = 0,
+              usedparams, numparam = 0, numspecies;
+    // int done_hij;
+    // int numsteps_ncdm[MAX_PCL_SPECIES - 2];
+    // long numpts3d;
     int box[3];
     double dtau, dtau_old, dx, tau, a, tmp, start_time;
     double maxvel[MAX_PCL_SPECIES];
-    FILE *outfile;
+    // FILE *outfile;
     char filename[2 * PARAM_MAX_LENGTH + 24];
     string h5filename;
     char *settingsfile = NULL;
@@ -170,7 +171,7 @@ int main (int argc, char **argv)
     H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
 #endif
 
-    for (i = 1; i < argc; i++)
+    for (int i = 1; i < argc; i++)
     {
         if (argv[i][0] != '-')
             continue;
@@ -266,9 +267,9 @@ int main (int argc, char **argv)
     rKSite kFT (latFT);
 
     dx = 1.0 / (double)sim.numpts;
-    numpts3d = (long)sim.numpts * (long)sim.numpts * (long)sim.numpts;
+    // numpts3d = (long)sim.numpts * (long)sim.numpts * (long)sim.numpts;
 
-    for (i = 0; i < 3;
+    for (int i = 0; i < 3;
          i++) // particles may never move farther than to the adjacent domain
     {
         if (lat.sizeLocal (i) - 1 < sim.movelimit)
@@ -362,7 +363,7 @@ int main (int argc, char **argv)
 
     if (sim.gr_flag == gravity_theory::GR)
     {
-        for (i = 0; i < numspecies; i++)
+        for (int i = 0; i < numspecies; i++)
             maxvel[i] /= sqrt (maxvel[i] * maxvel[i] + 1.0);
     }
 
@@ -466,6 +467,7 @@ int main (int argc, char **argv)
 
         // lightcone output
         if (sim.num_lightcone > 0)
+        {
             //writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
             //                 maxvel[0], cycle,
             //                 h5filename + sim.basename_lightcone, &pcls_cdm,
@@ -473,9 +475,11 @@ int main (int argc, char **argv)
             //                 &PM->Tij, &PM->Bi_FT,
             //                 &PM->Tij_FT, &PM->plan_Bi, &PM->plan_Tij, done_hij, IDbacklog);
             ;
+        }
         else
-            done_hij = 0;
-
+        {
+            // done_hij = 0;
+        }
 
         // TODO: snapshot output
         if (snapcount < sim.num_snapshot
@@ -521,6 +525,7 @@ int main (int argc, char **argv)
 
         if (pkcount >= sim.num_pk && snapcount >= sim.num_snapshot)
         {
+            int i;
             for (i = 0; i < sim.num_lightcone; i++)
             {
                 if (sim.lightcone[i].z + 1. < 1. / a)
@@ -605,7 +610,7 @@ int main (int argc, char **argv)
 
         if (sim.gr_flag == gravity_theory::GR)
         {
-            for (i = 0; i < numspecies; i++)
+            for (int i = 0; i < numspecies; i++)
                 maxvel[i] /= sqrt (maxvel[i] * maxvel[i] + 1.0);
         }
         // done particle update

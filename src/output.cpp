@@ -287,8 +287,6 @@ void write_snapshot (
     std::string filename
 )
 {
-    char buffer[64];
-    int i;
     gadget2_header hdr;
 
     if (sim.out_snapshot & MASK_GADGET)
@@ -306,11 +304,11 @@ void write_snapshot (
         hdr.flag_feedback = 0;
         hdr.flag_age = 0;
         hdr.flag_metals = 0;
-        for (i = 0; i < 256 - 6 * 4 - 6 * 8 - 2 * 8 - 2 * 4 - 6 * 4 - 2 * 4
+        for (int i = 0; i < 256 - 6 * 4 - 6 * 8 - 2 * 8 - 2 * 4 - 6 * 4 - 2 * 4
                             - 4 * 8 - 2 * 4 - 6 * 4;
              i++)
             hdr.fill[i] = 0;
-        for (i = 0; i < 6; i++)
+        for (int i = 0; i < 6; i++)
         {
             hdr.npart[i] = 0;
             hdr.npartTotal[i] = 0;
@@ -406,13 +404,22 @@ void write_snapshot (
 void writeLightcones (
     metadata &sim, const cosmology cosmo, const double a,
     const double tau, const double dtau, const double dtau_old,
-    const double maxvel, const int cycle, std::string h5filename,
+    const double /* maxvel */, 
+    const int cycle, 
+    std::string h5filename,
     Particles_gevolution *pcls_cdm,
     Particles_gevolution *pcls_b,
     Particles_gevolution *pcls_ncdm,
-    Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *Sij,
-    Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_Bi,
-    PlanFFT<Cplx> *plan_Sij, int &done_hij, std::set<long> *IDbacklog)
+    Field<Real> *phi, 
+    Field<Real> * /* chi */, 
+    Field<Real> * /* Bi */, 
+    Field<Real> * /* Sij */,
+    Field<Cplx> * /* BiFT */, 
+    Field<Cplx> * /* SijFT */, 
+    PlanFFT<Cplx> * /* plan_Bi */,
+    PlanFFT<Cplx> * /* plan_Sij */, 
+    int &done_hij, 
+    std::set<long> *IDbacklog)
 {
     int i, j, n, p;
     double d;
@@ -2954,10 +2961,16 @@ void writeSpectra (
     Particles_gevolution *pcls_cdm,
     Particles_gevolution *pcls_b,
     Particles_gevolution *pcls_ncdm,
-    Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *source,
+    Field<Real> *phi, 
+    Field<Real> * /* chi */, 
+    Field<Real> * /* Bi */, 
+    Field<Real> *source,
     Field<Real> *Sij, Field<Cplx> *scalarFT, Field<Cplx> *BiFT,
-    Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi, PlanFFT<Cplx> *plan_chi,
-    PlanFFT<Cplx> *plan_Bi, PlanFFT<Cplx> *plan_source, PlanFFT<Cplx> *plan_Sij
+    Field<Cplx> *SijFT, 
+    PlanFFT<Cplx> *plan_phi, 
+    PlanFFT<Cplx> *plan_chi,
+    PlanFFT<Cplx> * /* plan_Bi */, 
+    PlanFFT<Cplx> *plan_source, PlanFFT<Cplx> *plan_Sij
 #ifdef CHECK_B
     ,
     Field<Real> *Bi_check, Field<Cplx> *BiFT_check, PlanFFT<Cplx> *plan_Bi_check

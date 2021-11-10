@@ -318,8 +318,8 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         double /* fourpiG */, 
         double a) const override
     {
-        const int N = size();
-        const real_type dx = 1.0 / N;
+        // const int N = size();
+        // const real_type dx = 1.0 / N;
         
         site_type xpart(pcls.lattice());
         for(xpart.first();xpart.test();xpart.next())
@@ -327,7 +327,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
             for(auto& part : pcls.field()(xpart).parts )
             {
                 std::array<real_type,3> pos{part.pos[0],part.pos[1],part.pos[2]};
-                std::array<real_type,3> momentum{part.vel[0],part.vel[1],part.vel[2]};
+                // std::array<real_type,3> momentum{part.vel[0],part.vel[1],part.vel[2]};
                 std::array<real_type,3> 
                     gradphi = gradient(phi,xpart,pos), 
                     gradchi = gradient(chi,xpart,pos), 

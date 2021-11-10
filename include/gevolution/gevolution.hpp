@@ -323,7 +323,7 @@ void solveModifiedPoissonFT (Field<Complex> &sourceFT, Field<Complex> &potFT,
     const int linesize = potFT.lattice().size(1);
     int i;
     Real * gridk2;
-    Real * sinc;
+    // Real * sinc;
     rKSite k(potFT.lattice());
     
     gridk2 = (Real *) malloc(linesize * sizeof(Real));
