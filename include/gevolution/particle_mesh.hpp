@@ -200,6 +200,8 @@ class particle_mesh
     virtual void compute_forces(particle_container& pcls, double fourpiG, double a) const = 0;
     virtual ~particle_mesh(){}
     
+    virtual void save_to_file( std::string  ) const = 0;
+    
     virtual std::array<real_type,3> momentum_to_velocity(
                           const std::array<real_type,3>& momentum,
                           const std::array<real_type,3>& position,

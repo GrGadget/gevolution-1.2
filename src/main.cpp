@@ -491,6 +491,11 @@ int main (int argc, char **argv)
                     + string_fill(std::to_string(snapcount),3,'0') 
                     +"_cdm");
             
+            PM->save_to_file(
+                h5filename
+                    +sim.basename_snapshot
+                    + string_fill(std::to_string(snapcount),3,'0') ); 
+            
             snapcount++;
         }
 
@@ -513,25 +518,6 @@ int main (int argc, char **argv)
 
             pkcount++;
         }
-
-#ifdef EXACT_OUTPUT_REDSHIFTS
-        tmp = a;
-        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
-        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
-
-        if (pkcount < sim.num_pk && 1. / tmp < sim.z_pk[pkcount] + 1.)
-        {
-            // writeSpectra (sim, cosmo, a, pkcount,
-            //               &pcls_cdm, &pcls_b, pcls_ncdm, 
-            //               &PM->phi, &PM->chi, &PM->Bi,
-            //               &PM->T00, &PM->Tij, 
-            //               &PM->T00_FT,   &PM->Bi_FT, &PM->Tij_FT, 
-            //               &PM->plan_phi, &PM->plan_chi, 
-            //               &PM->plan_Bi,  &PM->plan_T00, &PM->plan_Tij
-            // );
-        }
-#endif // EXACT_OUTPUT_REDSHIFTS
-
 
         if (pkcount >= sim.num_pk && snapcount >= sim.num_snapshot)
         {

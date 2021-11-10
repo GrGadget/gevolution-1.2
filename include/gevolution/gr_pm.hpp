@@ -555,5 +555,17 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         // return show_mean(phi) * N * N *N;
         return show_mean(phi);
     }
+    virtual void save_to_file(std::string prefix) const 
+    {
+        // save the energy-momentum tensor
+        T00.saveHDF5 (prefix + "_T00.h5");
+        T0i.saveHDF5 (prefix + "_T0i.h5");
+        Tij.saveHDF5 (prefix + "_Tij.h5");
+        
+        // save the potentials
+        phi.saveHDF5 (prefix + "_phi.h5");
+        chi.saveHDF5 (prefix + "_chi.h5");
+        Bi.saveHDF5 (prefix + "_B.h5");
+    }
 };
 } // namespace gevolution

@@ -230,6 +230,14 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         }
         return momentum;
     }
+    virtual void save_to_file(std::string prefix) const 
+    {
+        // save the energy-momentum tensor
+        source.saveHDF5 (prefix + "_T00.h5"); // TODO check if source == T00
+        
+        // save the potentials
+        phi.saveHDF5 (prefix + "_phi.h5");
+    }
 };
 
 template<class functor_type, typename complex_type, typename particle_container>
