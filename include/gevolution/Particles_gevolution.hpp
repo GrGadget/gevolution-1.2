@@ -38,10 +38,16 @@ using LATfield2::Site;
     The indivual particle data structure in gevolution is 'particle',
     defined below.
 */
+// TODO: template particle variables
 struct particle : LATfield2::part_simple
 {
+    // inherited from LATfield2::part_simple we have
+    // pos[]; // that's position (x)
+    // vel[]; // that's velocity (dx/dt)
+    // id;
     Real mass;
-    std::array<Real,3> acc{0,0,0};
+    std::array<Real,3> momentum{0,0,0}; // that's momentum (p)
+    std::array<Real,3> force{0,0,0};    // that's force (dp/dt)
 };
 
 typedef LATfield2::part_simple_info particle_info;

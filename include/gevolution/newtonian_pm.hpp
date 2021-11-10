@@ -109,7 +109,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
                 std::array<real_type,3> gradphi=gradient(phi,xpart,pos);
                 for (int i=0;i<3;i++)
                 {
-                    part.acc[i] = -gradphi[i] * fourpiG * a;
+                    part.force[i] = -gradphi[i] * fourpiG * a;
                 }
             }
         }
@@ -146,30 +146,30 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
                     for(int l=0;l<3;++l)
                         ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
                     
-                    part.acc[i] = 0.0;
+                    part.force[i] = 0.0;
                     
-                    part.acc[i] +=
+                    part.force[i] +=
                     (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart);
                     
-                    part.acc[i] +=
+                    part.force[i] +=
                     (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart+0);
                     
-                    part.acc[i] +=
+                    part.force[i] +=
                     (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1);
                     
-                    part.acc[i] +=
+                    part.force[i] +=
                     (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1+0);
                     
-                    part.acc[i] +=
+                    part.force[i] +=
                     (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2);
                     
-                    part.acc[i] +=
+                    part.force[i] +=
                     (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2+0);
                     
-                    part.acc[i] +=
+                    part.force[i] +=
                     (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1);
                     
-                    part.acc[i] +=
+                    part.force[i] +=
                     (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1+0);
                 }
             }

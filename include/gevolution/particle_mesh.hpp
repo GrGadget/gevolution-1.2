@@ -138,7 +138,7 @@ class particle_mesh
                {
                    v2 += part.vel[i]*part.vel[i];
                    p2 += part.pos[i]*part.pos[i];
-                   a2 += part.acc[i]*part.acc[i];
+                   a2 += part.force[i]*part.force[i];
                }
                masspos += p2*part.mass;
                massvel += v2*part.mass;
@@ -213,6 +213,24 @@ class particle_mesh
                           const LATfield2::Site& xpart,
                           const real_type a) const = 0;
     
+    void compute_velocities(particle_container& pcls, double a=1)
+    {
+        pcls.for_each(
+            [&](particle_type &part, const site_type& xpart)
+            {
+                std::array<real_type,3> velocity =
+                    momentum_to_velocity(
+                        part.momentum,
+                        {part.pos[0],part.pos[1],part.pos[2]},
+                        xpart,
+                        a);
+                for(int i=0;i<3;++i)
+                {
+                    part.vel[i] = velocity[i];
+                }
+            }
+        );
+    }
 };
 
 }

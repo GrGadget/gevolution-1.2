@@ -409,6 +409,17 @@ int main (int argc, char **argv)
           << "\n";
     }
     
+    
+    // TODO: remove this ugly fix. The problem is that initialization is still
+    // thinking that 'vel' is momentum
+    pcls_cdm.for_each(
+        [](particle &part, const Site& /* xpart */)
+        {
+            for(int i=0;i<3;++i)
+                part.momentum[i] = part.vel[i];
+        }
+    );
+    
     do // main loop
     {
         COUT << "Starting cycle: " << cycle << '\n';        
@@ -564,44 +575,42 @@ int main (int argc, char **argv)
             COUT << " mean sqr(vel): " << vel << "\n";
             COUT << " mean sqr(acc): " << acc << "\n";
         }
-        maxvel[0]=0;
+        
+        // Kick
         pcls_cdm.for_each(
             [&]
             (particle& part, const Site& /*xpart*/)
             {
                const double dtau_eff =  
                                (dtau + dtau_old) * 0.5 ;
-               double v2 = 0;
                for(int i=0;i<3;++i)
                {
-                   part.vel[i] += dtau_eff * part.acc[i];
-                   v2 += part.vel[i]*part.vel[i];
+                   part.momentum[i] += dtau_eff * part.force[i];
                }
-               maxvel[0]=std::max(maxvel[0],v2);
             }
             );
-        maxvel[0] = std::sqrt(maxvel[0])/a;              
         
         Debugger_ptr -> flush();
 
         rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
-
+        
+        maxvel[0]=0;
+        PM->compute_velocities(pcls_cdm,a);
+        // Drift
         pcls_cdm.for_each(
-            [&](particle& part, const Site& xpart)
+            [&](particle& part, const Site& /* xpart */)
             {
-                std::array<Real,3> velocity =
-                PM->momentum_to_velocity(
-                    {part.vel[0],part.vel[1],part.vel[2]},
-                    {part.pos[0],part.pos[1],part.pos[2]},
-                    xpart,
-                    a);
+                double v2 = 0;
                 for(int i=0;i<3;++i)
                 {
-                    part.pos[i] += dtau * velocity[i];
+                    part.pos[i] += dtau * part.vel[i];
+                    v2 += part.vel[i]*part.vel[i];
                 }
+               maxvel[0]=std::max(maxvel[0],v2);
             }
         );
+        maxvel[0] = std::sqrt(maxvel[0]);              
             
         rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
