@@ -60,341 +60,545 @@ using LATfield2::PlanFFT;
 //
 //////////////////////////
 
-void writeSnapshots (
-    metadata &sim, const cosmology cosmo, const double a,
-    const double dtau_old, const int done_hij, const int snapcount,
-    std::string h5filename,
-    Particles_gevolution *pcls_cdm,
-    Particles_gevolution *pcls_b,
-    Particles_gevolution *pcls_ncdm,
-    Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *source,
-    Field<Real> *Sij, Field<Cplx> *scalarFT, Field<Cplx> *BiFT,
-    Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi, PlanFFT<Cplx> *plan_chi,
-    PlanFFT<Cplx> *plan_Bi, PlanFFT<Cplx> *plan_source, PlanFFT<Cplx> *plan_Sij
-#ifdef CHECK_B
-    ,
-    Field<Real> *Bi_check, Field<Cplx> *BiFT_check, PlanFFT<Cplx> *plan_Bi_check
-#endif
-#ifdef VELOCITY
-    ,
-    Field<Real> *vi
-#endif
+// void writeSnapshots (
+//     metadata &sim, const cosmology cosmo, const double a,
+//     const double dtau_old, const int done_hij, const int snapcount,
+//     std::string h5filename,
+//     Particles_gevolution *pcls_cdm,
+//     Particles_gevolution *pcls_b,
+//     Particles_gevolution *pcls_ncdm,
+//     Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *source,
+//     Field<Real> *Sij, Field<Cplx> *scalarFT, Field<Cplx> *BiFT,
+//     Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi, PlanFFT<Cplx> *plan_chi,
+//     PlanFFT<Cplx> *plan_Bi, PlanFFT<Cplx> *plan_source, PlanFFT<Cplx> *plan_Sij
+// #ifdef CHECK_B
+//     ,
+//     Field<Real> *Bi_check, Field<Cplx> *BiFT_check, PlanFFT<Cplx> *plan_Bi_check
+// #endif
+// #ifdef VELOCITY
+//     ,
+//     Field<Real> *vi
+// #endif
+// )
+// {
+//     char filename[2 * PARAM_MAX_LENGTH + 24];
+//     char buffer[64];
+//     int i;
+//     gadget2_header hdr;
+//     Site x (phi->lattice ());
+//     Real divB, curlB, divh, traceh, normh;
+//     double dtau_pos = 0.;
+// 
+//     sprintf (filename, "%03d", snapcount);
+// 
+// #ifdef EXTERNAL_IO
+//     while (ioserver.openOstream () == OSTREAM_FAIL)
+//         ;
+// 
+//     if (sim.out_snapshot & MASK_PCLS)
+//     {
+//         pcls_cdm->saveHDF5_server_open (h5filename + filename + "_cdm");
+//         if (sim.baryon_flag)
+//             pcls_b->saveHDF5_server_open (h5filename + filename + "_b");
+//         for (i = 0; i < cosmo.num_ncdm; i++)
+//         {
+//             if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                 continue;
+//             sprintf (buffer, "_ncdm%d", i);
+//             pcls_ncdm[i].saveHDF5_server_open (h5filename + filename + buffer);
+//         }
+//     }
+// 
+//     if (sim.out_snapshot & MASK_T00)
+//         source->saveHDF5_server_open (h5filename + filename + "_T00");
+// 
+// #ifdef VELOCITY
+//     if (sim.out_snapshot & MASK_VEL)
+//         vi->saveHDF5_server_open (h5filename + filename + "_v");
+// #endif
+// 
+//     if (sim.out_snapshot & MASK_B)
+//         Bi->saveHDF5_server_open (h5filename + filename + "_B");
+// 
+//     if (sim.out_snapshot & MASK_PHI)
+//         phi->saveHDF5_server_open (h5filename + filename + "_phi");
+// 
+//     if (sim.out_snapshot & MASK_CHI)
+//         chi->saveHDF5_server_open (h5filename + filename + "_chi");
+// 
+//     if (sim.out_snapshot & MASK_HIJ)
+//         Sij->saveHDF5_server_open (h5filename + filename + "_hij");
+// 
+// #ifdef CHECK_B
+//     if (sim.out_snapshot & MASK_B)
+//         Bi_check->saveHDF5_server_open (h5filename + filename + "_B_check");
+// #endif
+// #endif
+// 
+//     if (sim.out_snapshot & MASK_RBARE || sim.out_snapshot & MASK_POT)
+//     {
+//         projection_init (source);
+//         scalarProjectionCIC_project (pcls_cdm, source);
+//         if (sim.baryon_flag)
+//             scalarProjectionCIC_project (pcls_b, source);
+//         for (i = 0; i < cosmo.num_ncdm; i++)
+//         {
+//             if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                 continue;
+//             scalarProjectionCIC_project (pcls_ncdm + i, source);
+//         }
+//         scalarProjectionCIC_comm (source);
+//     }
+// 
+//     if (sim.out_snapshot & MASK_RBARE)
+//     {
+//         if (sim.downgrade_factor > 1)
+//             source->saveHDF5_coarseGrain3D (h5filename + filename + "_rhoN.h5",
+//                                             sim.downgrade_factor);
+//         else
+//             source->saveHDF5 (h5filename + filename + "_rhoN.h5");
+//     }
+// 
+//     if (sim.out_snapshot & MASK_POT)
+//     {
+//         plan_source->execute (FFT_FORWARD);
+//         solveModifiedPoissonFT (*scalarFT, *scalarFT, cosmo.fourpiG / a);
+//         plan_source->execute (FFT_BACKWARD);
+//         if (sim.downgrade_factor > 1)
+//             source->saveHDF5_coarseGrain3D (h5filename + filename + "_psiN.h5",
+//                                             sim.downgrade_factor);
+//         else
+//             source->saveHDF5 (h5filename + filename + "_psiN.h5");
+//     }
+// 
+//     if (sim.out_snapshot & MASK_T00)
+//     {
+//         projection_init (source);
+//         if (sim.gr_flag == gravity_theory::GR)
+//         {
+//             projection_T00_project (pcls_cdm, source, a, phi);
+//             if (sim.baryon_flag)
+//                 projection_T00_project (pcls_b, source, a, phi);
+//             for (i = 0; i < cosmo.num_ncdm; i++)
+//             {
+//                 if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                     continue;
+//                 projection_T00_project (pcls_ncdm + i, source, a, phi);
+//             }
+//         }
+//         else
+//         {
+//             scalarProjectionCIC_project (pcls_cdm, source);
+//             if (sim.baryon_flag)
+//                 scalarProjectionCIC_project (pcls_b, source);
+//             for (i = 0; i < cosmo.num_ncdm; i++)
+//             {
+//                 if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                     continue;
+//                 scalarProjectionCIC_project (pcls_ncdm + i, source);
+//             }
+//         }
+//         projection_T00_comm (source);
+// #ifdef EXTERNAL_IO
+//         source->saveHDF5_server_write (NUMBER_OF_IO_FILES);
+// #else
+//         if (sim.downgrade_factor > 1)
+//             source->saveHDF5_coarseGrain3D (h5filename + filename + "_T00.h5",
+//                                             sim.downgrade_factor);
+//         else
+//             source->saveHDF5 (h5filename + filename + "_T00.h5");
+// #endif
+//     }
+// 
+// #ifdef VELOCITY
+//     if (sim.out_snapshot & MASK_VEL)
+//     {
+// #ifdef EXTERNAL_IO
+//         vi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
+// #else
+//         if (sim.downgrade_factor > 1)
+//             vi->saveHDF5_coarseGrain3D (h5filename + filename + "_v.h5",
+//                                         sim.downgrade_factor);
+//         else
+//             vi->saveHDF5 (h5filename + filename + "_v.h5");
+// #endif
+//     }
+// #endif
+// 
+//     if (sim.out_snapshot & MASK_B)
+//     {
+//         if (sim.gr_flag == gravity_theory::Newtonian)
+//         {
+//             plan_Bi->execute (FFT_BACKWARD);
+//         }
+//         for (x.first (); x.test (); x.next ())
+//         {
+//             (*Bi) (x, 0) /= a * a * sim.numpts;
+//             (*Bi) (x, 1) /= a * a * sim.numpts;
+//             (*Bi) (x, 2) /= a * a * sim.numpts;
+//         }
+//         Bi->updateHalo ();
+// 
+//         computeVectorDiagnostics (*Bi, divB, curlB);
+//         COUT << " B diagnostics: max |divB| = " << divB
+//              << ", max |curlB| = " << curlB << std::endl;
+// 
+// #ifdef EXTERNAL_IO
+//         Bi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
+// #else
+//         if (sim.downgrade_factor > 1)
+//             Bi->saveHDF5_coarseGrain3D (h5filename + filename + "_B.h5",
+//                                         sim.downgrade_factor);
+//         else
+//             Bi->saveHDF5 (h5filename + filename + "_B.h5");
+// #endif
+// 
+//         if (sim.gr_flag == gravity_theory::GR)
+//         {
+//             plan_Bi->execute (FFT_BACKWARD);
+//             Bi->updateHalo ();
+//         }
+//     }
+// 
+//     if (sim.out_snapshot & MASK_PHI)
+//     {
+// #ifdef EXTERNAL_IO
+//         phi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
+// #else
+//         if (sim.downgrade_factor > 1)
+//             phi->saveHDF5_coarseGrain3D (h5filename + filename + "_phi.h5",
+//                                          sim.downgrade_factor);
+//         else
+//             phi->saveHDF5 (h5filename + filename + "_phi.h5");
+// #endif
+//    }
+// 
+//     if (sim.out_snapshot & MASK_CHI)
+//     {
+// #ifdef EXTERNAL_IO
+//         chi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
+// #else
+//         if (sim.downgrade_factor > 1)
+//             chi->saveHDF5_coarseGrain3D (h5filename + filename + "_chi.h5",
+//                                          sim.downgrade_factor);
+//         else
+//             chi->saveHDF5 (h5filename + filename + "_chi.h5");
+// #endif
+//     }
+//     if (sim.out_snapshot & MASK_HIJ)
+//     {
+//         if (done_hij == 0)
+//         {
+//             projectFTtensor (*SijFT, *SijFT);
+//             plan_Sij->execute (FFT_BACKWARD);
+//             Sij->updateHalo ();
+//         }
+// 
+//         computeTensorDiagnostics (*Sij, divh, traceh, normh);
+//         COUT << " GW diagnostics: max |divh| = " << divh
+//              << ", max |traceh| = " << traceh << ", max |h| = " << normh
+//              << std::endl;
+// 
+// #ifdef EXTERNAL_IO
+//         Sij->saveHDF5_server_write (NUMBER_OF_IO_FILES);
+// #else
+//         if (sim.downgrade_factor > 1)
+//             Sij->saveHDF5_coarseGrain3D (h5filename + filename + "_hij.h5",
+//                                          sim.downgrade_factor);
+//         else
+//             Sij->saveHDF5 (h5filename + filename + "_hij.h5");
+// #endif
+//     }
+// 
+//     if (sim.out_snapshot & MASK_TIJ)
+//     {
+//         projection_init (Sij);
+//         projection_Tij_project (pcls_cdm, Sij, a, phi);
+//         if (sim.baryon_flag)
+//             projection_Tij_project (pcls_b, Sij, a, phi);
+//         for (i = 0; i < cosmo.num_ncdm; i++)
+//         {
+//             if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                 continue;
+//             projection_Tij_project (pcls_ncdm + i, Sij, a, phi);
+//         }
+//         projection_Tij_comm (Sij);
+// 
+//         if (sim.downgrade_factor > 1)
+//             Sij->saveHDF5_coarseGrain3D (h5filename + filename + "_Tij.h5",
+//                                          sim.downgrade_factor);
+//         else
+//             Sij->saveHDF5 (h5filename + filename + "_Tij.h5");
+//     }
+// 
+//     if (sim.out_snapshot & MASK_P)
+//     {
+//         projection_init (Bi);
+//         projection_T0i_project (pcls_cdm, Bi, phi);
+//         if (sim.baryon_flag)
+//             projection_T0i_project (pcls_b, Bi, phi);
+//         for (i = 0; i < cosmo.num_ncdm; i++)
+//         {
+//             if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                 continue;
+//             projection_T0i_project (pcls_ncdm + i, Bi, phi);
+//         }
+//         projection_T0i_comm (Bi);
+//         if (sim.downgrade_factor > 1)
+//             Bi->saveHDF5_coarseGrain3D (h5filename + filename + "_p.h5",
+//                                         sim.downgrade_factor);
+//         else
+//             Bi->saveHDF5 (h5filename + filename + "_p.h5");
+//         if (sim.gr_flag == gravity_theory::GR)
+//         {
+//             plan_Bi->execute (FFT_BACKWARD);
+//             Bi->updateHalo ();
+//         }
+//     }
+// 
+// #ifdef CHECK_B
+//     if (sim.out_snapshot & MASK_B)
+//     {
+//         if (sim.vector_flag == VECTOR_PARABOLIC)
+//         {
+//             projection_init (Bi_check);
+//             projection_T0i_project (pcls_cdm, Bi_check, phi);
+//             if (sim.baryon_flag)
+//                 projection_T0i_project (pcls_b, Bi_check, phi);
+//             for (i = 0; i < cosmo.num_ncdm; i++)
+//             {
+//                 if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                     continue;
+//                 projection_T0i_project (pcls_ncdm + i, Bi_check, phi);
+//             }
+//             projection_T0i_comm (Bi_check);
+//             plan_Bi_check->execute (FFT_FORWARD);
+//             projectFTvector (*BiFT_check, *BiFT_check,
+//                              cosmo.fourpiG / (double)sim.numpts / (double)sim.numpts);
+//         }
+//         plan_Bi_check->execute (FFT_BACKWARD);
+// 
+//         for (x.first (); x.test (); x.next ())
+//         {
+//             (*Bi_check) (x, 0) /= a * a * sim.numpts;
+//             (*Bi_check) (x, 1) /= a * a * sim.numpts;
+//             (*Bi_check) (x, 2) /= a * a * sim.numpts;
+//         }
+// #ifdef EXTERNAL_IO
+//         Bi_check->saveHDF5_server_write (NUMBER_OF_IO_FILES);
+// #else
+//         if (sim.downgrade_factor > 1)
+//             Bi_check->saveHDF5_coarseGrain3D (
+//                 h5filename + filename + "_B_check.h5", sim.downgrade_factor);
+//         else
+//             Bi_check->saveHDF5 (h5filename + filename + "_B_check.h5");
+// #endif
+//     }
+// #endif
+// 
+//     if (sim.out_snapshot & MASK_GADGET)
+//     {
+//         if (sim.out_snapshot & MASK_MULTI)
+//             hdr.num_files = parallel.grid_size ()[1];
+//         else
+//             hdr.num_files = 1;
+//         hdr.Omega0 = cosmo.Omega_m;
+//         hdr.OmegaLambda = cosmo.Omega_Lambda;
+//         hdr.HubbleParam = cosmo.h;
+//         hdr.BoxSize = sim.boxsize / GADGET_LENGTH_CONVERSION;
+//         hdr.flag_sfr = 0;
+//         hdr.flag_cooling = 0;
+//         hdr.flag_feedback = 0;
+//         hdr.flag_age = 0;
+//         hdr.flag_metals = 0;
+//         for (i = 0; i < 256 - 6 * 4 - 6 * 8 - 2 * 8 - 2 * 4 - 6 * 4 - 2 * 4
+//                             - 4 * 8 - 2 * 4 - 6 * 4;
+//              i++)
+//             hdr.fill[i] = 0;
+//         for (i = 0; i < 6; i++)
+//         {
+//             hdr.npart[i] = 0;
+//             hdr.npartTotal[i] = 0;
+//             hdr.npartTotalHW[i] = 0;
+//             hdr.mass[i] = 0.;
+//         }
+// 
+// #ifdef EXACT_OUTPUT_REDSHIFTS
+//         hdr.time = 1. / (sim.z_snapshot[snapcount] + 1.);
+//         hdr.redshift = sim.z_snapshot[snapcount];
+//         dtau_pos = (hdr.time - a) / a / Hconf (a, cosmo);
+// #else
+//         hdr.time = a;
+//         hdr.redshift = (1. / a) - 1.;
+// #endif
+// 
+//         if (sim.tracer_factor[0] > 0)
+//         {
+//             hdr.npart[1] = (uint32_t) (
+//                 ((sim.numpcl[0] % sim.tracer_factor[0])
+//                      ? (1 + (sim.numpcl[0] / sim.tracer_factor[0]))
+//                      : (sim.numpcl[0] / sim.tracer_factor[0]))
+//                 % (1ll << 32));
+//             hdr.npartTotal[1] = hdr.npart[1];
+//             hdr.npartTotalHW[1] = (uint32_t) (
+//                 ((sim.numpcl[0] % sim.tracer_factor[0])
+//                      ? (1 + (sim.numpcl[0] / sim.tracer_factor[0]))
+//                      : (sim.numpcl[0] / sim.tracer_factor[0]))
+//                 / (1ll << 32));
+//             if (sim.baryon_flag)
+//                 hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
+//                               * cosmo.Omega_cdm * sim.boxsize * sim.boxsize
+//                               * sim.boxsize / sim.numpcl[0]
+//                               / GADGET_MASS_CONVERSION;
+//             else
+//                 hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
+//                               * (cosmo.Omega_cdm + cosmo.Omega_b) * sim.boxsize
+//                               * sim.boxsize * sim.boxsize / sim.numpcl[0]
+//                               / GADGET_MASS_CONVERSION;
+// 
+//             if (hdr.npartTotalHW[1] != 0 && hdr.num_files == 1)
+//             {
+//                 COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
+//                      << ": number of particles ("
+//                      << (sim.numpcl[0] / sim.tracer_factor[0])
+//                      << ") in Gadget2 file exceeds limit "
+//                         "(4294967295). Try "
+//                         "using "
+//                         "multi-Gadget2 output format."
+//                      << std::endl;
+//             }
+//             else
+//                 pcls_cdm->saveGadget2 (h5filename + filename + "_cdm", hdr,
+//                                        sim.tracer_factor[0], dtau_pos,
+//                                        dtau_pos + 0.5 * dtau_old, phi);
+//         }
+// 
+//         if (sim.baryon_flag && sim.tracer_factor[1] > 0)
+//         {
+//             hdr.npart[1] = (uint32_t) (
+//                 ((sim.numpcl[1] % sim.tracer_factor[1])
+//                      ? (1 + (sim.numpcl[1] / sim.tracer_factor[1]))
+//                      : (sim.numpcl[1] / sim.tracer_factor[1]))
+//                 % (1ll << 32));
+//             hdr.npartTotal[1] = hdr.npart[1];
+//             hdr.npartTotalHW[1] = (uint32_t) (
+//                 ((sim.numpcl[1] % sim.tracer_factor[1])
+//                      ? (1 + (sim.numpcl[1] / sim.tracer_factor[1]))
+//                      : (sim.numpcl[1] / sim.tracer_factor[1]))
+//                 / (1ll << 32));
+//             hdr.mass[1] = (double)sim.tracer_factor[1] * cosmo.C_RHO_CRIT
+//                           * cosmo.Omega_b * sim.boxsize * sim.boxsize
+//                           * sim.boxsize / sim.numpcl[1]
+//                           / GADGET_MASS_CONVERSION;
+//             if (hdr.npartTotalHW[1] != 0 && hdr.num_files == 1)
+//             {
+//                 COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
+//                      << ": number of particles ("
+//                      << (sim.numpcl[1] / sim.tracer_factor[1])
+//                      << ") in Gadget2 file exceeds limit "
+//                         "(4294967295). Try "
+//                         "using "
+//                         "multi-Gadget2 output format."
+//                      << std::endl;
+//             }
+//             else
+//                 pcls_b->saveGadget2 (h5filename + filename + "_b", hdr,
+//                                      sim.tracer_factor[1], dtau_pos,
+//                                      dtau_pos + 0.5 * dtau_old, phi);
+//         }
+// 
+//         for (i = 0; i < cosmo.num_ncdm; i++)
+//         {
+//             if (sim.numpcl[1 + sim.baryon_flag + i] == 0
+//                 || sim.tracer_factor[i + 1 + sim.baryon_flag] == 0)
+//                 continue;
+//             sprintf (buffer, "_ncdm%d", i);
+//             hdr.npart[1] = (uint32_t) (
+//                 ((sim.numpcl[i + 1 + sim.baryon_flag]
+//                   % sim.tracer_factor[i + 1 + sim.baryon_flag])
+//                      ? (1
+//                         + (sim.numpcl[i + 1 + sim.baryon_flag]
+//                            / sim.tracer_factor[i + 1 + sim.baryon_flag]))
+//                      : (sim.numpcl[i + 1 + sim.baryon_flag]
+//                         / sim.tracer_factor[i + 1 + sim.baryon_flag]))
+//                 % (1ll << 32));
+//             hdr.npartTotal[1] = hdr.npart[1];
+//             hdr.npartTotalHW[1] = (uint32_t) (
+//                 ((sim.numpcl[i + 1 + sim.baryon_flag]
+//                   % sim.tracer_factor[i + 1 + sim.baryon_flag])
+//                      ? (1
+//                         + (sim.numpcl[i + 1 + sim.baryon_flag]
+//                            / sim.tracer_factor[i + 1 + sim.baryon_flag]))
+//                      : (sim.numpcl[i + 1 + sim.baryon_flag]
+//                         / sim.tracer_factor[i + 1 + sim.baryon_flag]))
+//                 / (1ll << 32));
+//             hdr.mass[1] = (double)sim.tracer_factor[i + 1 + sim.baryon_flag]
+//                           * cosmo.C_RHO_CRIT * cosmo.Omega_ncdm[i] * sim.boxsize
+//                           * sim.boxsize * sim.boxsize
+//                           / sim.numpcl[i + 1 + sim.baryon_flag]
+//                           / GADGET_MASS_CONVERSION;
+//             if (hdr.npartTotalHW[1] != 0 && hdr.num_files == 1)
+//             {
+//                 COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
+//                      << ": number of particles ("
+//                      << (sim.numpcl[i + 1 + sim.baryon_flag]
+//                          / sim.tracer_factor[i + 1 + sim.baryon_flag])
+//                      << ") in Gadget2 file exceeds limit "
+//                         "(4294967295). Try "
+//                         "using "
+//                         "multi-Gadget2 output format."
+//                      << std::endl;
+//             }
+//             else
+//                 pcls_ncdm[i].saveGadget2 (
+//                     h5filename + filename + buffer, hdr,
+//                     sim.tracer_factor[i + 1 + sim.baryon_flag], dtau_pos,
+//                     dtau_pos + 0.5 * dtau_old, phi);
+//         }
+//     }
+// 
+//     if (sim.out_snapshot & MASK_PCLS)
+//     {
+// #ifdef EXTERNAL_IO
+//         pcls_cdm->saveHDF5_server_write ();
+//         if (sim.baryon_flag)
+//             pcls_b->saveHDF5_server_write ();
+//         for (i = 0; i < cosmo.num_ncdm; i++)
+//         {
+//             if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                 continue;
+//             pcls_ncdm[i].saveHDF5_server_write ();
+//         }
+// #else
+//         pcls_cdm->saveHDF5 (h5filename + filename + "_cdm", 1);
+//         if (sim.baryon_flag)
+//             pcls_b->saveHDF5 (h5filename + filename + "_b", 1);
+//         for (i = 0; i < cosmo.num_ncdm; i++)
+//         {
+//             if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
+//                 continue;
+//             sprintf (buffer, "_ncdm%d", i);
+//             pcls_ncdm[i].saveHDF5 (h5filename + filename + buffer, 1);
+//         }
+// #endif
+//     }
+// 
+// #ifdef EXTERNAL_IO
+//     ioserver.closeOstream ();
+// #endif
+// }
+
+void write_snapshot (
+    const metadata & sim, 
+    const cosmology& cosmo,
+    const double a /* scale factor */, 
+    const Particles_gevolution & pcls,
+    std::string filename
 )
 {
-    char filename[2 * PARAM_MAX_LENGTH + 24];
     char buffer[64];
     int i;
     gadget2_header hdr;
-    Site x (phi->lattice ());
-    Real divB, curlB, divh, traceh, normh;
-    double dtau_pos = 0.;
-
-    sprintf (filename, "%03d", snapcount);
-
-#ifdef EXTERNAL_IO
-    while (ioserver.openOstream () == OSTREAM_FAIL)
-        ;
-
-    if (sim.out_snapshot & MASK_PCLS)
-    {
-        pcls_cdm->saveHDF5_server_open (h5filename + filename + "_cdm");
-        if (sim.baryon_flag)
-            pcls_b->saveHDF5_server_open (h5filename + filename + "_b");
-        for (i = 0; i < cosmo.num_ncdm; i++)
-        {
-            if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                continue;
-            sprintf (buffer, "_ncdm%d", i);
-            pcls_ncdm[i].saveHDF5_server_open (h5filename + filename + buffer);
-        }
-    }
-
-    if (sim.out_snapshot & MASK_T00)
-        source->saveHDF5_server_open (h5filename + filename + "_T00");
-
-#ifdef VELOCITY
-    if (sim.out_snapshot & MASK_VEL)
-        vi->saveHDF5_server_open (h5filename + filename + "_v");
-#endif
-
-    if (sim.out_snapshot & MASK_B)
-        Bi->saveHDF5_server_open (h5filename + filename + "_B");
-
-    if (sim.out_snapshot & MASK_PHI)
-        phi->saveHDF5_server_open (h5filename + filename + "_phi");
-
-    if (sim.out_snapshot & MASK_CHI)
-        chi->saveHDF5_server_open (h5filename + filename + "_chi");
-
-    if (sim.out_snapshot & MASK_HIJ)
-        Sij->saveHDF5_server_open (h5filename + filename + "_hij");
-
-#ifdef CHECK_B
-    if (sim.out_snapshot & MASK_B)
-        Bi_check->saveHDF5_server_open (h5filename + filename + "_B_check");
-#endif
-#endif
-
-    if (sim.out_snapshot & MASK_RBARE || sim.out_snapshot & MASK_POT)
-    {
-        projection_init (source);
-        scalarProjectionCIC_project (pcls_cdm, source);
-        if (sim.baryon_flag)
-            scalarProjectionCIC_project (pcls_b, source);
-        for (i = 0; i < cosmo.num_ncdm; i++)
-        {
-            if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                continue;
-            scalarProjectionCIC_project (pcls_ncdm + i, source);
-        }
-        scalarProjectionCIC_comm (source);
-    }
-
-    if (sim.out_snapshot & MASK_RBARE)
-    {
-        if (sim.downgrade_factor > 1)
-            source->saveHDF5_coarseGrain3D (h5filename + filename + "_rhoN.h5",
-                                            sim.downgrade_factor);
-        else
-            source->saveHDF5 (h5filename + filename + "_rhoN.h5");
-    }
-
-    if (sim.out_snapshot & MASK_POT)
-    {
-        plan_source->execute (FFT_FORWARD);
-        solveModifiedPoissonFT (*scalarFT, *scalarFT, cosmo.fourpiG / a);
-        plan_source->execute (FFT_BACKWARD);
-        if (sim.downgrade_factor > 1)
-            source->saveHDF5_coarseGrain3D (h5filename + filename + "_psiN.h5",
-                                            sim.downgrade_factor);
-        else
-            source->saveHDF5 (h5filename + filename + "_psiN.h5");
-    }
-
-    if (sim.out_snapshot & MASK_T00)
-    {
-        projection_init (source);
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            projection_T00_project (pcls_cdm, source, a, phi);
-            if (sim.baryon_flag)
-                projection_T00_project (pcls_b, source, a, phi);
-            for (i = 0; i < cosmo.num_ncdm; i++)
-            {
-                if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                    continue;
-                projection_T00_project (pcls_ncdm + i, source, a, phi);
-            }
-        }
-        else
-        {
-            scalarProjectionCIC_project (pcls_cdm, source);
-            if (sim.baryon_flag)
-                scalarProjectionCIC_project (pcls_b, source);
-            for (i = 0; i < cosmo.num_ncdm; i++)
-            {
-                if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                    continue;
-                scalarProjectionCIC_project (pcls_ncdm + i, source);
-            }
-        }
-        projection_T00_comm (source);
-#ifdef EXTERNAL_IO
-        source->saveHDF5_server_write (NUMBER_OF_IO_FILES);
-#else
-        if (sim.downgrade_factor > 1)
-            source->saveHDF5_coarseGrain3D (h5filename + filename + "_T00.h5",
-                                            sim.downgrade_factor);
-        else
-            source->saveHDF5 (h5filename + filename + "_T00.h5");
-#endif
-    }
-
-#ifdef VELOCITY
-    if (sim.out_snapshot & MASK_VEL)
-    {
-#ifdef EXTERNAL_IO
-        vi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
-#else
-        if (sim.downgrade_factor > 1)
-            vi->saveHDF5_coarseGrain3D (h5filename + filename + "_v.h5",
-                                        sim.downgrade_factor);
-        else
-            vi->saveHDF5 (h5filename + filename + "_v.h5");
-#endif
-    }
-#endif
-
-    if (sim.out_snapshot & MASK_B)
-    {
-        if (sim.gr_flag == gravity_theory::Newtonian)
-        {
-            plan_Bi->execute (FFT_BACKWARD);
-        }
-        for (x.first (); x.test (); x.next ())
-        {
-            (*Bi) (x, 0) /= a * a * sim.numpts;
-            (*Bi) (x, 1) /= a * a * sim.numpts;
-            (*Bi) (x, 2) /= a * a * sim.numpts;
-        }
-        Bi->updateHalo ();
-
-        computeVectorDiagnostics (*Bi, divB, curlB);
-        COUT << " B diagnostics: max |divB| = " << divB
-             << ", max |curlB| = " << curlB << std::endl;
-
-#ifdef EXTERNAL_IO
-        Bi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
-#else
-        if (sim.downgrade_factor > 1)
-            Bi->saveHDF5_coarseGrain3D (h5filename + filename + "_B.h5",
-                                        sim.downgrade_factor);
-        else
-            Bi->saveHDF5 (h5filename + filename + "_B.h5");
-#endif
-
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            plan_Bi->execute (FFT_BACKWARD);
-            Bi->updateHalo ();
-        }
-    }
-
-    if (sim.out_snapshot & MASK_PHI)
-    {
-#ifdef EXTERNAL_IO
-        phi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
-#else
-        if (sim.downgrade_factor > 1)
-            phi->saveHDF5_coarseGrain3D (h5filename + filename + "_phi.h5",
-                                         sim.downgrade_factor);
-        else
-            phi->saveHDF5 (h5filename + filename + "_phi.h5");
-#endif
-   }
-
-    if (sim.out_snapshot & MASK_CHI)
-    {
-#ifdef EXTERNAL_IO
-        chi->saveHDF5_server_write (NUMBER_OF_IO_FILES);
-#else
-        if (sim.downgrade_factor > 1)
-            chi->saveHDF5_coarseGrain3D (h5filename + filename + "_chi.h5",
-                                         sim.downgrade_factor);
-        else
-            chi->saveHDF5 (h5filename + filename + "_chi.h5");
-#endif
-    }
-    if (sim.out_snapshot & MASK_HIJ)
-    {
-        if (done_hij == 0)
-        {
-            projectFTtensor (*SijFT, *SijFT);
-            plan_Sij->execute (FFT_BACKWARD);
-            Sij->updateHalo ();
-        }
-
-        computeTensorDiagnostics (*Sij, divh, traceh, normh);
-        COUT << " GW diagnostics: max |divh| = " << divh
-             << ", max |traceh| = " << traceh << ", max |h| = " << normh
-             << std::endl;
-
-#ifdef EXTERNAL_IO
-        Sij->saveHDF5_server_write (NUMBER_OF_IO_FILES);
-#else
-        if (sim.downgrade_factor > 1)
-            Sij->saveHDF5_coarseGrain3D (h5filename + filename + "_hij.h5",
-                                         sim.downgrade_factor);
-        else
-            Sij->saveHDF5 (h5filename + filename + "_hij.h5");
-#endif
-    }
-
-    if (sim.out_snapshot & MASK_TIJ)
-    {
-        projection_init (Sij);
-        projection_Tij_project (pcls_cdm, Sij, a, phi);
-        if (sim.baryon_flag)
-            projection_Tij_project (pcls_b, Sij, a, phi);
-        for (i = 0; i < cosmo.num_ncdm; i++)
-        {
-            if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                continue;
-            projection_Tij_project (pcls_ncdm + i, Sij, a, phi);
-        }
-        projection_Tij_comm (Sij);
-
-        if (sim.downgrade_factor > 1)
-            Sij->saveHDF5_coarseGrain3D (h5filename + filename + "_Tij.h5",
-                                         sim.downgrade_factor);
-        else
-            Sij->saveHDF5 (h5filename + filename + "_Tij.h5");
-    }
-
-    if (sim.out_snapshot & MASK_P)
-    {
-        projection_init (Bi);
-        projection_T0i_project (pcls_cdm, Bi, phi);
-        if (sim.baryon_flag)
-            projection_T0i_project (pcls_b, Bi, phi);
-        for (i = 0; i < cosmo.num_ncdm; i++)
-        {
-            if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                continue;
-            projection_T0i_project (pcls_ncdm + i, Bi, phi);
-        }
-        projection_T0i_comm (Bi);
-        if (sim.downgrade_factor > 1)
-            Bi->saveHDF5_coarseGrain3D (h5filename + filename + "_p.h5",
-                                        sim.downgrade_factor);
-        else
-            Bi->saveHDF5 (h5filename + filename + "_p.h5");
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            plan_Bi->execute (FFT_BACKWARD);
-            Bi->updateHalo ();
-        }
-    }
-
-#ifdef CHECK_B
-    if (sim.out_snapshot & MASK_B)
-    {
-        if (sim.vector_flag == VECTOR_PARABOLIC)
-        {
-            projection_init (Bi_check);
-            projection_T0i_project (pcls_cdm, Bi_check, phi);
-            if (sim.baryon_flag)
-                projection_T0i_project (pcls_b, Bi_check, phi);
-            for (i = 0; i < cosmo.num_ncdm; i++)
-            {
-                if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                    continue;
-                projection_T0i_project (pcls_ncdm + i, Bi_check, phi);
-            }
-            projection_T0i_comm (Bi_check);
-            plan_Bi_check->execute (FFT_FORWARD);
-            projectFTvector (*BiFT_check, *BiFT_check,
-                             cosmo.fourpiG / (double)sim.numpts / (double)sim.numpts);
-        }
-        plan_Bi_check->execute (FFT_BACKWARD);
-
-        for (x.first (); x.test (); x.next ())
-        {
-            (*Bi_check) (x, 0) /= a * a * sim.numpts;
-            (*Bi_check) (x, 1) /= a * a * sim.numpts;
-            (*Bi_check) (x, 2) /= a * a * sim.numpts;
-        }
-#ifdef EXTERNAL_IO
-        Bi_check->saveHDF5_server_write (NUMBER_OF_IO_FILES);
-#else
-        if (sim.downgrade_factor > 1)
-            Bi_check->saveHDF5_coarseGrain3D (
-                h5filename + filename + "_B_check.h5", sim.downgrade_factor);
-        else
-            Bi_check->saveHDF5 (h5filename + filename + "_B_check.h5");
-#endif
-    }
-#endif
 
     if (sim.out_snapshot & MASK_GADGET)
     {
@@ -423,14 +627,8 @@ void writeSnapshots (
             hdr.mass[i] = 0.;
         }
 
-#ifdef EXACT_OUTPUT_REDSHIFTS
-        hdr.time = 1. / (sim.z_snapshot[snapcount] + 1.);
-        hdr.redshift = sim.z_snapshot[snapcount];
-        dtau_pos = (hdr.time - a) / a / Hconf (a, cosmo);
-#else
         hdr.time = a;
         hdr.redshift = (1. / a) - 1.;
-#endif
 
         if (sim.tracer_factor[0] > 0)
         {
@@ -468,124 +666,15 @@ void writeSnapshots (
                      << std::endl;
             }
             else
-                pcls_cdm->saveGadget2 (h5filename + filename + "_cdm", hdr,
-                                       sim.tracer_factor[0], dtau_pos,
-                                       dtau_pos + 0.5 * dtau_old, phi);
-        }
-
-        if (sim.baryon_flag && sim.tracer_factor[1] > 0)
-        {
-            hdr.npart[1] = (uint32_t) (
-                ((sim.numpcl[1] % sim.tracer_factor[1])
-                     ? (1 + (sim.numpcl[1] / sim.tracer_factor[1]))
-                     : (sim.numpcl[1] / sim.tracer_factor[1]))
-                % (1ll << 32));
-            hdr.npartTotal[1] = hdr.npart[1];
-            hdr.npartTotalHW[1] = (uint32_t) (
-                ((sim.numpcl[1] % sim.tracer_factor[1])
-                     ? (1 + (sim.numpcl[1] / sim.tracer_factor[1]))
-                     : (sim.numpcl[1] / sim.tracer_factor[1]))
-                / (1ll << 32));
-            hdr.mass[1] = (double)sim.tracer_factor[1] * cosmo.C_RHO_CRIT
-                          * cosmo.Omega_b * sim.boxsize * sim.boxsize
-                          * sim.boxsize / sim.numpcl[1]
-                          / GADGET_MASS_CONVERSION;
-            if (hdr.npartTotalHW[1] != 0 && hdr.num_files == 1)
-            {
-                COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
-                     << ": number of particles ("
-                     << (sim.numpcl[1] / sim.tracer_factor[1])
-                     << ") in Gadget2 file exceeds limit "
-                        "(4294967295). Try "
-                        "using "
-                        "multi-Gadget2 output format."
-                     << std::endl;
-            }
-            else
-                pcls_b->saveGadget2 (h5filename + filename + "_b", hdr,
-                                     sim.tracer_factor[1], dtau_pos,
-                                     dtau_pos + 0.5 * dtau_old, phi);
-        }
-
-        for (i = 0; i < cosmo.num_ncdm; i++)
-        {
-            if (sim.numpcl[1 + sim.baryon_flag + i] == 0
-                || sim.tracer_factor[i + 1 + sim.baryon_flag] == 0)
-                continue;
-            sprintf (buffer, "_ncdm%d", i);
-            hdr.npart[1] = (uint32_t) (
-                ((sim.numpcl[i + 1 + sim.baryon_flag]
-                  % sim.tracer_factor[i + 1 + sim.baryon_flag])
-                     ? (1
-                        + (sim.numpcl[i + 1 + sim.baryon_flag]
-                           / sim.tracer_factor[i + 1 + sim.baryon_flag]))
-                     : (sim.numpcl[i + 1 + sim.baryon_flag]
-                        / sim.tracer_factor[i + 1 + sim.baryon_flag]))
-                % (1ll << 32));
-            hdr.npartTotal[1] = hdr.npart[1];
-            hdr.npartTotalHW[1] = (uint32_t) (
-                ((sim.numpcl[i + 1 + sim.baryon_flag]
-                  % sim.tracer_factor[i + 1 + sim.baryon_flag])
-                     ? (1
-                        + (sim.numpcl[i + 1 + sim.baryon_flag]
-                           / sim.tracer_factor[i + 1 + sim.baryon_flag]))
-                     : (sim.numpcl[i + 1 + sim.baryon_flag]
-                        / sim.tracer_factor[i + 1 + sim.baryon_flag]))
-                / (1ll << 32));
-            hdr.mass[1] = (double)sim.tracer_factor[i + 1 + sim.baryon_flag]
-                          * cosmo.C_RHO_CRIT * cosmo.Omega_ncdm[i] * sim.boxsize
-                          * sim.boxsize * sim.boxsize
-                          / sim.numpcl[i + 1 + sim.baryon_flag]
-                          / GADGET_MASS_CONVERSION;
-            if (hdr.npartTotalHW[1] != 0 && hdr.num_files == 1)
-            {
-                COUT << COLORTEXT_YELLOW << " /!\\ warning" << COLORTEXT_RESET
-                     << ": number of particles ("
-                     << (sim.numpcl[i + 1 + sim.baryon_flag]
-                         / sim.tracer_factor[i + 1 + sim.baryon_flag])
-                     << ") in Gadget2 file exceeds limit "
-                        "(4294967295). Try "
-                        "using "
-                        "multi-Gadget2 output format."
-                     << std::endl;
-            }
-            else
-                pcls_ncdm[i].saveGadget2 (
-                    h5filename + filename + buffer, hdr,
-                    sim.tracer_factor[i + 1 + sim.baryon_flag], dtau_pos,
-                    dtau_pos + 0.5 * dtau_old, phi);
+                pcls.saveGadget2 (filename, hdr);
         }
     }
 
-    if (sim.out_snapshot & MASK_PCLS)
-    {
-#ifdef EXTERNAL_IO
-        pcls_cdm->saveHDF5_server_write ();
-        if (sim.baryon_flag)
-            pcls_b->saveHDF5_server_write ();
-        for (i = 0; i < cosmo.num_ncdm; i++)
-        {
-            if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                continue;
-            pcls_ncdm[i].saveHDF5_server_write ();
-        }
-#else
-        pcls_cdm->saveHDF5 (h5filename + filename + "_cdm", 1);
-        if (sim.baryon_flag)
-            pcls_b->saveHDF5 (h5filename + filename + "_b", 1);
-        for (i = 0; i < cosmo.num_ncdm; i++)
-        {
-            if (sim.numpcl[1 + sim.baryon_flag + i] == 0)
-                continue;
-            sprintf (buffer, "_ncdm%d", i);
-            pcls_ncdm[i].saveHDF5 (h5filename + filename + buffer, 1);
-        }
-#endif
-    }
-
-#ifdef EXTERNAL_IO
-    ioserver.closeOstream ();
-#endif
+    // saveHDF5 is not const
+    // if (sim.out_snapshot & MASK_PCLS)
+    // {
+    //     pcls.saveHDF5 (filename, 1);
+    // }
 }
 
 //////////////////////////

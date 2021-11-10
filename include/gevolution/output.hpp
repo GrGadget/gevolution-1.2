@@ -73,26 +73,33 @@ using LATfield2::PlanFFT;
 //
 //////////////////////////
 
-void writeSnapshots (
-    metadata &sim, const cosmology cosmo, const double a,
-    const double dtau_old, const int done_hij, const int snapcount,
-    std::string h5filename,
-    Particles_gevolution *pcls_cdm,
-    Particles_gevolution *pcls_b,
-    Particles_gevolution *pcls_ncdm,
-    Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *source,
-    Field<Real> *Sij, Field<Cplx> *scalarFT, Field<Cplx> *BiFT,
-    Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi, PlanFFT<Cplx> *plan_chi,
-    PlanFFT<Cplx> *plan_Bi, PlanFFT<Cplx> *plan_source, PlanFFT<Cplx> *plan_Sij
-#ifdef CHECK_B
-    ,
-    Field<Real> *Bi_check, Field<Cplx> *BiFT_check, PlanFFT<Cplx> *plan_Bi_check
-#endif
-#ifdef VELOCITY
-    ,
-    Field<Real> *vi
-#endif
-);
+void write_snapshot (
+    const metadata & sim, 
+    const cosmology& cosmo,
+    const double a /* scale factor */, 
+    const Particles_gevolution & pcls,
+    std::string filename);
+
+// void writeSnapshots (
+//     metadata &sim, const cosmology cosmo, const double a,
+//     const double dtau_old, const int done_hij, const int snapcount,
+//     std::string h5filename,
+//     Particles_gevolution *pcls_cdm,
+//     Particles_gevolution *pcls_b,
+//     Particles_gevolution *pcls_ncdm,
+//     Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *source,
+//     Field<Real> *Sij, Field<Cplx> *scalarFT, Field<Cplx> *BiFT,
+//     Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_phi, PlanFFT<Cplx> *plan_chi,
+//     PlanFFT<Cplx> *plan_Bi, PlanFFT<Cplx> *plan_source, PlanFFT<Cplx> *plan_Sij
+// #ifdef CHECK_B
+//     ,
+//     Field<Real> *Bi_check, Field<Cplx> *BiFT_check, PlanFFT<Cplx> *plan_Bi_check
+// #endif
+// #ifdef VELOCITY
+//     ,
+//     Field<Real> *vi
+// #endif
+// );
 
 //////////////////////////
 // writeLightcones

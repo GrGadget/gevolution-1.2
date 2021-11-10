@@ -104,6 +104,17 @@ void show_constant(double v, std::string name)
     COUT << "Constant " << name << " = " << v << "\n";
 }
 
+auto string_fill(std::string s, int n , char c = ' ')
+{
+    std::string prefix;
+    n -= s.size();
+    if(n>0)
+    {
+        prefix = std::string(n,c);
+    }
+    return prefix + s;
+}
+
 
 int main (int argc, char **argv)
 {
@@ -473,17 +484,13 @@ int main (int argc, char **argv)
             COUT << COLORTEXT_CYAN << " writing snapshot" << COLORTEXT_RESET
                  << " at z = " << ((1. / a) - 1.) << " (cycle " << cycle
                  << "), tau/boxsize = " << tau << endl;
-
-            // writeSnapshots (sim, cosmo, a, dtau_old, done_hij,
-            //                 snapcount, h5filename + sim.basename_snapshot,
-            //                 &pcls_cdm, &pcls_b, pcls_ncdm, &PM->phi, &PM->chi,
-            //                 &PM->Bi,
-            //                 &PM->T00, &PM->Tij, &PM->T00_FT, &PM->Bi_FT,
-            //                 &PM->Tij_FT, &PM->plan_phi,
-            //                 &PM->plan_chi, &PM->plan_Bi, &PM->plan_T00,
-            //                 &PM->plan_Tij
-            // );
-
+            
+            write_snapshot(sim,cosmo,a,pcls_cdm,
+                h5filename
+                    +sim.basename_snapshot
+                    + string_fill(std::to_string(snapcount),3,'0') 
+                    +"_cdm");
+            
             snapcount++;
         }
 

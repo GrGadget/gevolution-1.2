@@ -3,8 +3,8 @@
 namespace gevolution
 {
 void Particles_gevolution::saveGadget2 (
-    std::string filename, gadget2_header &hdr, const int tracer_factor,
-    double dtau_pos, double dtau_vel, Field<Real> *phi)
+    std::string filename, gadget2_header &hdr, const int tracer_factor)
+    const
 {
     float *posdata;
     float *veldata;
@@ -17,12 +17,6 @@ void Particles_gevolution::saveGadget2 (
     uint32_t i;
     char fname[filename.length () + 8];
     double rescale_vel = 1. / sqrt (hdr.time) / GADGET_VELOCITY_CONVERSION;
-#ifdef EXACT_OUTPUT_REDSHIFTS
-    Real phip = 0.;
-    Real gradphi[3] = { 0., 0., 0. };
-    double ref_dist[3];
-    Site xField;
-#endif
 
     filename.copy (fname, filename.length ());
     fname[filename.length ()] = '\0';
@@ -161,13 +155,6 @@ void Particles_gevolution::saveGadget2 (
     }
 
     count = 0;
-#ifdef EXACT_OUTPUT_REDSHIFTS
-    if (phi != NULL)
-        xField.initialize (phi->lattice ());
-    else
-        xField.initialize (this->lat_part_);
-    xField.first ();
-#endif
     for (xPart.first (); xPart.test (); xPart.next ())
     {
         if (this->field_part_ (xPart).size != 0)
@@ -177,96 +164,12 @@ void Particles_gevolution::saveGadget2 (
             {
                 if ((*it).ID % tracer_factor == 0)
                 {
-#ifdef EXACT_OUTPUT_REDSHIFTS
-                    if (phi != NULL)
-                    {
-                        for (i = 0; i < 3; i++)
-                            ref_dist[i] = modf (
-                                (*it).pos[i] / this->lat_resolution_, &phip);
-
-                        phip = (*phi) (xField) * (1. - ref_dist[0])
-                               * (1. - ref_dist[1]) * (1. - ref_dist[2]);
-                        phip += (*phi) (xField + 0) * ref_dist[0]
-                                * (1. - ref_dist[1]) * (1. - ref_dist[2]);
-                        phip += (*phi) (xField + 1) * (1. - ref_dist[0])
-                                * ref_dist[1] * (1. - ref_dist[2]);
-                        phip += (*phi) (xField + 0 + 1) * ref_dist[0]
-                                * ref_dist[1] * (1. - ref_dist[2]);
-                        phip += (*phi) (xField + 2) * (1. - ref_dist[0])
-                                * (1. - ref_dist[1]) * ref_dist[2];
-                        phip += (*phi) (xField + 0 + 2) * ref_dist[0]
-                                * (1. - ref_dist[1]) * ref_dist[2];
-                        phip += (*phi) (xField + 1 + 2) * (1. - ref_dist[0])
-                                * ref_dist[1] * ref_dist[2];
-                        phip += (*phi) (xField + 0 + 1 + 2) * ref_dist[0]
-                                * ref_dist[1] * ref_dist[2];
-
-                        gradphi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
-                                     * ((*phi) (xField + 0) - (*phi) (xField));
-                        gradphi[1] = (1. - ref_dist[0]) * (1. - ref_dist[2])
-                                     * ((*phi) (xField + 1) - (*phi) (xField));
-                        gradphi[2] = (1. - ref_dist[0]) * (1. - ref_dist[1])
-                                     * ((*phi) (xField + 2) - (*phi) (xField));
-                        gradphi[0] += ref_dist[1] * (1. - ref_dist[2])
-                                      * ((*phi) (xField + 1 + 0)
-                                         - (*phi) (xField + 1));
-                        gradphi[1] += ref_dist[0] * (1. - ref_dist[2])
-                                      * ((*phi) (xField + 1 + 0)
-                                         - (*phi) (xField + 0));
-                        gradphi[2] += ref_dist[0] * (1. - ref_dist[1])
-                                      * ((*phi) (xField + 2 + 0)
-                                         - (*phi) (xField + 0));
-                        gradphi[0] += (1. - ref_dist[1]) * ref_dist[2]
-                                      * ((*phi) (xField + 2 + 0)
-                                         - (*phi) (xField + 2));
-                        gradphi[1] += (1. - ref_dist[0]) * ref_dist[2]
-                                      * ((*phi) (xField + 2 + 1)
-                                         - (*phi) (xField + 2));
-                        gradphi[2] += (1. - ref_dist[0]) * ref_dist[1]
-                                      * ((*phi) (xField + 2 + 1)
-                                         - (*phi) (xField + 1));
-                        gradphi[0] += ref_dist[1] * ref_dist[2]
-                                      * ((*phi) (xField + 2 + 1 + 0)
-                                         - (*phi) (xField + 2 + 1));
-                        gradphi[1] += ref_dist[0] * ref_dist[2]
-                                      * ((*phi) (xField + 2 + 1 + 0)
-                                         - (*phi) (xField + 2 + 0));
-                        gradphi[2] += ref_dist[0] * ref_dist[1]
-                                      * ((*phi) (xField + 2 + 1 + 0)
-                                         - (*phi) (xField + 1 + 0));
-                    }
-
-                    ref_dist[0] = (*it).vel[0] * (*it).vel[0]
-                                  + (*it).vel[1] * (*it).vel[1]
-                                  + (*it).vel[2] * (*it).vel[2];
-                    ref_dist[1] = ref_dist[0] + hdr.time * hdr.time;
-                    ref_dist[2] = sqrt (ref_dist[1]);
-                    ref_dist[0] += ref_dist[1];
-                    ref_dist[1]
-                        = 1. + (4. - (ref_dist[0] / ref_dist[1])) * phip;
-
-                    for (i = 0; i < 3; i++)
-                        posdata[3 * count + i]
-                            = modf (1. + (*it).pos[i]
-                                        + dtau_pos * (*it).vel[i] * ref_dist[1]
-                                              / ref_dist[2],
-                                    &phip)
-                              * hdr.BoxSize;
-
-                    for (i = 0; i < 3; i++)
-                        veldata[3 * count + i]
-                            = ((*it).vel[i]
-                               - dtau_vel * ref_dist[0] * gradphi[i]
-                                     / this->lat_resolution_ / ref_dist[2])
-                              * rescale_vel / hdr.time;
-#else
                     for (i = 0; i < 3; i++)
                         posdata[3 * count + i] = (*it).pos[i] * hdr.BoxSize;
 
                     for (i = 0; i < 3; i++)
                         veldata[3 * count + i]
                             = (*it).vel[i] * rescale_vel / hdr.time;
-#endif
 
 #if GADGET_ID_BYTES == 8
                     *((int64_t *)IDs + count) = (int64_t) (*it).ID;
@@ -294,9 +197,6 @@ void Particles_gevolution::saveGadget2 (
                 }
             }
         }
-#ifdef EXACT_OUTPUT_REDSHIFTS
-        xField.next ();
-#endif
     }
 
     MPI_File_write_at_all (outfile, offset_pos, posdata, 3 * count, MPI_FLOAT,
