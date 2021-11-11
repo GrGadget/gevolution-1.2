@@ -489,6 +489,21 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         
         return xF;
     }
+    
+    void project_metric(particle_container& pcls) const
+    {
+        site_type xpart(pcls.lattice());
+        for(xpart.first();xpart.test();xpart.next())
+        {
+            for(auto& part : pcls.field()(xpart).parts )
+            {
+                std::array<real_type,3> pos{part.pos[0],part.pos[1],part.pos[2]};
+                part.Phi = scalar_at(phi,xpart,pos);
+                part.B   = vector_at(Bi ,xpart,pos);
+                
+            }
+        }
+    }
    
     std::array<real_type,3> momentum_to_velocity(
                           const std::array<real_type,3>& momentum,

@@ -48,6 +48,10 @@ struct particle : LATfield2::part_simple
     Real mass;
     std::array<Real,3> momentum{0,0,0}; // that's momentum (p)
     std::array<Real,3> force{0,0,0};    // that's force (dp/dt)
+    
+    // Metric components at the particle position
+    Real Phi{0};
+    std::array<Real,3> B{0,0,0};
 };
 
 typedef LATfield2::part_simple_info particle_info;
