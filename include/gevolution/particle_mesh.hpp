@@ -136,7 +136,7 @@ class particle_mesh
                double v2 = 0,p2=0,a2=0;
                for(int i=0;i<3;++i)
                {
-                   v2 += part.vel[i]*part.vel[i];
+                   v2 += part.momentum[i]*part.momentum[i];
                    p2 += part.pos[i]*part.pos[i];
                    a2 += part.force[i]*part.force[i];
                }

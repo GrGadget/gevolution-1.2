@@ -412,13 +412,13 @@ int main (int argc, char **argv)
     
     // TODO: remove this ugly fix. The problem is that initialization is still
     // thinking that 'vel' is momentum
-    pcls_cdm.for_each(
-        [](particle &part, const Site& /* xpart */)
-        {
-            for(int i=0;i<3;++i)
-                part.momentum[i] = part.vel[i];
-        }
-    );
+    // pcls_cdm.for_each(
+    //     [](particle &part, const Site& /* xpart */)
+    //     {
+    //         for(int i=0;i<3;++i)
+    //             part.momentum[i] = part.vel[i];
+    //     }
+    // );
     
     do // main loop
     {
@@ -568,11 +568,11 @@ int main (int argc, char **argv)
                  << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
                  << endl;
             
-            auto [mass,pos,vel,acc]  = PM->test_velocities(pcls_cdm);
+            auto [mass,pos,mom,acc]  = PM->test_velocities(pcls_cdm);
             
             COUT << " mean     mass: " << mass << "\n";
             COUT << " mean sqr(pos): " << pos << "\n";
-            COUT << " mean sqr(vel): " << vel << "\n";
+            COUT << " mean sqr(mom): " << mom << "\n";
             COUT << " mean sqr(acc): " << acc << "\n";
         }
         
@@ -605,7 +605,7 @@ int main (int argc, char **argv)
                 for(int i=0;i<3;++i)
                 {
                     part.pos[i] += dtau * part.vel[i];
-                    v2 += part.vel[i]*part.vel[i];
+                    v2 += part.momentum[i]*part.momentum[i];
                 }
                maxvel[0]=std::max(maxvel[0],v2);
             }

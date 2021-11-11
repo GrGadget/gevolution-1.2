@@ -460,8 +460,8 @@ void projectFTtensor (Field<Cplx> &SijFT, Field<Cplx> &hijFT)
 //////////////////////////
 // Description:
 //   Update momentum method (arbitrary momentum)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
-//   of the particle mass, such that as q^2 << m^2 a^2 the meaning of vel[3]
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
+//   of the particle mass, such that as q^2 << m^2 a^2 the meaning of momentum[3]
 //   is ~ v*a.
 //
 // Arguments:
@@ -503,8 +503,8 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
 
     Real gradphi[3] = { 0, 0, 0 };
     Real pgradB[3] = { 0, 0, 0 };
-    Real v2 = (*part).vel[0] * (*part).vel[0] + (*part).vel[1] * (*part).vel[1]
-              + (*part).vel[2] * (*part).vel[2];
+    Real v2 = (*part).momentum[0] * (*part).momentum[0] + (*part).momentum[1] * (*part).momentum[1]
+              + (*part).momentum[2] * (*part).momentum[2];
     Real e2 = v2 + params[0] * params[0];
 
     gradphi[0] = (1. - ref_dist[1]) * (1. - ref_dist[2])
@@ -570,84 +570,84 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
     {
         pgradB[0] = ((1. - ref_dist[2]) * (Bi (xB + 0, 1) - Bi (xB, 1))
                      + ref_dist[2] * (Bi (xB + 2 + 0, 1) - Bi (xB + 2, 1)))
-                    * (*part).vel[1];
+                    * (*part).momentum[1];
         pgradB[0] += ((1. - ref_dist[1]) * (Bi (xB + 0, 2) - Bi (xB, 2))
                       + ref_dist[1] * (Bi (xB + 1 + 0, 2) - Bi (xB + 1, 2)))
-                     * (*part).vel[2];
+                     * (*part).momentum[2];
         pgradB[0] += (1. - ref_dist[1]) * (1. - ref_dist[2])
                      * ((ref_dist[0] - 1.) * Bi (xB - 0, 0)
                         + (1. - 2. * ref_dist[0]) * Bi (xB, 0)
                         + ref_dist[0] * Bi (xB + 0, 0))
-                     * (*part).vel[0];
+                     * (*part).momentum[0];
         pgradB[0] += ref_dist[1] * (1. - ref_dist[2])
                      * ((ref_dist[0] - 1.) * Bi (xB + 1 - 0, 0)
                         + (1. - 2. * ref_dist[0]) * Bi (xB + 1, 0)
                         + ref_dist[0] * Bi (xB + 1 + 0, 0))
-                     * (*part).vel[0];
+                     * (*part).momentum[0];
         pgradB[0] += (1. - ref_dist[1]) * ref_dist[2]
                      * ((ref_dist[0] - 1.) * Bi (xB + 2 - 0, 0)
                         + (1. - 2. * ref_dist[0]) * Bi (xB + 2, 0)
                         + ref_dist[0] * Bi (xB + 2 + 0, 0))
-                     * (*part).vel[0];
+                     * (*part).momentum[0];
         pgradB[0] += ref_dist[1] * ref_dist[2]
                      * ((ref_dist[0] - 1.) * Bi (xB + 2 + 1 - 0, 0)
                         + (1. - 2. * ref_dist[0]) * Bi (xB + 2 + 1, 0)
                         + ref_dist[0] * Bi (xB + 2 + 1 + 0, 0))
-                     * (*part).vel[0];
+                     * (*part).momentum[0];
 
         pgradB[1] = ((1. - ref_dist[0]) * (Bi (xB + 1, 2) - Bi (xB, 2))
                      + ref_dist[0] * (Bi (xB + 1 + 0, 2) - Bi (xB + 0, 2)))
-                    * (*part).vel[2];
+                    * (*part).momentum[2];
         pgradB[1] += ((1. - ref_dist[2]) * (Bi (xB + 1, 0) - Bi (xB, 0))
                       + ref_dist[2] * (Bi (xB + 1 + 2, 0) - Bi (xB + 2, 0)))
-                     * (*part).vel[0];
+                     * (*part).momentum[0];
         pgradB[1] += (1. - ref_dist[0]) * (1. - ref_dist[2])
                      * ((ref_dist[1] - 1.) * Bi (xB - 1, 1)
                         + (1. - 2. * ref_dist[1]) * Bi (xB, 1)
                         + ref_dist[1] * Bi (xB + 1, 1))
-                     * (*part).vel[1];
+                     * (*part).momentum[1];
         pgradB[1] += ref_dist[0] * (1. - ref_dist[2])
                      * ((ref_dist[1] - 1.) * Bi (xB + 0 - 1, 1)
                         + (1. - 2. * ref_dist[1]) * Bi (xB + 0, 1)
                         + ref_dist[1] * Bi (xB + 0 + 1, 1))
-                     * (*part).vel[1];
+                     * (*part).momentum[1];
         pgradB[1] += (1. - ref_dist[0]) * ref_dist[2]
                      * ((ref_dist[1] - 1.) * Bi (xB + 2 - 1, 1)
                         + (1. - 2. * ref_dist[1]) * Bi (xB + 2, 1)
                         + ref_dist[1] * Bi (xB + 2 + 1, 1))
-                     * (*part).vel[1];
+                     * (*part).momentum[1];
         pgradB[1] += ref_dist[0] * ref_dist[2]
                      * ((ref_dist[1] - 1.) * Bi (xB + 2 + 0 - 1, 1)
                         + (1. - 2. * ref_dist[1]) * Bi (xB + 2 + 0, 1)
                         + ref_dist[1] * Bi (xB + 2 + 0 + 1, 1))
-                     * (*part).vel[1];
+                     * (*part).momentum[1];
 
         pgradB[2] = ((1. - ref_dist[1]) * (Bi (xB + 2, 0) - Bi (xB, 0))
                      + ref_dist[1] * (Bi (xB + 2 + 1, 0) - Bi (xB + 1, 0)))
-                    * (*part).vel[0];
+                    * (*part).momentum[0];
         pgradB[2] += ((1. - ref_dist[0]) * (Bi (xB + 2, 1) - Bi (xB, 1))
                       + ref_dist[0] * (Bi (xB + 2 + 0, 1) - Bi (xB + 0, 1)))
-                     * (*part).vel[1];
+                     * (*part).momentum[1];
         pgradB[2] += (1. - ref_dist[0]) * (1. - ref_dist[1])
                      * ((ref_dist[2] - 1.) * Bi (xB - 2, 2)
                         + (1. - 2. * ref_dist[2]) * Bi (xB, 2)
                         + ref_dist[2] * Bi (xB + 2, 2))
-                     * (*part).vel[2];
+                     * (*part).momentum[2];
         pgradB[2] += ref_dist[0] * (1. - ref_dist[1])
                      * ((ref_dist[2] - 1.) * Bi (xB + 0 - 2, 2)
                         + (1. - 2. * ref_dist[2]) * Bi (xB + 0, 2)
                         + ref_dist[2] * Bi (xB + 0 + 2, 2))
-                     * (*part).vel[2];
+                     * (*part).momentum[2];
         pgradB[2] += (1. - ref_dist[0]) * ref_dist[1]
                      * ((ref_dist[2] - 1.) * Bi (xB + 1 - 2, 2)
                         + (1. - 2. * ref_dist[2]) * Bi (xB + 1, 2)
                         + ref_dist[2] * Bi (xB + 2 + 1, 2))
-                     * (*part).vel[2];
+                     * (*part).momentum[2];
         pgradB[2] += ref_dist[0] * ref_dist[1]
                      * ((ref_dist[2] - 1.) * Bi (xB + 1 + 0 - 2, 2)
                         + (1. - 2. * ref_dist[2]) * Bi (xB + 1 + 0, 2)
                         + ref_dist[2] * Bi (xB + 1 + 0 + 2, 2))
-                     * (*part).vel[2];
+                     * (*part).momentum[2];
 
         gradphi[0] += pgradB[0] / params[1] / e2;
         gradphi[1] += pgradB[1] / params[1] / e2;
@@ -657,8 +657,8 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
     v2 = 0.;
     for (int i = 0; i < 3; i++)
     {
-        (*part).vel[i] -= dtau * e2 * gradphi[i] / dx;
-        v2 += (*part).vel[i] * (*part).vel[i];
+        (*part).momentum[i] -= dtau * e2 * gradphi[i] / dx;
+        v2 += (*part).momentum[i] * (*part).momentum[i];
     }
 
     return v2 / params[0] / params[0];
@@ -676,8 +676,8 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
 //////////////////////////
 // Description:
 //   Update momentum method (Newtonian version)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
-//   of the particle mass, such that the meaning of vel[3] is v*a.
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
+//   of the particle mass, such that the meaning of momentum[3] is v*a.
 //
 // Arguments:
 //   dtau       time step
@@ -742,8 +742,8 @@ Real update_q_Newton (
     for (int i = 0; i < 3; i++)
     {
         acc[i] =  (-1)*a * gradpsi[i] / dx;
-        part.vel[i] += dtau * acc[i];
-        v2 += part.vel[i] * part.vel[i];
+        part.momentum[i] += dtau * acc[i];
+        v2 += part.momentum[i] * part.momentum[i];
     }
     return v2 / a / a;
 }
@@ -753,8 +753,8 @@ Real update_q_Newton (
 //////////////////////////
 // Description:
 //   Update position method (arbitrary momentum)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
-//   of the particle mass, such that as q^2 << m^2 a^2 the meaning of vel[3]
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
+//   of the particle mass, such that as q^2 << m^2 a^2 the meaning of momentum[3]
 //   is ~ v*a.
 //
 // Arguments:
@@ -792,8 +792,8 @@ void update_pos (double dtau,
                  int /* noutputs */)
 {
     Real v[3];
-    Real v2 = (*part).vel[0] * (*part).vel[0] + (*part).vel[1] * (*part).vel[1]
-              + (*part).vel[2] * (*part).vel[2];
+    Real v2 = (*part).momentum[0] * (*part).momentum[0] + (*part).momentum[1] * (*part).momentum[1]
+              + (*part).momentum[2] * (*part).momentum[2];
     Real e2 = v2 + params[0] * params[0];
     Real phi = 0;
     Real chi = 0;
@@ -840,9 +840,9 @@ void update_pos (double dtau,
 
     v2 = (1. + (3. - v2 / e2) * phi - chi) / sqrt (e2);
 
-    v[0] = (*part).vel[0] * v2;
-    v[1] = (*part).vel[1] * v2;
-    v[2] = (*part).vel[2] * v2;
+    v[0] = (*part).momentum[0] * v2;
+    v[1] = (*part).momentum[1] * v2;
+    v[2] = (*part).momentum[2] * v2;
 
     if (nfield >= 3)
     {
@@ -885,8 +885,8 @@ void update_pos (double dtau,
 //////////////////////////
 // Description:
 //   Update position method (Newtonian version)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
-//   of the particle mass, such that the meaning of vel[3] is v*a.
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
+//   of the particle mass, such that the meaning of momentum[3] is v*a.
 //
 // Arguments:
 //   dtau       time step
@@ -919,7 +919,7 @@ void update_pos_Newton (double dtau,
                         int /* noutputs */)
 {
     for (int l = 0; l < 3; l++)
-        (*part).pos[l] += dtau * (*part).vel[l] / params[0];
+        (*part).pos[l] += dtau * (*part).momentum[l] / params[0];
 }
 
 //////////////////////////

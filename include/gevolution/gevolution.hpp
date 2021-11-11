@@ -394,7 +394,7 @@ void solveModifiedPoissonFT (Field<Complex> &sourceFT, Field<Complex> &potFT,
 //////////////////////////
 // Description:
 //   Update momentum method (arbitrary momentum)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
 //   of the particle mass, such that as q^2 << m^2 a^2 the meaning of vel[3]
 //   is ~ v*a.
 //
@@ -429,7 +429,7 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
 //////////////////////////
 // Description:
 //   Update momentum method (Newtonian version)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
 //   of the particle mass, such that the meaning of vel[3] is v*a.
 //
 // Arguments:
@@ -468,7 +468,7 @@ inline Real update_q_Newton (
     for (int i = 0; i < 3; i++)
     {
         part.momentum[i] += dtau * part.force[i];
-        v2 += part.vel[i] * part.vel[i];
+        v2 += part.momentum[i] * part.momentum[i];
     }
     #ifndef NDEBUG
     Debugger -> append( part.ID, {part.pos[0],part.pos[1],part.pos[2]},part.force);
@@ -481,7 +481,7 @@ inline Real update_q_Newton (
 //////////////////////////
 // Description:
 //   Update position method (arbitrary momentum)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
 //   of the particle mass, such that as q^2 << m^2 a^2 the meaning of vel[3]
 //   is ~ v*a.
 //
@@ -516,8 +516,8 @@ void update_pos (double dtau, double dx, particle *part, double *ref_dist,
 //////////////////////////
 // Description:
 //   Update position method (Newtonian version)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
-//   of the particle mass, such that the meaning of vel[3] is v*a.
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
+//   of the particle mass, such that the meaning of momentum[3] is v*a.
 //
 // Arguments:
 //   dtau       time step
@@ -625,7 +625,7 @@ void projection_T00_project (const Particles<part, part_info, part_dataType> *pc
 
                 if (phi != NULL)
                 {
-                    const auto &q = p.vel;
+                    const auto &q = p.momentum;
                     f = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
                     e = sqrt (f + a * a);
                     f = 3. * e + f / e;
@@ -766,7 +766,7 @@ void projection_T0i_project (const Particles<part, part_info, part_dataType> *pc
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
 
-                const auto &q = p.vel;
+                const auto &q = p.momentum;
                 double mass = p.mass;
 
                 w = coeff * mass * q[0];
@@ -909,7 +909,7 @@ void projection_Tij_project (const Particles<part, part_info, part_dataType> *pc
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
                 double mass = p.mass;
-                const auto &q = p.vel;
+                const auto &q = p.momentum;
                 f = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
                 e = sqrt (f + a * a);
                 f = 4. + a * a / (f + a * a);
@@ -1121,7 +1121,7 @@ void projection_Ti0_project (Particles<part, part_info, part_dataType> *pcls,
                 }
                 double mass = p.mass;
 
-                const auto &q = p.vel;
+                const auto &q = p.momentum;
 
                 for (int i = 0; i < 3; i++)
                 {

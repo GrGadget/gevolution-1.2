@@ -16,6 +16,7 @@ void Particles_gevolution::saveGadget2 (
     uint32_t blocksize;
     uint32_t i;
     char fname[filename.length () + 8];
+    
     double rescale_vel = 1. / sqrt (hdr.time) / GADGET_VELOCITY_CONVERSION;
 
     filename.copy (fname, filename.length ());
@@ -166,10 +167,17 @@ void Particles_gevolution::saveGadget2 (
                 {
                     for (i = 0; i < 3; i++)
                         posdata[3 * count + i] = (*it).pos[i] * hdr.BoxSize;
-
+                    
+                    // for (i = 0; i < 3; i++)
+                    //     veldata[3 * count + i]
+                    //         = (*it).vel[i] * rescale_vel / hdr.time;
+                    
+                    // Note: rescaled momentum is not the same as velocity,
+                    // anyways this was done when the meaning of 'vel' was not
+                    // velocity * a, but momentum
                     for (i = 0; i < 3; i++)
                         veldata[3 * count + i]
-                            = (*it).vel[i] * rescale_vel / hdr.time;
+                            = (*it).momentum[i] * rescale_vel / hdr.time;
 
 #if GADGET_ID_BYTES == 8
                     *((int64_t *)IDs + count) = (int64_t) (*it).ID;
@@ -310,9 +318,9 @@ void Particles_gevolution::saveGadget2 (
                                                         / this->lat_resolution_,
                                                     &v2);
 
-                                    v2 = (*it).vel[0] * (*it).vel[0]
-                                         + (*it).vel[1] * (*it).vel[1]
-                                         + (*it).vel[2] * (*it).vel[2];
+                                    v2 = (*it).momentum[0] * (*it).momentum[0]
+                                         + (*it).momentum[1] * (*it).momentum[1]
+                                         + (*it).momentum[2] * (*it).momentum[2];
                                     e2 = v2
                                          + hdr.time
                                                * (hdr.time
@@ -376,7 +384,7 @@ void Particles_gevolution::saveGadget2 (
 
                                     for (uint32_t j = 0; j < 3; j++)
                                         veldata[3 * (npart % PCLBUFFER) + j]
-                                            = ((*it).vel[j]
+                                            = ((*it).momentum[j]
                                                - (dist - d + 0.5 * dtau_old)
                                                      * e2 * gradphi[j])
                                               * rescale_vel
@@ -395,7 +403,7 @@ void Particles_gevolution::saveGadget2 (
                                             posdata[3 * (npart % PCLBUFFER) + j]
                                                 = ((*it).pos[j] - vertex[i][j]
                                                    + lightcone.vertex[j]
-                                                   + (dist - d) * (*it).vel[j]
+                                                   + (dist - d) * (*it).momentum[j]
                                                          / e2)
                                                   * hdr.BoxSize;
                                     }
@@ -412,7 +420,7 @@ void Particles_gevolution::saveGadget2 (
                                                 = ((*it).pos[j] - vertex[i][j]
                                                    + lightcone.vertex[j]
                                                    + (dist - d)
-                                                         * ((*it).vel[j]
+                                                         * ((*it).momentum[j]
                                                             - dtau * v2
                                                                   * gradphi[j])
                                                          / e2)
@@ -580,9 +588,9 @@ void Particles_gevolution::saveGadget2 (
                                                     / this->lat_resolution_,
                                                 &v2);
 
-                                        v2 = (*it).vel[0] * (*it).vel[0]
-                                             + (*it).vel[1] * (*it).vel[1]
-                                             + (*it).vel[2] * (*it).vel[2];
+                                        v2 = (*it).momentum[0] * (*it).momentum[0]
+                                             + (*it).momentum[1] * (*it).momentum[1]
+                                             + (*it).momentum[2] * (*it).momentum[2];
                                         e2 = v2
                                              + hdr.time
                                                    * (hdr.time
@@ -650,7 +658,7 @@ void Particles_gevolution::saveGadget2 (
 
                                         for (uint32_t j = 0; j < 3; j++)
                                             veldata[3 * (npart % PCLBUFFER) + j]
-                                                = ((*it).vel[j]
+                                                = ((*it).momentum[j]
                                                    - (dist - d + 0.5 * dtau_old)
                                                          * e2 * gradphi[j])
                                                   * rescale_vel
@@ -672,7 +680,7 @@ void Particles_gevolution::saveGadget2 (
                                                        - vertex[i][j]
                                                        + lightcone.vertex[j]
                                                        + (dist - d)
-                                                             * (*it).vel[j]
+                                                             * (*it).momentum[j]
                                                              / e2)
                                                       * hdr.BoxSize;
                                         }
@@ -693,7 +701,7 @@ void Particles_gevolution::saveGadget2 (
                                                        - vertex[i][j]
                                                        + lightcone.vertex[j]
                                                        + (dist - d)
-                                                             * ((*it).vel[j]
+                                                             * ((*it).momentum[j]
                                                                 - dtau * v2
                                                                       * gradphi
                                                                             [j])
@@ -855,9 +863,9 @@ void Particles_gevolution::loadGadget2 (
             pcl.pos[0] = posdata[3 * i];
             pcl.pos[1] = posdata[3 * i + 1];
             pcl.pos[2] = posdata[3 * i + 2];
-            pcl.vel[0] = veldata[3 * i];
-            pcl.vel[1] = veldata[3 * i + 1];
-            pcl.vel[2] = veldata[3 * i + 2];
+            pcl.momentum[0] = veldata[3 * i];
+            pcl.momentum[1] = veldata[3 * i + 1];
+            pcl.momentum[2] = veldata[3 * i + 2];
             this->addParticle_global (pcl);
         }
 

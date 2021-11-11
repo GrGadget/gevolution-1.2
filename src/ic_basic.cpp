@@ -197,8 +197,8 @@ Real initialize_q_ic_basic (double coeff, double lat_resolution,
 
     for (i = 0; i < 3; i++)
     {
-        (*part).vel[i] = -gradPhi[i] * coeff;
-        v2 += (*part).vel[i] * (*part).vel[i];
+        (*part).momentum[i] = -gradPhi[i] * coeff;
+        v2 += (*part).momentum[i] * (*part).momentum[i];
     }
 
     return v2;
@@ -1322,9 +1322,9 @@ void initializeParticlePositions (
 
     particle part{};
 
-    part.vel[0] = 0.;
-    part.vel[1] = 0.;
-    part.vel[2] = 0.;
+    part.momentum[0] = 0.;
+    part.momentum[1] = 0.;
+    part.momentum[2] = 0.;
 
     for (ztile = (pcls.lattice ().coordSkip ()[0] * numtile)
                  / pcls.lattice ().size (2);
@@ -1521,9 +1521,9 @@ double applyMomentumDistribution (
                 else
                     q *= T_m;
 
-                (*it).vel[0] += cos (r2) * sin (r1) * q;
-                (*it).vel[1] += sin (r2) * sin (r1) * q;
-                (*it).vel[2] += cos (r1) * q;
+                (*it).momentum[0] += cos (r2) * sin (r1) * q;
+                (*it).momentum[1] += sin (r2) * sin (r1) * q;
+                (*it).momentum[2] += cos (r1) * q;
 
                 sum_q += q;
             }
