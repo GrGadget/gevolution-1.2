@@ -38,10 +38,20 @@ using LATfield2::Site;
     The indivual particle data structure in gevolution is 'particle',
     defined below.
 */
+// TODO: template particle variables
 struct particle : LATfield2::part_simple
 {
+    // inherited from LATfield2::part_simple we have
+    // pos[]; // that's position (x)
+    // vel[]; // that's velocity (dx/dt)
+    // id;
     Real mass;
-    std::array<Real,3> acc{0,0,0};
+    std::array<Real,3> momentum{0,0,0}; // that's momentum (p)
+    std::array<Real,3> force{0,0,0};    // that's force (dp/dt)
+    
+    // Metric components at the particle position
+    Real Phi{0};
+    std::array<Real,3> B{0,0,0};
 };
 
 typedef LATfield2::part_simple_info particle_info;
@@ -55,9 +65,10 @@ class Particles_gevolution :
         particle_dataType>
 {
   public:
+    using value_type = particle; // helper attribute used in containers for metaprogramming
+
     void saveGadget2 (std::string filename, gadget2_header &hdr,
-                      const int tracer_factor = 1, double dtau_pos = 0.,
-                      double dtau_vel = 0., Field<Real> *phi = NULL);
+                      const int tracer_factor = 1) const ;
     void saveGadget2 (std::string filename, gadget2_header &hdr,
                       lightcone_geometry &lightcone, double dist, double dtau,
                       double dtau_old, double dadtau,
@@ -75,33 +86,6 @@ class Particles_gevolution :
             });
     }
 };
-
-// /* Specialization of particle_handler for Gevolution's type of particle */
-// class Particles_gevolution_handler : public particle_handler
-// {
-//   Particles_gevolution &P;
-// 
-//  public:
-//   Particles_gevolution_handler(Particles_gevolution &ref_P) : 
-//     P{ref_P} {}
-// 
-//   size_t size() const override { return P.NumPart; }
-// 
-//   std::array<long long int, 3> get_position(int idx) const override
-//   {
-//     int i = Sp.get_active_index(idx);
-//     return {Sp.P[i].IntPos[0], Sp.P[i].IntPos[1], Sp.P[i].IntPos[2]};
-//   }
-//   double get_mass(int i) const override { return Sp.P[i].getMass(); }
-//   void set_acceleration(int idx, std::array<double, 3> A) const override
-//   {
-//     int i             = Sp.get_active_index(idx);
-//     Sp.P[i].GravPM[0] = A[0];
-//     Sp.P[i].GravPM[1] = A[1];
-//     Sp.P[i].GravPM[2] = A[2];
-//   }
-// };
-
 
 }
 #endif

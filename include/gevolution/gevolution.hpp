@@ -64,7 +64,7 @@ using LATfield2::Site;
 //////////////////////////
 
 template <class FieldType>
-void prepareFTsource (Field<FieldType> &phi, Field<FieldType> &Tij,
+void prepareFTsource (const Field<FieldType> &phi, const Field<FieldType> &Tij,
                       Field<FieldType> &Sij, const double coeff)
 {
     Site x (phi.lattice ());
@@ -188,16 +188,18 @@ void prepareFTsource (Field<FieldType> &phi, Field<FieldType> &Tij,
 //////////////////////////
 
 template <class FieldType>
-void prepareFTsource (Field<FieldType> &phi, Field<FieldType> &chi,
-                      Field<FieldType> &source, const FieldType bgmodel,
-                      Field<FieldType> &result, const double coeff,
-                      const double coeff2, const double coeff3)
+void prepareFTsource (const Field<FieldType> &phi, const Field<FieldType> &chi,
+                      const Field<FieldType> &T00, const FieldType bgmodel,
+                      Field<FieldType> &result, 
+                      // const double coeff,
+                      const double coeff2, 
+                      const double coeff3)
 {
     Site x (phi.lattice ());
 
     for (x.first (); x.test (); x.next ())
     {
-        result (x) = coeff2 * (source (x) - bgmodel);
+        result (x) = coeff2 * (T00 (x) - bgmodel);
 #ifdef PHINONLINEAR
 #ifdef ORIGINALMETRIC
         result (x) *= 1. - 4. * phi (x);
@@ -217,7 +219,8 @@ void prepareFTsource (Field<FieldType> &phi, Field<FieldType> &chi,
                       * (phi (x - 2) - phi (x + 2));
 #endif
 #endif
-        result (x) += (coeff3 - coeff) * phi (x) - coeff3 * chi (x);
+        result (x) += (coeff3) * phi (x) - coeff3 * chi (x);
+        // result (x) += (coeff3 - coeff) * phi (x) - coeff3 * chi (x);
     }
 }
 
@@ -323,7 +326,7 @@ void solveModifiedPoissonFT (Field<Complex> &sourceFT, Field<Complex> &potFT,
     const int linesize = potFT.lattice().size(1);
     int i;
     Real * gridk2;
-    Real * sinc;
+    // Real * sinc;
     rKSite k(potFT.lattice());
     
     gridk2 = (Real *) malloc(linesize * sizeof(Real));
@@ -391,7 +394,7 @@ void solveModifiedPoissonFT (Field<Complex> &sourceFT, Field<Complex> &potFT,
 //////////////////////////
 // Description:
 //   Update momentum method (arbitrary momentum)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
 //   of the particle mass, such that as q^2 << m^2 a^2 the meaning of vel[3]
 //   is ~ v*a.
 //
@@ -426,7 +429,7 @@ Real update_q (double dtau, double dx, particle *part, double *ref_dist,
 //////////////////////////
 // Description:
 //   Update momentum method (Newtonian version)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
 //   of the particle mass, such that the meaning of vel[3] is v*a.
 //
 // Arguments:
@@ -464,11 +467,11 @@ inline Real update_q_Newton (
     Real v2 = 0.;
     for (int i = 0; i < 3; i++)
     {
-        part.vel[i] += dtau * part.acc[i];
-        v2 += part.vel[i] * part.vel[i];
+        part.momentum[i] += dtau * part.force[i];
+        v2 += part.momentum[i] * part.momentum[i];
     }
     #ifndef NDEBUG
-    Debugger -> append( part.ID, {part.pos[0],part.pos[1],part.pos[2] } ,part.acc);
+    Debugger -> append( part.ID, {part.pos[0],part.pos[1],part.pos[2]},part.force);
     #endif
     return v2;
 }
@@ -478,7 +481,7 @@ inline Real update_q_Newton (
 //////////////////////////
 // Description:
 //   Update position method (arbitrary momentum)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
 //   of the particle mass, such that as q^2 << m^2 a^2 the meaning of vel[3]
 //   is ~ v*a.
 //
@@ -513,8 +516,8 @@ void update_pos (double dtau, double dx, particle *part, double *ref_dist,
 //////////////////////////
 // Description:
 //   Update position method (Newtonian version)
-//   Note that vel[3] in the particle structure is used to store q[3] in units
-//   of the particle mass, such that the meaning of vel[3] is v*a.
+//   Note that momentum[3] in the particle structure is used to store q[3] in units
+//   of the particle mass, such that the meaning of momentum[3] is v*a.
 //
 // Arguments:
 //   dtau       time step
@@ -622,7 +625,7 @@ void projection_T00_project (const Particles<part, part_info, part_dataType> *pc
 
                 if (phi != NULL)
                 {
-                    const auto &q = p.vel;
+                    const auto &q = p.momentum;
                     f = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
                     e = sqrt (f + a * a);
                     f = 3. * e + f / e;
@@ -763,7 +766,7 @@ void projection_T0i_project (const Particles<part, part_info, part_dataType> *pc
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
 
-                const auto &q = p.vel;
+                const auto &q = p.momentum;
                 double mass = p.mass;
 
                 w = coeff * mass * q[0];
@@ -906,7 +909,7 @@ void projection_Tij_project (const Particles<part, part_info, part_dataType> *pc
                     weightScalarGridDown[i] = 1.0l - weightScalarGridUp[i];
                 }
                 double mass = p.mass;
-                const auto &q = p.vel;
+                const auto &q = p.momentum;
                 f = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
                 e = sqrt (f + a * a);
                 f = 4. + a * a / (f + a * a);
@@ -1118,7 +1121,7 @@ void projection_Ti0_project (Particles<part, part_info, part_dataType> *pcls,
                 }
                 double mass = p.mass;
 
-                const auto &q = p.vel;
+                const auto &q = p.momentum;
 
                 for (int i = 0; i < 3; i++)
                 {

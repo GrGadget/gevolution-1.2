@@ -83,47 +83,36 @@ using namespace gevolution;
 
 // stop condition, by external file 'stop'
 // in the execution directory
-bool stop()
+bool stop(mpi::communicator &com_world)
 {
-    fs::path p{"stop"};
     bool ret = false;
-    
-    if(fs::exists(p))
+    if(com_world.rank()==0)
     {
-        ret = true;
-        fs::remove(p);
+        fs::path p{"stop"};
+        if(fs::exists(p))
+        {
+            ret = true;
+            fs::remove(p);
+        }
     }
+    mpi::all_reduce(com_world,ret,ret,std::logical_or());
     return ret;
-}
-template<class F_type>
-void show_msq(F_type& F, std::string name,int i=-1, int j=-1)
-{
-    double rms =0 ;
-    LATfield2::Site x(F.lattice());
-    
-    if(i<0)
-    for(x.first();x.test();x.next())
-    {
-        double v = F(x);
-        rms += v*v;
-    }else if(j<0)
-    for(x.first();x.test();x.next())
-    {
-        double v = F(x,i);
-        rms += v*v;
-    }else
-    for(x.first();x.test();x.next())
-    {
-        double v = F(x,i,j);
-        rms += v*v;
-    }
-    parallel.sum<double>(rms);
-    COUT << "RMS of " << name << " = " << rms << "\n";
 }
 
 void show_constant(double v, std::string name)
 {
     COUT << "Constant " << name << " = " << v << "\n";
+}
+
+auto string_fill(std::string s, int n , char c = ' ')
+{
+    std::string prefix;
+    n -= s.size();
+    if(n>0)
+    {
+        prefix = std::string(n,c);
+    }
+    return prefix + s;
 }
 
 
@@ -132,24 +121,24 @@ int main (int argc, char **argv)
     mpi::environment env;
     mpi::communicator com_world;
     
-#ifdef BENCHMARK
-    // benchmarking variables
-    double ref_time, ref2_time, cycle_start_time;
-    double initialization_time;
-    double run_time;
-    double cycle_time = 0;
-    double projection_time = 0;
-    double snapshot_output_time = 0;
-    double spectra_output_time = 0;
-    double lightcone_output_time = 0;
-    double gravity_solver_time = 0;
-    double fft_time = 0;
-    int fft_count = 0;
-    double update_q_time = 0;
-    int update_q_count = 0;
-    double moveParts_time = 0;
-    int moveParts_count = 0;
-#endif // BENCHMARK
+// #ifdef BENCHMARK
+//     // benchmarking variables
+//     double ref_time, ref2_time, cycle_start_time;
+//     double initialization_time;
+//     double run_time;
+//     double cycle_time = 0;
+//     double projection_time = 0;
+//     double snapshot_output_time = 0;
+//     double spectra_output_time = 0;
+//     double lightcone_output_time = 0;
+//     double gravity_solver_time = 0;
+//     double fft_time = 0;
+//     int fft_count = 0;
+//     double update_q_time = 0;
+//     int update_q_count = 0;
+//     double moveParts_time = 0;
+//     int moveParts_count = 0;
+// #endif // BENCHMARK
 
     int n = 0, m = 0;
 #ifdef EXTERNAL_IO
@@ -157,14 +146,15 @@ int main (int argc, char **argv)
     int io_group_size = 0;
 #endif
 
-    int i, j, cycle = 0, snapcount = 0, pkcount = 0, restartcount = 0,
-              usedparams, numparam = 0, numspecies, done_hij;
-    int numsteps_ncdm[MAX_PCL_SPECIES - 2];
-    long numpts3d;
+    int cycle = 0, snapcount = 0, pkcount = 0, restartcount = 0,
+              usedparams, numparam = 0, numspecies;
+    // int done_hij;
+    // int numsteps_ncdm[MAX_PCL_SPECIES - 2];
+    // long numpts3d;
     int box[3];
     double dtau, dtau_old, dx, tau, a, tmp, start_time;
     double maxvel[MAX_PCL_SPECIES];
-    FILE *outfile;
+    // FILE *outfile;
     char filename[2 * PARAM_MAX_LENGTH + 24];
     string h5filename;
     char *settingsfile = NULL;
@@ -176,13 +166,12 @@ int main (int argc, char **argv)
     metadata sim;
     cosmology cosmo;
     icsettings ic;
-    double T00hom;
 
 #ifndef H5_DEBUG
     H5Eset_auto2 (H5E_DEFAULT, NULL, NULL);
 #endif
 
-    for (i = 1; i < argc; i++)
+    for (int i = 1; i < argc; i++)
     {
         if (argv[i][0] != '-')
             continue;
@@ -278,9 +267,9 @@ int main (int argc, char **argv)
     rKSite kFT (latFT);
 
     dx = 1.0 / (double)sim.numpts;
-    numpts3d = (long)sim.numpts * (long)sim.numpts * (long)sim.numpts;
+    // numpts3d = (long)sim.numpts * (long)sim.numpts * (long)sim.numpts;
 
-    for (i = 0; i < 3;
+    for (int i = 0; i < 3;
          i++) // particles may never move farther than to the adjacent domain
     {
         if (lat.sizeLocal (i) - 1 < sim.movelimit)
@@ -374,7 +363,7 @@ int main (int argc, char **argv)
 
     if (sim.gr_flag == gravity_theory::GR)
     {
-        for (i = 0; i < numspecies; i++)
+        for (int i = 0; i < numspecies; i++)
             maxvel[i] /= sqrt (maxvel[i] * maxvel[i] + 1.0);
     }
 
@@ -384,195 +373,170 @@ int main (int argc, char **argv)
              << endl;
 
     
-    newtonian_pm PM(sim.numpts);
-    relativistic_pm grPM(sim.numpts);
+    std::unique_ptr< particle_mesh<Cplx,Particles_gevolution> > PM;
+    
+    if(sim.gr_flag==gravity_theory::GR)
+    {
+        PM.reset(
+            new relativistic_pm<Cplx,Particles_gevolution>(sim.numpts)
+        );
+    }else
+    {
+        PM.reset(
+            new newtonian_pm<Cplx,Particles_gevolution>(sim.numpts)
+        );
+    }
     
     pcls_cdm.update_mass(); // fix the mass legacy problem
+    
+    // background file initialization
+    fs::path BackgroundPath{sim.output_path};
+    BackgroundPath /= std::string(sim.basename_generic) + "_background.dat";
+    constexpr int tabwidth = 16;
+    
+    if(com_world.rank()==0)
+    // select main process
+    {
+        std::ofstream f(BackgroundPath);
+        f << "# background statistics\n"
+          << "#" 
+          << std::setw(tabwidth-1) << "cycle"
+          << std::setw(tabwidth) << "tau"
+          << std::setw(tabwidth) << "a"
+          << std::setw(tabwidth) << "conformal H/H0"
+          << std::setw(tabwidth) << "sum(phi)"
+          << std::setw(tabwidth) << "<T00>"
+          << "\n";
+    }
+    
+    
+    // TODO: remove this ugly fix. The problem is that initialization is still
+    // thinking that 'vel' is momentum
+    // pcls_cdm.for_each(
+    //     [](particle &part, const Site& /* xpart */)
+    //     {
+    //         for(int i=0;i<3;++i)
+    //             part.momentum[i] = part.vel[i];
+    //     }
+    // );
     
     do // main loop
     {
         COUT << "Starting cycle: " << cycle << '\n';        
         
-        //show_msq(grPM.phi,"phi");
-        //show_msq(grPM.chi,"chi");
-        //show_msq(grPM.Bi,"Bi[0]",1);
-
         // PM step 1. construction of the energy momentum tensor
-        if (sim.gr_flag == gravity_theory::GR)
+        PM->clear_sources();
+        PM->sample(pcls_cdm,a);
+        
+        for(auto report = PM->report();;)
         {
-            grPM.clear_sources();
-            grPM.sample(pcls_cdm,a);
-            show_msq(grPM.T00,"T00");
-            show_msq(grPM.T0i,"T0i",0);
-            show_msq(grPM.Tij,"Tij",0,0);
+            COUT << report << "\n";
+            break;
         }
-        else
-        {
-            PM.clear_sources();
-            PM.sample(pcls_cdm);
-            show_msq(PM.source,"T00");
-        }
+        
         // EM tensor
-
-        if (sim.gr_flag == gravity_theory::GR) 
-        // TODO: remove these conditions, just use NewtonPM or GRPM.
-        {
-            T00hom = 0.;
-            for (x.first (); x.test (); x.next ())
-                T00hom += grPM.T00 (x);
-            parallel.sum<double> (T00hom);
-            T00hom /= (double)numpts3d;
-
-            if (cycle % CYCLE_INFO_INTERVAL == 0)
-            {
-                COUT << " cycle " << cycle
-                     << ", background information: z = " << (1. / a) - 1.
-                     << ", average T00 = " << T00hom << ", background model = "
-                     << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
-                     << endl;
-            }
-        }
+        double T00hom = PM->density();
          
         // PM step 2. compute the potentials
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            grPM.compute_potential(a,Hconf(a,cosmo),cosmo.fourpiG,dtau_old,
-                cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
-        }
-        else
-        {
-            PM.compute_potential(cosmo.fourpiG/a);
-        }
-        //show_constant(a,"a");
-        //show_constant(cosmo.Omega_cdm+cosmo.Omega_b+bg_ncdm(a,cosmo),"Omega");
-        //show_constant(Hconf(a,cosmo),"Hc");
-        //show_constant(cosmo.fourpiG,"4PiG");
-        //show_constant(dtau_old,"dt");
+        PM->compute_potential(
+            cosmo.fourpiG, 
+            a,
+            Hconf(a,cosmo),
+            // dtau_old,
+            cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo));
+        
+        double Phihom = PM->sum_phi();
         
         // Sources
-        if (sim.gr_flag == gravity_theory::GR)
+        for(auto report = PM->report();;)
         {
-            show_msq(grPM.T00,"T00");
-            show_msq(grPM.T0i,"T0i",0);
-            show_msq(grPM.Tij,"Tij",0,0);
-        }
-        else
-        {
-            show_msq(PM.source,"T00");
-        }
-        
-        // Potentials
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            show_msq(grPM.phi,"phi");
-            show_msq(grPM.chi,"chi");
-            show_msq(grPM.Bi,"Bi[0]",1);
-        }
-        else
-        {
-            show_msq(PM.phi,"phi");
+            COUT << report << "\n";
+            break;
         }
 
         // record some background data
-        if (kFT.setCoord (0, 0, 0))
         {
-            sprintf (filename, "%s%s_background.dat", sim.output_path,
-                     sim.basename_generic);
-            outfile = fopen (filename, "a");
-            if (outfile == NULL)
+            if(com_world.rank()==0)
             {
-                cout << " error opening file for background output!" << endl;
-            }
-            else
-            {
-                if (cycle == 0)
-                    fprintf (outfile, "# background statistics\n# cycle   "
-                                      "tau/boxsize    a      "
-                                      "       conformal H/H0  phi(k=0)      "
-                                      " T00(k=0)\n");
-                fprintf (outfile, " %6d   %e   %e   %e   %e   %e\n", cycle, tau,
-                         a,
-                         Hconf (a, cosmo) / Hconf (1., cosmo),
-                         grPM.phi_FT (kFT).real (), T00hom);
-                fclose (outfile);
+                // select main process
+                std::ofstream f(BackgroundPath,std::ios_base::app);
+                if(!f)
+                {
+                    std::cerr << "Could not open the background file: " 
+                              << BackgroundPath << '\n';
+                }else
+                {
+                    f << std::setw(tabwidth) << cycle 
+                      << std::setw(tabwidth) << tau
+                      << std::setw(tabwidth) << a
+                      << std::setw(tabwidth) << Hconf(a,cosmo)/Hconf(1.0,cosmo)
+                      << std::setw(tabwidth) << Phihom 
+                      << std::setw(tabwidth) << T00hom << '\n';
+                }
             }
         }
-        // done recording background data
 
         // lightcone output
         if (sim.num_lightcone > 0)
-            writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
-                             maxvel[0], cycle,
-                             h5filename + sim.basename_lightcone, &pcls_cdm,
-                             &pcls_b, pcls_ncdm, &grPM.phi, &grPM.chi, &grPM.Bi,
-                             &grPM.Tij, &grPM.Bi_FT,
-                             &grPM.Tij_FT, &grPM.plan_Bi, &grPM.plan_Tij, done_hij, IDbacklog);
+        {
+            //writeLightcones (sim, cosmo, a, tau, dtau, dtau_old,
+            //                 maxvel[0], cycle,
+            //                 h5filename + sim.basename_lightcone, &pcls_cdm,
+            //                 &pcls_b, pcls_ncdm, &PM->phi, &PM->chi, &PM->Bi,
+            //                 &PM->Tij, &PM->Bi_FT,
+            //                 &PM->Tij_FT, &PM->plan_Bi, &PM->plan_Tij, done_hij, IDbacklog);
+            ;
+        }
         else
-            done_hij = 0;
+        {
+            // done_hij = 0;
+        }
 
-
-        // snapshot output
+        // TODO: snapshot output
         if (snapcount < sim.num_snapshot
             && 1. / a < sim.z_snapshot[snapcount] + 1.)
         {
             COUT << COLORTEXT_CYAN << " writing snapshot" << COLORTEXT_RESET
                  << " at z = " << ((1. / a) - 1.) << " (cycle " << cycle
                  << "), tau/boxsize = " << tau << endl;
-
-            writeSnapshots (sim, cosmo, a, dtau_old, done_hij,
-                            snapcount, h5filename + sim.basename_snapshot,
-                            &pcls_cdm, &pcls_b, pcls_ncdm, &grPM.phi, &grPM.chi,
-                            &grPM.Bi,
-                            &grPM.T00, &grPM.Tij, &grPM.T00_FT, &grPM.Bi_FT,
-                            &grPM.Tij_FT, &grPM.plan_phi,
-                            &grPM.plan_chi, &grPM.plan_Bi, &grPM.plan_T00,
-                            &grPM.plan_Tij
-            );
-
+            
+            write_snapshot(sim,cosmo,a,pcls_cdm,
+                h5filename
+                    +sim.basename_snapshot
+                    + string_fill(std::to_string(snapcount),3,'0') 
+                    +"_cdm");
+            
+            PM->save_to_file(
+                h5filename
+                    +sim.basename_snapshot
+                    + string_fill(std::to_string(snapcount),3,'0') ); 
+            
             snapcount++;
         }
 
 
-        // power spectra
+        // TODO: power spectra output
         if (pkcount < sim.num_pk && 1. / a < sim.z_pk[pkcount] + 1.)
         {
             COUT << COLORTEXT_CYAN << " writing power spectra"
                  << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
                  << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
 
-            writeSpectra (sim, cosmo, a, pkcount,
-                          &pcls_cdm, &pcls_b, pcls_ncdm, 
-                          &grPM.phi, &grPM.chi, &grPM.Bi,
-                          &grPM.T00, &grPM.Tij, 
-                          &grPM.T00_FT, &grPM.Bi_FT, &grPM.Tij_FT, 
-                          &grPM.plan_phi, &grPM.plan_chi, 
-                          &grPM.plan_Bi, &grPM.plan_T00, &grPM.plan_Tij
-            );
+            // writeSpectra (sim, cosmo, a, pkcount,
+            //               &pcls_cdm, &pcls_b, pcls_ncdm, 
+            //               &PM->phi,     &PM->chi,    &PM->Bi,
+            //               &PM->T00,     &PM->Tij, 
+            //               &PM->T00_FT,  &PM->Bi_FT,  &PM->Tij_FT, 
+            //               &PM->plan_phi,&PM->plan_chi, 
+            //               &PM->plan_Bi, &PM->plan_T00, &PM->plan_Tij
+            // );
 
             pkcount++;
         }
 
-#ifdef EXACT_OUTPUT_REDSHIFTS
-        tmp = a;
-        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
-        rungekutta4bg (tmp, cosmo, 0.5 * dtau);
-
-        if (pkcount < sim.num_pk && 1. / tmp < sim.z_pk[pkcount] + 1.)
-        {
-            writeSpectra (sim, cosmo, a, pkcount,
-                          &pcls_cdm, &pcls_b, pcls_ncdm, 
-                          &grPM.phi, &grPM.chi, &grPM.Bi,
-                          &grPM.T00, &grPM.Tij, 
-                          &grPM.T00_FT, &grPM.Bi_FT, &grPM.Tij_FT, 
-                          &grPM.plan_phi, &grPM.plan_chi, 
-                          &grPM.plan_Bi, &grPM.plan_T00, &grPM.plan_Tij
-            );
-        }
-#endif // EXACT_OUTPUT_REDSHIFTS
-
-
         if (pkcount >= sim.num_pk && snapcount >= sim.num_snapshot)
         {
+            int i;
             for (i = 0; i < sim.num_lightcone; i++)
             {
                 if (sim.lightcone[i].z + 1. < 1. / a)
@@ -595,102 +559,59 @@ int main (int argc, char **argv)
         }
 
         // cdm and baryon particle update
-        if (sim.gr_flag== gravity_theory::GR)
+        PM->compute_forces(pcls_cdm,1.0,a);
+        if (cycle % CYCLE_INFO_INTERVAL == 0)
         {
-            // new version
-            grPM.compute_forces(pcls_cdm,a);
-            maxvel[0]=0;
-            pcls_cdm.for_each(
-                [&]
-                (particle& part, const Site& /*xpart*/)
-                {
-                   const double dtau_eff =  
-                                   (dtau + dtau_old) * 0.5 ;
-                   double v2 = 0;
-                   for(int i=0;i<3;++i)
-                   {
-                       part.vel[i] += dtau_eff * part.acc[i];
-                       v2 += part.vel[i]*part.vel[i];
-                   }
-                   maxvel[0]=std::max(maxvel[0],v2);
-                }
-                );
-            maxvel[0] = std::sqrt(maxvel[0])/a;              
+            COUT << " cycle " << cycle
+                 << ", background information: z = " << (1. / a) - 1.
+                 << ", average T00 = " << T00hom << ", background model = "
+                 << cosmo.Omega_cdm + cosmo.Omega_b + bg_ncdm (a, cosmo)
+                 << endl;
             
-            // old version
-            // update_cdm_fields[0] = &grPM.phi;
-            // update_cdm_fields[1] = &grPM.chi;
-            // update_cdm_fields[2] = &grPM.Bi;
-            // maxvel[0] = pcls_cdm.updateVel (
-            //     update_q, (dtau + dtau_old) / 2., update_cdm_fields,1, f_params);
+            auto [mass,pos,mom,acc]  = PM->test_velocities(pcls_cdm);
+            
+            COUT << " mean     mass: " << mass << "\n";
+            COUT << " mean sqr(pos): " << pos << "\n";
+            COUT << " mean sqr(mom): " << mom << "\n";
+            COUT << " mean sqr(acc): " << acc << "\n";
         }
-        else
-        {
-           PM.compute_forces(pcls_cdm,1.0);//cosmo.fourpiG/a);
-           maxvel[0]=.0;
-           pcls_cdm.for_each(
-               [&]
-               (particle& part,const Site& /*xpart*/)
+        
+        // Kick
+        pcls_cdm.for_each(
+            [&]
+            (particle& part, const Site& /*xpart*/)
+            {
+               const double dtau_eff =  
+                               (dtau + dtau_old) * 0.5 ;
+               for(int i=0;i<3;++i)
                {
-                   const double dtau_eff =  
-                                   (dtau + dtau_old) * 0.5 ;
-                   double v2 = 0;
-                   for(int i=0;i<3;++i)
-                   {
-                       part.vel[i] += dtau_eff * part.acc[i] *a;
-                       v2 += part.vel[i]*part.vel[i];
-                   }
-                   maxvel[0]=std::max(maxvel[0],v2);
-               });
-            maxvel[0] = std::sqrt(maxvel[0])/a;              
-        }
+                   part.momentum[i] += dtau_eff * part.force[i];
+               }
+            }
+            );
         
         Debugger_ptr -> flush();
 
         rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
-
-        if (sim.gr_flag == gravity_theory::GR)
-        {
-            // new version
-            pcls_cdm.for_each(
-                [&](particle& part, const Site& xpart)
+        
+        maxvel[0]=0;
+        PM->compute_velocities(pcls_cdm,a);
+        // Drift
+        pcls_cdm.for_each(
+            [&](particle& part, const Site& /* xpart */)
+            {
+                double v2 = 0;
+                for(int i=0;i<3;++i)
                 {
-                    std::array<Real,3> velocity =
-                    grPM.momentum_to_velocity(
-                        {part.vel[0],part.vel[1],part.vel[2]},
-                        {part.pos[0],part.pos[1],part.pos[2]},
-                        xpart,
-                        a);
-                    for(int i=0;i<3;++i)
-                    {
-                        part.pos[i] += dtau * velocity[i];
-                    }
+                    part.pos[i] += dtau * part.vel[i];
+                    v2 += part.momentum[i]*part.momentum[i];
                 }
-            );
+               maxvel[0]=std::max(maxvel[0],v2);
+            }
+        );
+        maxvel[0] = std::sqrt(maxvel[0]);              
             
-            // old version
-            // update_cdm_fields[0] = &grPM.phi;
-            // update_cdm_fields[1] = &grPM.chi;
-            // update_cdm_fields[2] = &grPM.Bi;
-            // pcls_cdm.moveParticles (update_pos, dtau, update_cdm_fields,
-            //                         1,
-            //                         f_params);
-        }
-        else
-        {
-            // new version
-            pcls_cdm.for_each(
-                [&](particle& part, const Site& /*xpart*/)
-                {
-                    for(int i=0;i<3;++i)
-                    {
-                        part.pos[i] += dtau * part.vel[i]/a;
-                    }
-                }
-            );
-        }
-
         rungekutta4bg (a, cosmo,
                        0.5 * dtau); // evolve background by half a time step
 
@@ -698,7 +619,7 @@ int main (int argc, char **argv)
 
         if (sim.gr_flag == gravity_theory::GR)
         {
-            for (i = 0; i < numspecies; i++)
+            for (int i = 0; i < numspecies; i++)
                 maxvel[i] /= sqrt (maxvel[i] * maxvel[i] + 1.0);
         }
         // done particle update
@@ -721,9 +642,11 @@ int main (int argc, char **argv)
                      << endl;
                 if (sim.vector_flag == VECTOR_PARABOLIC 
                     && sim.gr_flag == gravity_theory::Newtonian)
-                    grPM.plan_Bi.execute (FFT_BACKWARD);
-                    hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm,
-                               grPM.phi, grPM.chi, grPM.Bi, a, tau, dtau, cycle);
+                {
+                    // PM->plan_Bi.execute (FFT_BACKWARD);
+                }
+                // hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm,
+                //            PM->phi, PM->chi, PM->Bi, a, tau, dtau, cycle);
                 break;
             }
         }
@@ -736,16 +659,18 @@ int main (int argc, char **argv)
                  << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
             if (sim.vector_flag == VECTOR_PARABOLIC 
                 && sim.gr_flag ==gravity_theory::Newtonian)
-                grPM.plan_Bi.execute (FFT_BACKWARD);
-                hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, grPM.phi,
-                           grPM.chi, grPM.Bi, a, tau, dtau, cycle, restartcount);
+            {
+                // PM->plan_Bi.execute (FFT_BACKWARD);
+            }
+            // hibernate (sim, ic, cosmo, &pcls_cdm, &pcls_b, pcls_ncdm, PM->phi,
+            //               PM->chi, PM->Bi, a, tau, dtau, cycle, restartcount);
             restartcount++;
         }
 
         dtau_old = dtau;
         dtau = std::min(sim.Cf,sim.steplimit/Hconf(a,cosmo));
         cycle++;
-    }while( not stop() );
+    }while( not stop(com_world) );
 
     COUT << COLORTEXT_GREEN << " simulation complete." << COLORTEXT_RESET
          << endl;
