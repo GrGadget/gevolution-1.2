@@ -27,6 +27,8 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     using base_type::gradient;
     using typename base_type::fft_plan_type;
     
+    using typename base_type::force_reduction;
+    
     // metric perturbations
     public:
     
@@ -315,7 +317,8 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     */
     void compute_forces(particle_container& pcls, 
         double /* fourpiG */, 
-        double a) const override
+        double a,
+        force_reduction reduct = force_reduction::assign) const override
     {
         // const int N = size();
         // const real_type dx = 1.0 / N;
@@ -426,10 +429,26 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
                                 + ref_dist[2] * Bi (xpart + 1 + 0 + 2, 2))
                              * part.momentum[2];
                 
+                std::array<real_type,3> force;
+                
                 for(int i=0;i<3;++i)
                 {
-                    part.force[i] = (gradchi[i]*e2 - gradphi[i] * (e2 + p2/e2) 
+                    force[i] = (gradchi[i]*e2 - gradphi[i] * (e2 + p2/e2) 
                                     - pgradB[i]/a/a/N)/dx;
+                }
+                
+                switch(reduct)
+                {
+                    case force_reduction::plus :
+                        for(int i=0;i<3;++i)
+                            part.force[i] += force[i];
+                    break;
+                    case force_reduction::minus :
+                        for(int i=0;i<3;++i)
+                            part.force[i] -= force[i];
+                    break;
+                    default:
+                        part.force = force;
                 }
             }
         }

@@ -22,6 +22,8 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     using base_type::gradient;
     using typename base_type::fft_plan_type;
     
+    using typename base_type::force_reduction;
+    
     
     real_field_type source,phi;
     complex_field_type phi_FT;
@@ -92,9 +94,10 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     void compute_forces(
         particle_container& pcls, 
         double fourpiG =1, 
-        double a = 1) 
-        const override
+        double a = 1,
+        force_reduction reduct = force_reduction::assign) const override
     {
+        std::array<real_type,3> force;
     #ifdef GEVOLUTION_OLD_VERSION
         const double dx = 1.0/size();
         fourpiG /= dx;
@@ -109,7 +112,23 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
                 std::array<real_type,3> gradphi=gradient(phi,xpart,pos);
                 for (int i=0;i<3;i++)
                 {
-                    part.force[i] = -gradphi[i] * fourpiG * a;
+                    force[i] = -gradphi[i] * fourpiG * a;
+                }
+                
+                switch(reduct)
+                {
+                    case force_reduction::plus :
+                        for(int i=0;i<3;++i)
+                            part.force[i] += force[i];
+                    
+                    break;
+                    case force_reduction::minus :
+                        for(int i=0;i<3;++i)
+                            part.force[i] -= force[i];
+                    
+                    break;
+                    default:
+                        part.force = force;
                 }
             }
         }
@@ -146,31 +165,43 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
                     for(int l=0;l<3;++l)
                         ref_dist[l] = part.pos[l]/dx - xpart.coord(l);
                     
-                    part.force[i] = 0.0;
+                    force[i] = 0.0;
                     
-                    part.force[i] +=
+                    force[i] +=
                     (1-ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart);
                     
-                    part.force[i] +=
+                    force[i] +=
                     (ref_dist[0])*(1-ref_dist[1])*(1-ref_dist[2])*Fx(xpart+0);
                     
-                    part.force[i] +=
+                    force[i] +=
                     (1-ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1);
                     
-                    part.force[i] +=
+                    force[i] +=
                     (ref_dist[0])*(ref_dist[1])*(1-ref_dist[2])*Fx(xpart+1+0);
                     
-                    part.force[i] +=
+                    force[i] +=
                     (1-ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2);
                     
-                    part.force[i] +=
+                    force[i] +=
                     (ref_dist[0])*(1-ref_dist[1])*(ref_dist[2])*Fx(xpart+2+0);
                     
-                    part.force[i] +=
+                    force[i] +=
                     (1-ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1);
                     
-                    part.force[i] +=
+                    force[i] +=
                     (ref_dist[0])*(ref_dist[1])*(ref_dist[2])*Fx(xpart+2+1+0);
+                
+                    switch(reduct)
+                    {
+                        case force_reduction::plus :
+                            part.force[i] += force[i];
+                        break;
+                        case force_reduction::minus :
+                            part.force[i] -= force[i];
+                        break;
+                        default:
+                            part.force[i] = force[i];
+                    }
                 }
             }
         }

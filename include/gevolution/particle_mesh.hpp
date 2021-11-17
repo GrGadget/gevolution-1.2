@@ -197,7 +197,14 @@ class particle_mesh
     virtual void clear_sources() = 0 ;
     virtual void sample(const particle_container& pcls, double a) = 0;
     virtual void compute_potential(double fourpiG, double a, double Hc,double Omega) = 0;
-    virtual void compute_forces(particle_container& pcls, double fourpiG, double a) const = 0;
+    
+    enum class force_reduction {
+        assign, plus, minus
+    };
+    
+    virtual void compute_forces(
+        particle_container& pcls, double fourpiG, double a, 
+        force_reduction = force_reduction::assign) const = 0;
     virtual ~particle_mesh(){}
     
     virtual void save_to_file( std::string  ) const = 0;
