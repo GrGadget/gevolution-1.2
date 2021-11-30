@@ -23,6 +23,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     using typename base_type::fft_plan_type;
     
     using typename base_type::force_reduction;
+    using base_type::com;
     
     
     real_field_type source,phi;
@@ -30,8 +31,8 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     fft_plan_type plan_source, plan_phi;
     
     public:
-    newtonian_pm(int N):
-        base_type(N),
+    newtonian_pm(int N,const MPI_Comm& that_com):
+        base_type(N,that_com),
         
         source(base_type::lat,1),
         phi(base_type::lat,1),
@@ -209,15 +210,71 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     } 
     ~newtonian_pm() override {}
     
-    std::string report() const override
+    std::string report(const particle_container& pcls, double a) const override
     {
         std::stringstream ss;
-        // sources
-        double std_t00 = show_msq(source);
-        // potentials
-        double std_phi = show_msq(phi);
-        ss << "RMS(T00) = " << std_t00 << '\n';
-        ss << "RMS(Phi) = " << std_phi << '\n';
+        // // sources
+        // double std_t00 = show_msq(source);
+        // // potentials
+        // double std_phi = show_msq(phi);
+        // ss << "RMS(T00) = " << std_t00 << '\n';
+        // ss << "RMS(Phi) = " << std_phi << '\n';
+        
+        double max_pos{}, max_mom{};
+        
+        pcls.for_each(
+            [&max_pos,&max_mom]
+            (const particle& part, const Site& /*xpart*/)
+            {
+                using std::max;
+                for(int i=0;i<3;++i)
+                {
+                    max_pos = max(max_pos,part.pos[i]);
+                    max_mom = max(max_mom,part.momentum[i]);
+                }
+            }
+        );
+        ::boost::mpi::all_reduce(com,max_pos,my_max_func<double>{});
+        ::boost::mpi::all_reduce(com,max_mom,my_max_func<double>{});
+        
+        ss << "max |position| = " << 
+                max_pos << '\n';
+        ss << "max |momentum| = " << 
+                max_mom << '\n';
+        
+        ss << "RMS(T00) = " << 
+            reduce_field(com,source,0.0,
+                my_sum_func<double>{},
+                my_sqr_func<double>{}) << '\n';
+        ss << "RMS(Phi) = " << 
+            reduce_field(com,phi,0.0,
+                my_sum_func<double>{},
+                my_sqr_func<double>{}) << '\n';
+        ss << "max|T00| = " << 
+            reduce_field(com,source,0.0,
+                my_max_func<double>{},
+                my_abs_func<double>{}) << '\n';
+        ss << "max|Phi| = " << 
+            reduce_field(com,phi,0.0,
+                my_max_func<double>{},
+                my_abs_func<double>{}) << '\n';
+        ss << "max|FT Phi| = " << 
+            reduce_field(com,phi_FT, 0.0,
+                my_max_func< double >{},
+                my_abs_func<double,LATfield2::Imag>{}) << '\n';
+        
+        ss << "max|halo T00| = " << 
+            reduce_field_halo(com,source,0.0,
+                my_max_func<double>{},
+                my_abs_func<double>{} ) << '\n';
+        ss << "max|halo Phi| = " << 
+            reduce_field_halo(com,phi,0.0,
+                my_max_func<double>{},
+                my_abs_func<double>{} ) << '\n';
+        ss << "max|halo FT Phi| = " << 
+            reduce_field_halo(com,phi_FT, 0.0,
+                my_max_func< double >{},
+                my_abs_func< double,LATfield2::Imag>{} ) << '\n';
         return ss.str();
     }
     double density() const override
