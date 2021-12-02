@@ -610,7 +610,7 @@ int main (int argc, char **argv)
                maxvel[0]=std::max(maxvel[0],v2);
             }
         );
-        pcls_cdm.moveParticles();
+        pcls_cdm.old_moveParticles();
         
         maxvel[0] = std::sqrt(maxvel[0]);              
             
