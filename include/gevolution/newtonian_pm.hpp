@@ -332,7 +332,7 @@ void apply_filter_kspace(
     newtonian_pm<complex_type,particle_container> &pm,
     functor_type f)
 {
-    apply_filter_kspace(pm.phi,pm.phi_FT,pm.plan_phi,f);
+    apply_filter_kspace_scalar(pm.phi,pm.phi_FT,pm.plan_phi,f);
 }
 
 }

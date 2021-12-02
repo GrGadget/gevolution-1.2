@@ -135,7 +135,7 @@ struct my_sqr_func
     
 // TODO: simplify this template
 template<class functor_type, class field_type1, class field_type2, class fft_plan_type >
-void apply_filter_kspace(
+void apply_filter_kspace_scalar(
     field_type1 &phi, 
     field_type2 &phi_FT,
     fft_plan_type &plan,
@@ -148,6 +148,27 @@ void apply_filter_kspace(
     for (k.first(); k.test(); k.next())
     {
         phi_FT(k) *= f({k.coord(0),k.coord(1),k.coord(2)}) * inv_N3;
+    }
+    phi_FT.updateHalo();
+    plan.execute(LATfield2::FFT_BACKWARD);
+    phi.updateHalo();
+}
+template<class functor_type, class field_type1, class field_type2, class fft_plan_type >
+void apply_filter_kspace_vector(
+    field_type1 &phi, 
+    field_type2 &phi_FT,
+    fft_plan_type &plan,
+    functor_type f)
+{
+    plan.execute(::LATfield2::FFT_FORWARD);
+    ::LATfield2::rKSite k(phi_FT.lattice());
+    const double N = phi.lattice().size(0);
+    const double inv_N3 = 1.0/N/N/N;
+    for (k.first(); k.test(); k.next())
+    {
+        const double factor = f({k.coord(0),k.coord(1),k.coord(2)}) * inv_N3;
+        for(int i=0;i<3;++i)
+            phi_FT(k,i) *= factor;
     }
     phi_FT.updateHalo();
     plan.execute(LATfield2::FFT_BACKWARD);

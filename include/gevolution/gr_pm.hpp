@@ -637,4 +637,13 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         Bi.saveHDF5 (prefix + "_B.h5");
     }
 };
+template<class functor_type, typename complex_type, typename particle_container>
+void apply_filter_kspace(
+    relativistic_pm<complex_type,particle_container> &pm,
+    functor_type f)
+{
+    apply_filter_kspace_scalar(pm.phi,pm.phi_FT,pm.plan_phi,f);
+    apply_filter_kspace_scalar(pm.chi,pm.chi_FT,pm.plan_chi,f);
+    apply_filter_kspace_vector(pm.Bi,pm.Bi_FT,pm.plan_Bi,f);
+}
 } // namespace gevolution
