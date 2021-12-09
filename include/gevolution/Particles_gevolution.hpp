@@ -41,6 +41,11 @@ using LATfield2::Site;
 // TODO: template particle variables
 struct particle : LATfield2::part_simple
 {
+    using base_particle = LATfield2::part_simple;
+    using base_particle::ID;
+    using base_particle::pos;
+    using base_particle::vel;
+    
     // inherited from LATfield2::part_simple we have
     // pos[]; // that's position (x)
     // vel[]; // that's velocity (dx/dt)
@@ -52,6 +57,30 @@ struct particle : LATfield2::part_simple
     // Metric components at the particle position
     Real Phi{0};
     std::array<Real,3> B{0,0,0};
+    
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int /*version*/)
+    {
+        // inherited from LATfield2::part_simple
+        ar & ID;
+        // notive that LATfield2::part_simple::pos is not an std::array
+        // bad design
+        ar & pos[0] ;
+        ar & pos[1] ;
+        ar & pos[2] ; 
+        
+        ar & vel[0] ;
+        ar & vel[1] ;
+        ar & vel[2] ;
+        
+        // augmented structure
+        ar & mass;
+        ar & momentum;
+        ar & force;
+        
+        ar & Phi;
+        ar & B;
+    }
 };
 
 typedef LATfield2::part_simple_info particle_info;

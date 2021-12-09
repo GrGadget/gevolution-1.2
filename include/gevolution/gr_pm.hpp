@@ -28,6 +28,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     using typename base_type::fft_plan_type;
     
     using typename base_type::force_reduction;
+    using base_type::com;
     
     // metric perturbations
     public:
@@ -81,8 +82,8 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     
     public:
     
-    relativistic_pm(int N): 
-        base_type(N),
+    relativistic_pm(int N,const MPI_Comm& that_com): 
+        base_type(N,that_com),
         
         // initialize fields, metric
         phi(base_type::lat,1),
@@ -592,8 +593,9 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         return momentum;
     }
     
+    
     virtual ~relativistic_pm(){}
-    std::string report() const override
+    std::string report(const particle_container& pcls, double a) const override
     {
         std::stringstream ss;
         // sources
@@ -635,4 +637,13 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         Bi.saveHDF5 (prefix + "_B.h5");
     }
 };
+template<class functor_type, typename complex_type, typename particle_container>
+void apply_filter_kspace(
+    relativistic_pm<complex_type,particle_container> &pm,
+    functor_type f)
+{
+    apply_filter_kspace_scalar(pm.phi,pm.phi_FT,pm.plan_phi,f);
+    apply_filter_kspace_scalar(pm.chi,pm.chi_FT,pm.plan_chi,f);
+    apply_filter_kspace_vector(pm.Bi,pm.Bi_FT,pm.plan_Bi,f);
+}
 } // namespace gevolution

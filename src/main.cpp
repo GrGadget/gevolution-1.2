@@ -378,12 +378,12 @@ int main (int argc, char **argv)
     if(sim.gr_flag==gravity_theory::GR)
     {
         PM.reset(
-            new relativistic_pm<Cplx,Particles_gevolution>(sim.numpts)
+            new relativistic_pm<Cplx,Particles_gevolution>(sim.numpts,com_world)
         );
     }else
     {
         PM.reset(
-            new newtonian_pm<Cplx,Particles_gevolution>(sim.numpts)
+            new newtonian_pm<Cplx,Particles_gevolution>(sim.numpts,com_world)
         );
     }
     
@@ -428,7 +428,7 @@ int main (int argc, char **argv)
         PM->clear_sources();
         PM->sample(pcls_cdm,a);
         
-        for(auto report = PM->report();;)
+        for(auto report = PM->report(pcls_cdm,a);;)
         {
             COUT << report << "\n";
             break;
@@ -448,7 +448,7 @@ int main (int argc, char **argv)
         double Phihom = PM->sum_phi();
         
         // Sources
-        for(auto report = PM->report();;)
+        for(auto report = PM->report(pcls_cdm,a);;)
         {
             COUT << report << "\n";
             break;
@@ -610,6 +610,8 @@ int main (int argc, char **argv)
                maxvel[0]=std::max(maxvel[0],v2);
             }
         );
+        pcls_cdm.moveParticles();
+        
         maxvel[0] = std::sqrt(maxvel[0]);              
             
         rungekutta4bg (a, cosmo,

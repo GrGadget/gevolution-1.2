@@ -3,6 +3,8 @@
 #include "LATfield2.hpp"
 #include <array>
 #include <cmath>
+#include <boost/mpi/communicator.hpp>
+#include <boost/mpi/collectives.hpp>
 
 namespace gevolution
 {
@@ -58,10 +60,82 @@ double show_mean(const F_type& F,int i=-1, int j=-1)
     const long N = F.lattice().size(0);
     return mean/N/N/N;
 }
+template<class T, class field_type, class bin_op_type,class un_op_type>
+T reduce_field(
+    const ::boost::mpi::communicator& com,
+    const field_type& F,
+    T initial,
+    bin_op_type op1,
+    un_op_type op2)
+{
+    LATfield2::Site x(F.lattice());
+    for(x.first();x.test();x.next())
+    {
+        T f = op2(F(x));
+        initial = op1(initial,f);
+    }
+    ::boost::mpi::all_reduce(com,initial,op1);
+    return initial;
+}
+template<class T, class field_type, class bin_op_type, class un_op_type>
+T reduce_field_halo(
+    const ::boost::mpi::communicator& com,
+    const field_type& F,
+    T initial,
+    bin_op_type op1,
+    un_op_type op2)
+{
+    LATfield2::Site x(F.lattice());
+    for(x.haloFirst();x.haloTest();x.haloNext())
+    {
+        T f = op2(F(x));
+        initial = op1(initial,f);
+    }
+    ::boost::mpi::all_reduce(com,initial,op1);
+    return initial;
+}
+
+// TODO
+// we need these because the current boost::mpi::all_reduce template does not
+// compile with lambdas
+template<typename T>
+struct my_max_func
+{
+    T operator()(const T& x, const T& y)
+    {
+        using std::max;
+        return max(x,y);
+    }
+};
+template<typename T>
+struct my_sum_func
+{
+    T operator()(const T& x, const T& y)
+    {
+        return x+y;
+    }
+};
+template<typename T, typename T2 = T>
+struct my_abs_func
+{
+    T operator()(const T2& x)
+    {
+        using std::abs;
+        return abs(x);
+    }
+};
+template<typename T>
+struct my_sqr_func
+{
+    T operator()(const T& x)
+    {
+        return x*x;
+    }
+};
     
 // TODO: simplify this template
 template<class functor_type, class field_type1, class field_type2, class fft_plan_type >
-void apply_filter_kspace(
+void apply_filter_kspace_scalar(
     field_type1 &phi, 
     field_type2 &phi_FT,
     fft_plan_type &plan,
@@ -74,6 +148,27 @@ void apply_filter_kspace(
     for (k.first(); k.test(); k.next())
     {
         phi_FT(k) *= f({k.coord(0),k.coord(1),k.coord(2)}) * inv_N3;
+    }
+    phi_FT.updateHalo();
+    plan.execute(LATfield2::FFT_BACKWARD);
+    phi.updateHalo();
+}
+template<class functor_type, class field_type1, class field_type2, class fft_plan_type >
+void apply_filter_kspace_vector(
+    field_type1 &phi, 
+    field_type2 &phi_FT,
+    fft_plan_type &plan,
+    functor_type f)
+{
+    plan.execute(::LATfield2::FFT_FORWARD);
+    ::LATfield2::rKSite k(phi_FT.lattice());
+    const double N = phi.lattice().size(0);
+    const double inv_N3 = 1.0/N/N/N;
+    for (k.first(); k.test(); k.next())
+    {
+        const double factor = f({k.coord(0),k.coord(1),k.coord(2)}) * inv_N3;
+        for(int i=0;i<3;++i)
+            phi_FT(k,i) *= factor;
     }
     phi_FT.updateHalo();
     plan.execute(LATfield2::FFT_BACKWARD);
@@ -93,12 +188,14 @@ class particle_mesh
     using fft_plan_type = LATfield2::PlanFFT<complex_type>;
     
     
+    ::boost::mpi::communicator com;
     std::size_t my_size;
     LATfield2::Lattice lat,latFT;
     
     std::size_t size() const { return my_size;  }
     
-    particle_mesh(unsigned int N):
+    particle_mesh(unsigned int N,const MPI_Comm& that_com):
+        com(that_com,::boost::mpi::comm_create_kind::comm_duplicate),
         my_size{N},
         lat(/* dims        = */ 3,
             /* size        = */ N,
@@ -191,7 +288,7 @@ class particle_mesh
         return grad;
     }
     
-    virtual std::string report() const = 0;
+    virtual std::string report(const particle_container& pcls, double a) const = 0;
     virtual double density() const = 0;
     virtual double sum_phi() const = 0;
     virtual void clear_sources() = 0 ;
