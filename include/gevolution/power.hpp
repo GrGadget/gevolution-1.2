@@ -6,6 +6,7 @@
 #include <exception> // runtime_error
 #include <boost/mpi/communicator.hpp>
 #include <boost/mpi/collectives.hpp>
+#include <boost/mpi/inplace.hpp>
 #include <boost/serialization/utility.hpp>
 
 namespace gevolution
@@ -68,7 +69,8 @@ namespace gevolution
             });
         
         const boost::mpi::communicator& com = LATfield2::parallel.my_comm;
-        ::boost::mpi::all_reduce(com,pw.data(),pw.size(),pw.data(),
+        ::boost::mpi::all_reduce(com,
+            ::boost::mpi::inplace_t< std::pair<int,real_type>* >(pw.data()),pw.size(),
             detail::my_pair_sum<int,real_type>());
         std::vector<real_type> average(pw.size());
         for(auto i=0U;i<pw.size();++i)

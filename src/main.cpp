@@ -521,7 +521,7 @@ int main (int argc, char **argv)
             COUT << COLORTEXT_CYAN << " writing power spectra"
                  << COLORTEXT_RESET << " at z = " << ((1. / a) - 1.)
                  << " (cycle " << cycle << "), tau/boxsize = " << tau << endl;
-
+            
             // writeSpectra (sim, cosmo, a, pkcount,
             //               &pcls_cdm, &pcls_b, pcls_ncdm, 
             //               &PM->phi,     &PM->chi,    &PM->Bi,
@@ -530,7 +530,8 @@ int main (int argc, char **argv)
             //               &PM->plan_phi,&PM->plan_chi, 
             //               &PM->plan_Bi, &PM->plan_T00, &PM->plan_Tij
             // );
-
+            
+            PM->save_power_spectrum("power"+std::to_string(pkcount));
             pkcount++;
         }
 

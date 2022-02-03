@@ -19,6 +19,7 @@ gevolution_headers = files([
     'output.hpp',
     'parser.hpp',
     'Particles_gevolution.hpp',
+    'power.hpp',
     'prng_engine.hpp',
     'radiation.hpp',
     'real_type.hpp',
