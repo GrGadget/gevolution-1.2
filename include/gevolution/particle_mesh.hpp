@@ -335,6 +335,8 @@ class particle_mesh
             }
         );
     }
+    
+    virtual void save_power_spectrum(std::string fname) const = 0;  
 };
 
 }

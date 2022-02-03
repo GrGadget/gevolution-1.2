@@ -636,6 +636,27 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         chi.saveHDF5 (prefix + "_chi.h5");
         Bi.saveHDF5 (prefix + "_B.h5");
     }
+    void save_field_power_spectrum(std::string fname, std::string suffix, 
+        const complex_field_type& F)  const 
+    {
+        auto power_F = power_spectrum(F);    
+        const auto& com = LATfield2::parallel.my_comm;
+        if(com.rank()==0)
+        {
+            std::ofstream o(fname + suffix);
+            for(size_t i = 1;i<power_F.size();++i)
+            {
+                o << i << " " << power_F[i] <<"\n";
+            }
+        }
+    
+    }
+    virtual void save_power_spectrum(std::string fname) const override
+    {
+        save_field_power_spectrum(fname,"_phi.txt",phi_FT);
+        save_field_power_spectrum(fname,"_chi.txt",chi_FT);
+        // save_field_power_spectrum(fname,"_B.txt",Bi);
+    }
 };
 template<class functor_type, typename complex_type, typename particle_container>
 void apply_filter_kspace(

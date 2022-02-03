@@ -6,6 +6,7 @@
 #include <exception> // runtime_error
 #include <boost/mpi/communicator.hpp>
 #include <boost/mpi/collectives.hpp>
+#include <boost/serialization/utility.hpp>
 
 namespace gevolution
 {
@@ -45,7 +46,7 @@ namespace gevolution
         
         // accumulate modes on local grid
         F.for_each( 
-            [&pw](const complex_type& value, const Site & x)
+            [&pw,&signed_mode](const complex_type& value, const Site & x)
             {
                 double global_mode=0;
                 for(int i=0;i<3;++i)
@@ -60,11 +61,15 @@ namespace gevolution
                 
                 auto& [count,sum] = pw[index];
                 ++count;
-                sum += norm(value);
+                using std::abs;
+                using std::sqrt;
+                auto z2 = abs(value);
+                sum += sqrt(z2);
             });
         
-        const auto& com = F.lattice().my_comm;
-        ::boost::mpi::all_reduce(com,pw,my_pair_sum<int,real_type>());
+        const boost::mpi::communicator& com = LATfield2::parallel.my_comm;
+        ::boost::mpi::all_reduce(com,pw.data(),pw.size(),pw.data(),
+            detail::my_pair_sum<int,real_type>());
         std::vector<real_type> average(pw.size());
         for(auto i=0U;i<pw.size();++i)
         {

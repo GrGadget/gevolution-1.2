@@ -4,6 +4,7 @@
 #include "gevolution/particle_mesh.hpp"
 #include "LATfield2.hpp"
 #include "gevolution/gevolution.hpp"
+#include "gevolution/power.hpp"
 
 namespace gevolution
 {
@@ -324,6 +325,20 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
         
         // save the potentials
         phi.saveHDF5 (prefix + "_phi.h5");
+    }
+    
+    virtual void save_power_spectrum(std::string fname) const override
+    {
+        auto power_phi = power_spectrum(phi_FT);    
+        const auto& com =LATfield2::parallel.my_comm;
+        if(com.rank()==0)
+        {
+            std::ofstream o(fname + "_phi.txt");
+            for(size_t i = 1;i<power_phi.size();++i)
+            {
+                o << i << " " << power_phi[i] <<"\n";
+            }
+        }
     }
 };
 
