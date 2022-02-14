@@ -39,7 +39,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     
     // Energy-Momentum tensor
     real_field_type T00,T0i,Tij;
-    // complex_field_type T00_FT, T0i_FT, Tij_FT;
+    complex_field_type T00_FT; //, T0i_FT, Tij_FT;
     
     // Sources
     mutable real_field_type S00, S0i, Sij; // source fields
@@ -48,7 +48,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     
     // FT plans
     fft_plan_type plan_phi, plan_chi, plan_Bi;
-    // fft_plan_type plan_T00, plan_T0i, plan_Tij;
+    fft_plan_type plan_T00; // , plan_T0i, plan_Tij;
     fft_plan_type plan_S00, plan_S0i, plan_Sij;
     
     void scalar_to_zero(real_field_type& F)
@@ -101,7 +101,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         Tij(base_type::lat,3,3,LATfield2::matrix_symmetry::symmetric),
         
         // initialize k-fields, Energy-momentum tensor
-        // T00_FT(base_type::latFT,1),
+        T00_FT(base_type::latFT,1),
         // T0i_FT(base_type::latFT,3),
         // Tij_FT(base_type::latFT,3,3,LATfield2::matrix_symmetry::symmetric),
         
@@ -121,7 +121,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         plan_chi(&chi, &chi_FT),
         plan_Bi (&Bi, &Bi_FT),
         
-        // plan_T00(&T00,&T00_FT),
+        plan_T00(&T00,&T00_FT),
         // plan_T0i(&T0i,&T0i_FT),
         // plan_Tij(&Tij,&Tij_FT),
         
@@ -159,6 +159,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         // WARNING: has phi been initialized? 
         projection_T00_project(&pcls, &T00, a, &phi); // samples
         projection_T00_comm (&T00); // communicates the ghost cells
+        plan_T00.execute(LATfield2::FFT_FORWARD);
         
         projection_T0i_project(&pcls,&T0i,&phi);
         projection_T0i_comm(&T0i);
@@ -636,25 +637,11 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         chi.saveHDF5 (prefix + "_chi.h5");
         Bi.saveHDF5 (prefix + "_B.h5");
     }
-    void save_field_power_spectrum(std::string fname, std::string suffix, 
-        const complex_field_type& F)  const 
-    {
-        auto power_F = power_spectrum(F);    
-        const auto& com = LATfield2::parallel.my_comm;
-        if(com.rank()==0)
-        {
-            std::ofstream o(fname + suffix);
-            for(size_t i = 1;i<power_F.size();++i)
-            {
-                o << i << " " << power_F[i] <<"\n";
-            }
-        }
-    
-    }
     virtual void save_power_spectrum(std::string fname) const override
     {
-        save_field_power_spectrum(fname,"_phi.txt",phi_FT);
-        save_field_power_spectrum(fname,"_chi.txt",chi_FT);
+        base_type::save_field_power_spectrum(fname,"_phi.txt",phi_FT);
+        base_type::save_field_power_spectrum(fname,"_chi.txt",chi_FT);
+        base_type::save_field_power_spectrum(fname,"_T00.txt",T00_FT);
         // save_field_power_spectrum(fname,"_B.txt",Bi);
     }
 };

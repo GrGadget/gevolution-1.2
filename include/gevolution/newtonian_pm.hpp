@@ -329,16 +329,8 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     
     virtual void save_power_spectrum(std::string fname) const override
     {
-        auto power_phi = power_spectrum(phi_FT);    
-        const auto& com =LATfield2::parallel.my_comm;
-        if(com.rank()==0)
-        {
-            std::ofstream o(fname + "_phi.txt");
-            for(size_t i = 1;i<power_phi.size();++i)
-            {
-                o << i << " " << power_phi[i] <<"\n";
-            }
-        }
+        base_type::save_field_power_spectrum(fname,"_phi.txt",phi_FT);
+        //base_type::save_field_power_spectrum(fname,"_T00.txt",T00_FT);
     }
 };
 

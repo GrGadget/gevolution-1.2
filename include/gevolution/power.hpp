@@ -8,6 +8,7 @@
 #include <boost/mpi/collectives.hpp>
 #include <boost/mpi/inplace.hpp>
 #include <boost/serialization/utility.hpp>
+#include "LATfield2.hpp"
 
 namespace gevolution
 {
@@ -32,7 +33,7 @@ namespace gevolution
         using complex_type = typename complex_field_type::value_type;
         using real_type = typename complex_type::value_type;
         using std::norm;
-        const int N_global = F.lattice().size(0);
+        const int N_global = F.lattice().size(1);
         const int k_nyquist = (N_global - 1)/2;
         std::vector< std::pair<int,real_type> > pw(k_nyquist+1,{0,0});
         
@@ -47,7 +48,7 @@ namespace gevolution
         
         // accumulate modes on local grid
         F.for_each( 
-            [&pw,&signed_mode](const complex_type& value, const Site & x)
+            [&pw,&signed_mode](const complex_type& value, const LATfield2::Site & x)
             {
                 double global_mode=0;
                 for(int i=0;i<3;++i)
@@ -66,6 +67,14 @@ namespace gevolution
                 using std::sqrt;
                 auto z2 = abs(value);
                 sum += sqrt(z2);
+                
+                if(global_mode>0)
+                {
+                    // there is a hidden symmetric partner due to R2C storage
+                    // implementation
+                    sum += z2;
+                    ++ count;
+                }
             });
         
         const boost::mpi::communicator& com = LATfield2::parallel.my_comm;
