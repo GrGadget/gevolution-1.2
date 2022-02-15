@@ -27,29 +27,30 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     using base_type::com;
     
     
-    real_field_type source,phi;
-    complex_field_type phi_FT;
-    fft_plan_type plan_source, plan_phi;
+    real_field_type phi, rho;
+    complex_field_type phi_FT ,rho_FT;
+    fft_plan_type plan_phi, plan_rho;
     
     public:
     newtonian_pm(int N,const MPI_Comm& that_com):
         base_type(N,that_com),
         
-        source(base_type::lat,1),
+        rho(base_type::lat,1),
         phi(base_type::lat,1),
         
         phi_FT(base_type::latFT,1),
+        rho_FT(base_type::latFT,1),
         
-        plan_source(&source,&phi_FT),
+        plan_rho(&rho,&rho_FT),
         plan_phi (&phi, &phi_FT)
     {
-        scalar_to_zero(source);
+        scalar_to_zero(rho);
         scalar_to_zero(phi);
     }
     
     void clear_sources() override
     {
-        scalar_to_zero(source);
+        scalar_to_zero(rho);
     }
     
     /*
@@ -57,8 +58,8 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     */
     void sample(const particle_container& pcls, double /* a */=0) override
     {
-        scalarProjectionCIC_project (&pcls, &source); // samples
-        scalarProjectionCIC_comm (&source); // communicates the ghost cells
+        scalarProjectionCIC_project (&pcls, &rho); // samples
+        scalarProjectionCIC_comm (&rho); // communicates the ghost cells
     }
     
     /*
@@ -66,8 +67,8 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     */
     void update_kspace()
     {
-        plan_source.execute (LATfield2::FFT_FORWARD); // Newton: directly go to k-space
-        phi_FT.updateHalo (); // update ghost cells
+        plan_rho.execute (LATfield2::FFT_FORWARD); // Newton: directly go to k-space
+        rho_FT.updateHalo (); // update ghost cells
     }
     void update_rspace()
     {
@@ -76,7 +77,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     }
     void solve_poisson_eq(double factor=1)
     {
-        solveModifiedPoissonFT (phi_FT, phi_FT,factor); // Newton: in k-space
+        solveModifiedPoissonFT (rho_FT, phi_FT,factor); // Newton: in k-space
         // (4 pi G)/a = 1
     }
     void compute_potential(
@@ -244,7 +245,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
                 max_mom << '\n';
         
         ss << "RMS(T00) = " << 
-            reduce_field(com,source,0.0,
+            reduce_field(com,rho,0.0,
                 my_sum_func<double>{},
                 my_sqr_func<double>{}) << '\n';
         ss << "RMS(Phi) = " << 
@@ -252,7 +253,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
                 my_sum_func<double>{},
                 my_sqr_func<double>{}) << '\n';
         ss << "max|T00| = " << 
-            reduce_field(com,source,0.0,
+            reduce_field(com,rho,0.0,
                 my_max_func<double>{},
                 my_abs_func<double>{}) << '\n';
         ss << "max|Phi| = " << 
@@ -265,7 +266,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
                 my_abs_func<double,LATfield2::Imag>{}) << '\n';
         
         ss << "max|halo T00| = " << 
-            reduce_field_halo(com,source,0.0,
+            reduce_field_halo(com,rho,0.0,
                 my_max_func<double>{},
                 my_abs_func<double>{} ) << '\n';
         ss << "max|halo Phi| = " << 
@@ -280,7 +281,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     }
     double density() const override
     {
-        return show_mean(source);
+        return show_mean(rho);
     }
     double sum_phi() const override
     {
@@ -321,7 +322,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     virtual void save_to_file(std::string prefix) const 
     {
         // save the energy-momentum tensor
-        source.saveHDF5 (prefix + "_T00.h5"); // TODO check if source == T00
+        rho.saveHDF5 (prefix + "_T00.h5");
         
         // save the potentials
         phi.saveHDF5 (prefix + "_phi.h5");
@@ -330,7 +331,7 @@ class newtonian_pm : public particle_mesh<complex_type,particle_container>
     virtual void save_power_spectrum(std::string fname) const override
     {
         base_type::save_field_power_spectrum(fname,"_phi.txt",phi_FT);
-        //base_type::save_field_power_spectrum(fname,"_T00.txt",T00_FT);
+        base_type::save_field_power_spectrum(fname,"_T00.txt",rho_FT);
     }
 };
 
