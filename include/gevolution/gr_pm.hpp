@@ -639,9 +639,13 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     }
     virtual void save_power_spectrum(std::string fname) const override
     {
+        real_type phi_mean=show_mean(phi),
+                  chi_mean = show_mean(chi),
+                  T00_mean = show_mean(T00);
+        
         base_type::save_field_power_spectrum(fname,"_phi.txt",phi_FT);
         base_type::save_field_power_spectrum(fname,"_chi.txt",chi_FT);
-        base_type::save_field_power_spectrum(fname,"_T00.txt",T00_FT);
+        base_type::save_field_power_spectrum(fname,"_T00.txt",T00_FT,T00_mean);
         // save_field_power_spectrum(fname,"_B.txt",Bi);
     }
 };

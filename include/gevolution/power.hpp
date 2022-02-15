@@ -34,6 +34,7 @@ namespace gevolution
         using real_type = typename complex_type::value_type;
         using std::norm;
         const int N_global = F.lattice().size(1);
+        const real_type N3_inv = std::pow( 1.0 / N_global , 3 );
         const int k_nyquist = (N_global - 1)/2;
         std::vector< std::pair<int,real_type> > pw(k_nyquist+1,{0,0});
         
@@ -74,6 +75,8 @@ namespace gevolution
                     // implementation
                     sum += z2;
                     ++ count;
+                }else{
+                
                 }
             });
         
@@ -87,6 +90,7 @@ namespace gevolution
             average[i]=0;
             if(pw[i].first>0)
                 average[i] = pw[i].second / pw[i].first;
+            average[i] *= N3_inv;
         }
         return average;
     }
