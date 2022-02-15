@@ -318,7 +318,7 @@ void projectFTtensor (Field<Cplx> &SijFT, Field<Cplx> &hijFT);
 //////////////////////////
 
 template<class Complex>
-void solveModifiedPoissonFT (Field<Complex> &sourceFT, Field<Complex> &potFT,
+void solveModifiedPoissonFT (const Field<Complex> &sourceFT, Field<Complex> &potFT,
                              Real coeff, const Real modif = 0.0)
 {
     
