@@ -64,10 +64,9 @@ namespace gevolution
                 
                 auto& [count,sum] = pw[index];
                 ++count;
-                using std::abs;
-                using std::sqrt;
-                auto z2 = abs(value);
-                sum += sqrt(z2);
+                using std::norm;
+                auto z2 = norm(value);
+                sum += z2;
                 
                 if(global_mode>0)
                 {
