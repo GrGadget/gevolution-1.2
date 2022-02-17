@@ -57,7 +57,7 @@ namespace gevolution
                     int k_i = signed_mode( x.coord(i) );
                     global_mode += k_i*k_i;
                 }
-                size_t index = std::floor( std::sqrt(global_mode) );
+                size_t index = std::floor( std::sqrt(global_mode) + 0.5 );
                 
                 if(index >= pw.size())
                     return;
