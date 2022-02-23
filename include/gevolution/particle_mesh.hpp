@@ -348,12 +348,10 @@ class particle_mesh
         if(com.rank()==0)
         {
             std::ofstream o(fname + suffix);
-            // o   << "powersize() = " << power_F.size() 
-            //     << " my_size = " << size() 
-            //     << " lattice.size() = " << N_global << '\n';
             for(size_t i = 1;i<power_F.size();++i)
             {
-                o << i << " " << power_F[i]*normalization <<"\n";
+                o << i << " " << power_F[i].second*normalization 
+                       << " " << power_F[i].first << "\n";
             }
         }
     

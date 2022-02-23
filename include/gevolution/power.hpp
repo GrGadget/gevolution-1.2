@@ -34,13 +34,32 @@ namespace gevolution
         using real_type = typename complex_type::value_type;
         using std::norm;
         const int N_global = F.lattice().size(1);
-        const real_type N3_inv = std::pow( 1.0 / N_global , 3 );
+        const real_type N6_inv = std::pow( 1.0 / N_global , 6 );
         const int k_nyquist = (N_global - 1)/2;
         std::vector< std::pair<int,real_type> > pw(k_nyquist+1,{0,0});
         
         auto signed_mode = [k_nyquist,N_global](int n)
         {
-            return n <= k_nyquist ? n : N_global - n;
+            return n <= k_nyquist ? n : n-N_global;
+        };
+        
+        // avoid doubly counting modes, this happens because we have a source
+        // field which is real and the complex FFT has been done with FFTW
+        // scheme of R2C, hence some modes are omited because of the halcomplex
+        // symmetry, while other modes with complex conjugate counterpart are
+        // still present.
+        auto unique_mode = [](std::array<int,3> k_mode)
+        {
+            bool answer = true;
+            for(auto k: k_mode)
+            {
+                if(k<0)
+                    answer = false;
+                else if(k>0)
+                    break;
+            }
+            
+            return answer;
         };
         
         if(F.components()>1)
@@ -49,33 +68,34 @@ namespace gevolution
         
         // accumulate modes on local grid
         F.for_each( 
-            [&pw,&signed_mode](const complex_type& value, const LATfield2::Site & x)
+            [&pw,&signed_mode,&unique_mode](
+                const complex_type& value, const LATfield2::Site & x)
             {
+                std::array<int,3> k_modes;
                 double global_mode=0;
                 for(int i=0;i<3;++i)
                 {
                     int k_i = signed_mode( x.coord(i) );
+                    k_modes[i] = k_i;
                     global_mode += k_i*k_i;
                 }
                 size_t index = std::floor( std::sqrt(global_mode) + 0.5 );
                 
-                if(index >= pw.size())
-                    return;
-                
-                auto& [count,sum] = pw[index];
-                ++count;
-                using std::norm;
-                auto z2 = norm(value);
-                sum += z2;
-                
-                if(global_mode>0)
+                if(unique_mode(k_modes) and index<pw.size())
                 {
-                    // there is a hidden symmetric partner due to R2C storage
-                    // implementation
+                    auto& [count,sum] = pw[index];
+                    ++count;
+                    using std::norm;
+                    auto z2 = norm(value);
                     sum += z2;
-                    ++ count;
-                }else{
-                
+                    
+                    // if(index==1)
+                    // {
+                    //     std::cerr << "gevolution::power_spectrum mode: " 
+                    //         << k_modes[0] << " " << k_modes[1] << " " << k_modes[2]
+                    //         << " value = " << z2
+                    //         << '\n';
+                    // }
                 }
             });
         
@@ -86,11 +106,10 @@ namespace gevolution
         std::vector<real_type> average(pw.size());
         for(auto i=0U;i<pw.size();++i)
         {
-            average[i]=0;
             if(pw[i].first>0)
-                average[i] = pw[i].second / pw[i].first;
-            average[i] *= N3_inv;
+                pw[i].second /= pw[i].first;
+            pw[i].second *= N6_inv;
         }
-        return average;
+        return pw;
     }
 } // namespace gevolution
