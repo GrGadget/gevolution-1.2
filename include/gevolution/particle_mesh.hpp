@@ -338,11 +338,13 @@ class particle_mesh
     }
     
     virtual void save_power_spectrum(std::string fname) const = 0;  
+    
+    template<std::size_t N_components = 1 >
     void save_field_power_spectrum(std::string fname, std::string suffix, 
         const complex_field_type& F,
         const real_type normalization = 1.0)  const 
     {
-        auto power_F = power_spectrum(F);    
+        auto power_F = power_spectrum<complex_field_type,N_components>(F);    
         const int N_global = F.lattice().size(0);
         const auto& com = LATfield2::parallel.my_comm;
         if(com.rank()==0)
@@ -350,8 +352,10 @@ class particle_mesh
             std::ofstream o(fname + suffix);
             for(size_t i = 1;i<power_F.size();++i)
             {
-                o << i << " " << power_F[i].second*normalization 
-                       << " " << power_F[i].first << "\n";
+                o << i << " " << power_F[i].first ;
+                for(std::size_t j =0 ;j<N_components;++j)
+                    o << " " << power_F[i].second[j] ;
+                o << "\n";
             }
         }
     

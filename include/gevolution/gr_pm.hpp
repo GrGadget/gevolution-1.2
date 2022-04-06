@@ -646,6 +646,7 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
         base_type::save_field_power_spectrum(fname,"_phi.txt",phi_FT);
         base_type::save_field_power_spectrum(fname,"_chi.txt",chi_FT);
         base_type::save_field_power_spectrum(fname,"_T00.txt",T00_FT,T00_mean);
+        base_type:: template save_field_power_spectrum <3>(fname,"_B0.txt",Bi_FT);
     }
 };
 template<class functor_type, typename complex_type, typename particle_container>
