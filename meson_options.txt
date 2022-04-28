@@ -1,4 +1,5 @@
 option('PHINONLINEAR',type: 'boolean', value: true)
+option('ORIGINALMETRIC',type: 'boolean', value: true)
 option('BENCHMARK',type: 'boolean', value: true)
 option('EXACT_OUTPUT_REDSHIFTS',type: 'boolean', value: true)
 option('GEVOLUTION_OLD_VERSION',type: 'boolean', value: false)
