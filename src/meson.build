@@ -1,4 +1,6 @@
 main = files('main.cpp')
+main_test = files('main-test.cpp')
+
 gevolution_sources = files([
     'background.cpp',
     'debugger.cpp',

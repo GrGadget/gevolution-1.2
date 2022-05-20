@@ -46,8 +46,9 @@ namespace gevolution
         const int N_global = F.lattice().size(1);
         const real_type N6 = std::pow( 1.0*N_global , 6 );
         const int k_nyquist = (N_global - 1)/2;
+        const int k_nyquist2 = k_nyquist*k_nyquist;
         std::vector< 
-            std::pair<int, data_type > > pw(k_nyquist+1);
+            std::pair<int, data_type > > pw(k_nyquist2);
         
         for(std::size_t i=0;i<pw.size();++i)
         {
@@ -97,7 +98,8 @@ namespace gevolution
                     k_modes[i] = k_i;
                     global_mode += k_i*k_i;
                 }
-                size_t index = std::floor( std::sqrt(global_mode) + 0.5 );
+                // size_t index = std::floor( std::sqrt(global_mode) + 0.5 );
+                size_t index = global_mode;
                 
                 if(unique_mode(k_modes) and index<pw.size())
                 {
