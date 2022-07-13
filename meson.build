@@ -10,10 +10,12 @@ boost = dependency('boost', modules: ['mpi','serialization','unit_test_framework
 fftw3 = dependency('fftw3')
 hdf5 = dependency('hdf5')
 gsl = dependency('gsl')
-latfield = dependency('latfield')
 mpirun = find_program('mpirun')
 bash = find_program('bash')
 pkg=import('pkgconfig')
+
+
+latfield = dependency('latfield', fallback: ['LATfield2','liblatfield_dep'])
 
 conf_data = configuration_data({ 
     'PHINONLINEAR' :get_option('PHINONLINEAR'),
@@ -68,3 +70,6 @@ gevolution_test = executable('gevolution_test',
     link_with: libgevolution,
     dependencies: deps,
     include_directories: include)
+    
+
+libgevolution_dep = declare_dependency(include_directories: include, link_with: libgevolution)
