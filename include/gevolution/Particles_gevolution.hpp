@@ -26,6 +26,8 @@
 #include <set>
 #include <string>
 
+#include <boost/mpi/collectives.hpp>
+
 
 namespace gevolution
 {
@@ -98,6 +100,34 @@ class Particles_gevolution :
 
     void saveGadget2 (std::string filename, gadget2_header &hdr,
                       const int tracer_factor = 1) const ;
+    
+    template<typename selector_type>
+    void saveGadget2 (
+        const std::string filename, 
+        const gadget2_header hdr,
+        selector_type select_function)const
+    {
+        // count the particles that meet the criteria
+        long long n_part = 0 ;
+        this->for_each(
+            [&](const particles& part, const LATfield2::Site& x)
+            {
+                n_part += select_function(part) ? 1 : 0;
+            }
+        );
+         
+        
+        // open filename as w
+        // set hdr.numpart
+        // write the hdr
+        
+        // take care of parallel
+        // write the pos
+        // write the momentum
+        // write the ID
+    }
+
+    
     void saveGadget2 (std::string filename, gadget2_header &hdr,
                       lightcone_geometry &lightcone, double dist, double dtau,
                       double dtau_old, double dadtau,
@@ -113,6 +143,12 @@ class Particles_gevolution :
             {
                 part.mass = this->parts_info()->mass;
             });
+    }
+    
+    const MPI_Comm& communicator()const
+    {
+        // TODO get a cartesian communicator
+        return ::LATfield2::parallel.my_comm;
     }
 };
 
