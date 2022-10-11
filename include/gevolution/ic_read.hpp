@@ -16,7 +16,7 @@
 
 #include "gevolution/config.h"
 #include "LATfield2.hpp"
-#include "gevolution/real_type.hpp"
+#include "gevolution/basic_types.hpp"
 #include "gevolution/Particles_gevolution.hpp" // Particles_gevolution
 #include "gevolution/metadata.hpp"             // metadata
 #include "gevolution/tools.hpp"                // Cplx

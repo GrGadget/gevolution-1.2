@@ -22,7 +22,7 @@
 
 #include "gevolution/config.h"
 #include "LATfield2.hpp"
-#include "gevolution/real_type.hpp"
+#include "gevolution/basic_types.hpp"
 #include "gevolution/Particles_gevolution.hpp"
 #include "gevolution/background.hpp"
 #include "gevolution/gevolution.hpp"

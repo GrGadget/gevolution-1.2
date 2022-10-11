@@ -15,7 +15,7 @@
 #define RADIATION_HEADER
 
 #include "gevolution/config.h"
-#include "gevolution/real_type.hpp"
+#include "gevolution/basic_types.hpp"
 
 #ifdef HAVE_CLASS
 
