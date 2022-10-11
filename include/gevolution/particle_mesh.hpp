@@ -346,7 +346,7 @@ class particle_mesh
     {
         auto power_F = power_spectrum<complex_field_type,N_components>(F);    
         const int N_global = F.lattice().size(0);
-        const auto& com = LATfield2::parallel.my_comm;
+        const auto& com = LATfield2::parallel.cartesian_communicator();
         if(com.rank()==0)
         {
             std::ofstream o(fname + suffix);
