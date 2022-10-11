@@ -32,6 +32,7 @@
 namespace gevolution
 {
 
+
 using LATfield2::Field;
 using LATfield2::parallel;
 using LATfield2::Site;
@@ -43,6 +44,7 @@ using LATfield2::Site;
 // TODO: template particle variables
 struct particle : LATfield2::part_simple
 {
+    
     using base_particle = LATfield2::part_simple;
     using base_particle::ID;
     using base_particle::pos;
@@ -96,6 +98,7 @@ class Particles_gevolution :
         particle_dataType>
 {
   public:
+    
     using value_type = particle; // helper attribute used in containers for metaprogramming
 
     void saveGadget2 (std::string filename, gadget2_header &hdr,
@@ -106,34 +109,197 @@ class Particles_gevolution :
         const std::string filename, 
         const gadget2_header hdr,
         selector_type select_function)const
+    // precondition: hdr must already contain cosmological data and number of particles=0
     {
         // count the particles that meet the criteria
-        long long n_part = 0 ;
+        int64_t npart = 0 ;
         this->for_each(
-            [&](const particles& part, const LATfield2::Site& x)
+            [&](const particle& part, const LATfield2::Site& x)
             {
-                n_part += select_function(part) ? 1 : 0;
+                npart += (part.ID % tracer_factor == 0 && select_function(part,x)) ? 1 : 0;
             }
         );
-         
         
-        // open filename as w
-        // set hdr.numpart
-        // write the hdr
+        const auto& cart_com = cartesian_communicator();
+        const int64_t total_npart 
+            = ::boost::mpi::all_reduce(cart_com,npart,std::plus<decltype(npart)>());
         
-        // take care of parallel
-        // write the pos
-        // write the momentum
-        // write the ID
+        // the sum of all npart up to rank()-1
+        const int64_t partial_count 
+            = ::boost::mpi::scan(cart_com,npart,std::plus<decltype(npart)>()) - npart;
+        
+        if(total_npart==0)
+        // if no particles are selected should we output and empy snapshot?
+            return;
+        
+        // set the number of particles in the snapshot header
+        hdr.npart[1] = hdr.npartTotal[1] = static_cast<uint32_t>(total_npart % (1LL << 32));
+        hdr.npartTotalHW[1] = static_cast<uint32_t>(total_npart / (1LL<<32));
+    
+        MPI_File outfile;
+        MPI_File_open (cart_com, filename.c_str(),
+                       MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL,
+                       &outfile);
+        
+        auto close_mpi_file = finally([&](){
+            MPI_File_close(&output); 
+        });
+        
+        const MPI_Offset filesize = 
+        /* 3 positions + 3 velocities + 1 id per particle*/
+        total_npart*(3*sizeof(position_type)+3*sizeof(velocity_type)+sizeof(id_type)) 
+        /* header */
+         +sizeof(hdr)
+        /* the file consist of 4 blocks (HDR,POS,VEL,ID) each block has a begining and end flag of 4
+         * bytes */
+         +4 * 2 *sizeof(int32_t);
+        
+        MPI_File_set_size (outfile, filesize);
+        
+        const MPI_Offset pos_start = // first POS guard
+                            sizeof(hdr) + 2*sizeof(int32_t),
+                         this_pos_start = // local particles POS data
+                            pos_start + sizeof(int32_t) + 3*sizeof(position_type)*partial_count;
+                            
+        const MPI_Offset pos_end = // last POS guard
+                            pos_start + sizeof(int32_t) + sizeof(position_type)*3*npart,
+                         this_pos_end = // end of local particles POS data
+                            this_pos_start + 3*sizeof(position_type)*npart;
+        
+        const MPI_Offset vel_start = // first VEL guard
+                            pos_end + sizeof(int32_t),
+                         this_vel_start = // local particles VEL data
+                            vel_start + sizeof(int32_t) + 3*sizeof(velocity_type)*partial_count;
+                         
+        const MPI_Offset vel_end = // last VEL guard
+                            vel_start + sizeof(int32_t) + sizeof(velocity_type)*3*npart,
+                         this_vel_end = // end of local particles VEL data
+                            this_vel_start + 3*sizeof(velocity_type)*npart;
+        
+        const MPI_Offset ids_start = // first IDS guard
+                            vel_end + sizeof(int32_t),
+                         this_ids_start = // local particles IDS data
+                            ids_start + sizeof(int32_t) + sizeof(id_type)*partial_count;
+                         
+        const MPI_Offset ids_end = // last IDS guard
+                            ids_start + sizeof(int32_t) + sizeof(id_type)*npart,
+                         this_ids_end = // end of local particles IDS data
+                            this_ids_start + sizeof(id_type)*npart;
+        
+        if(cart_com.rank()==0)
+        {
+            uint32_t blocksize{};
+            MPI_Status status;
+            
+            // write header
+            blocksize = sizeof (hdr);
+            MPI_File_write_at (outfile, 0, &blocksize, 1, MPI_UNSIGNED,
+                               &status);
+            MPI_File_write_at (outfile, sizeof (uint32_t), &hdr, sizeof (hdr),
+                               MPI_BYTE, &status);
+            MPI_File_write_at (outfile, sizeof (hdr) + sizeof (uint32_t),
+                               &blocksize, 1, MPI_UNSIGNED, &status);
+            
+            // TODO: note that blocksize is not correct if npart >= 2^32
+            // even for smaller values of npart the blocksize fails to fit a 4 byte integer.
+            // for example if npart = 711^3 then POS blocksize = 4313105172 which is larger than
+            // 2^32-1
+            
+            // write pos guards
+            blocksize = 3 * sizeof (position_type) * hdr.npart[1];
+            MPI_File_write_at (outfile, pos_start,
+                               &blocksize, 1, MPI_UNSIGNED, &status);
+            MPI_File_write_at (outfile, pos_end,
+                               &blocksize, 1, MPI_UNSIGNED, &status);
+            
+            // write vel guards
+            blocksize = 3 * sizeof (velocity_type) * hdr.npart[1];
+            MPI_File_write_at (outfile, vel_start,
+                               &blocksize, 1, MPI_UNSIGNED, &status);
+            MPI_File_write_at (outfile, vel_end,
+                               &blocksize, 1, MPI_UNSIGNED, &status);
+            
+            // write ids guards
+            blocksize = sizeof(id_type) * hdr.npart[1];
+            MPI_File_write_at (outfile, ids_start,
+                               &blocksize, 1, MPI_UNSIGNED, &status);
+            MPI_File_write_at (outfile, ids_end,
+                               &blocksize, 1, MPI_UNSIGNED, &status);
+        }
+        
+        std::vector<position_type> posdata;
+        std::vector<velocity_type> veldata;
+        std::vector<id_type> IDs;
+        
+        auto flush_to_file = [&]()
+        {
+            MPI_Status status;
+            
+            MPI_File_write_at(outfile,
+                              this_pos_start,
+                              posdata.data(),
+                              posdata.size()*sizeof(posdata::value_type),
+                              MPI_BYTE,&status);
+            
+            MPI_File_write_at(outfile,
+                              this_vel_start,
+                              veldata.data(),
+                              veldata.size()*sizeof(veldata::value_type),
+                              MPI_BYTE,&status);
+            
+            MPI_File_write_at(outfile,
+                              this_ids_start,
+                              IDs.data(),
+                              IDs.size()*sizeof(IDs::value_type),
+                              MPI_BYTE,&status);
+            
+            posdata.clear();
+            veldata.clear();
+            IDs.clear();
+        };
+        
+        posdata.reserve(3*PCLBUFFER);
+        veldata.reserve(3*PCLBUFFER);
+        IDs.reserve(PCLBUFFER);
+        
+        this->for_each(
+            [&](const particle& part, const LATfield2::Site& x)
+            {
+                if(part.ID % tracer_factor == 0 && select_function(part,x))
+                {
+                    // save selected particles into buffer
+                    std::copy(std::begin(part.pos),
+                              std::end(part.pos),
+                              std::back_inserter(posdata));
+                              
+                    std::copy(std::begin(part.momentum),
+                              std::end(part.momentum),
+                              std::back_inserter(veldata));
+                       
+                    IDs.push_back(part.ID);
+                }
+                
+                // buffer is full, flush to file
+                if(IDs.size()>=PCLBUFFER)
+                {
+                    flush_to_file();
+                }
+            }
+        );
+        
+        if(IDs.size()>0)
+            flush_to_file();
+        
     }
 
     
-    void saveGadget2 (std::string filename, gadget2_header &hdr,
-                      lightcone_geometry &lightcone, double dist, double dtau,
-                      double dtau_old, double dadtau,
-                      double vertex[MAX_INTERSECTS][3], const int vertexcount,
-                      std::set<long> &IDbacklog, std::set<long> &IDprelog,
-                      Field<Real> *phi, const int tracer_factor = 1);
+    // void saveGadget2 (std::string filename, gadget2_header &hdr,
+    //                   lightcone_geometry &lightcone, double dist, double dtau,
+    //                   double dtau_old, double dadtau,
+    //                   double vertex[MAX_INTERSECTS][3], const int vertexcount,
+    //                   std::set<long> &IDbacklog, std::set<long> &IDprelog,
+    //                   Field<Real> *phi, const int tracer_factor = 1);
+    
     void loadGadget2 (std::string filename, gadget2_header &hdr);
     
     void update_mass()
@@ -145,10 +311,9 @@ class Particles_gevolution :
             });
     }
     
-    const MPI_Comm& communicator()const
+    const auto& communicator()const
     {
-        // TODO get a cartesian communicator
-        return ::LATfield2::parallel.my_comm;
+        return ::LATfield2::parallel.cartesian_communicator();
     }
 };
 
