@@ -10,7 +10,7 @@
 //
 //////////////////////////
 
-#include "gevolution/real_type.hpp"
+#include "gevolution/basic_types.hpp"
 #include "gevolution/velocity.hpp"
 #include "gevolution/background.hpp" // Hconf
 #include <gsl/gsl_errno.h>

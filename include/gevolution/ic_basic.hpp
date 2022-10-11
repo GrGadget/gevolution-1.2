@@ -16,7 +16,7 @@
 
 #include "gevolution/config.h"
 #include "LATfield2.hpp"
-#include "gevolution/real_type.hpp"
+#include "gevolution/basic_types.hpp"
 #include "gevolution/gevolution.hpp"  // solveModifiedPoissonFT
 #include "gevolution/parser.hpp"      // parameter
 #include "gevolution/prng_engine.hpp" // sitmo
