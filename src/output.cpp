@@ -401,2520 +401,2520 @@ void write_snapshot (
 //
 //////////////////////////
 
-void writeLightcones (
-    metadata &sim, const cosmology cosmo, const double a,
-    const double tau, const double dtau, const double dtau_old,
-    const double /* maxvel */, 
-    const int cycle, 
-    std::string h5filename,
-    Particles_gevolution *pcls_cdm,
-    Particles_gevolution *pcls_b,
-    Particles_gevolution *pcls_ncdm,
-    Field<Real> *phi, 
-    Field<Real> * /* chi */, 
-    Field<Real> * /* Bi */, 
-    Field<Real> * /* Sij */,
-    Field<Cplx> * /* BiFT */, 
-    Field<Cplx> * /* SijFT */, 
-    PlanFFT<Cplx> * /* plan_Bi */,
-    PlanFFT<Cplx> * /* plan_Sij */, 
-    int &done_hij, 
-    std::set<long> *IDbacklog)
-{
-    int i, j, n, p;
-    double d;
-    double vertex[MAX_INTERSECTS][3];
-    double domain[6];
-    // double pos[3];
-    double s[2];
-    char filename[2 * PARAM_MAX_LENGTH + 24];
-    char buffer[268];
-    FILE *outfile = nullptr;
-    gadget2_header hdr;
-    std::set<long> IDprelog[MAX_PCL_SPECIES];
-    long *IDcombuf;
-    long *IDcombuf2;
-    Site xsim;
-    // int done_B = 0;
-#ifdef HAVE_HEALPIX
-    int64_t pix, pix2, q;
-    vector<int> pixbatch_id;
-    vector<int> sender_proc;
-    vector<int> pixbatch_size[3];
-    vector<int> pixbatch_delim[3];
-    int pixbatch_type;
-    int commdir[2];
-    Real *pixbuf[LIGHTCONE_MAX_FIELDS][9];
-    Real *commbuf;
-    int pixbuf_size[9];
-    int pixbuf_reserve[9];
-    int64_t bytes, bytes2, offset2;
-    vector<MPI_Offset> offset;
-    char **outbuf = new char *[LIGHTCONE_MAX_FIELDS];
-    healpix_header maphdr;
-    double R[3][3];
-    double w[3];
-    double temp;
-    int base_pos[3];
-    int shell, shell_inner, shell_outer, shell_write;
-    uint32_t blocksize;
-    MPI_File mapfile;
-    MPI_Status status;
-    MPI_Datatype patch;
-    int io_group_size;
-    long pixcount = 0;
-
-    for (j = 0; j < 9 * LIGHTCONE_MAX_FIELDS; j++)
-        pixbuf[j / 9][j % 9] = NULL;
-
-    for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-        outbuf[j] = NULL;
-#endif
-
-    done_hij = 0;
-
-    domain[0] = -0.5;
-    domain[1] = phi->lattice ().coordSkip ()[1] - 0.5;
-    domain[2] = phi->lattice ().coordSkip ()[0] - 0.5;
-    for (i = 0; i < 3; i++)
-        domain[i + 3] = domain[i] + phi->lattice ().sizeLocal (i) + 1.;
-
-    for (i = 0; i < 6; i++)
-        domain[i] /= (double)sim.numpts;
-
-    for (i = 0; i < sim.num_lightcone; i++)
-    {
-        if (parallel.isRoot ())
-        {
-            if (sim.num_lightcone > 1)
-                sprintf (filename, "%s%s%d_info.dat", sim.output_path,
-                         sim.basename_lightcone, i);
-            else
-                sprintf (filename, "%s%s_info.dat", sim.output_path,
-                         sim.basename_lightcone);
-
-            outfile = fopen (filename, "a");
-            if (outfile == NULL)
-            {
-                std::cout << " error opening file for lightcone info!"
-                          << std::endl;
-            }
-            else if (cycle == 0)
-            {
-                if (sim.num_lightcone > 1)
-                    fprintf (outfile,
-                             "# information file for lightcone %d\n# "
-                             "geometric "
-                             "parameters:\n# vertex = (%f, %f, %f) "
-                             "Mpc/h\n# "
-                             "redshift = "
-                             "%f\n# distance = (%f - %f) Mpc/h\n# "
-                             "opening "
-                             "half-angle = "
-                             "%f degrees\n# direction = (%f, %f, %f)\n# "
-                             "cycle   "
-                             "tau/boxsize    a              pcl_inner   "
-                             "     "
-                             "pcl_outer  "
-                             "      metric_inner     metric_outer\n",
-                             i, sim.lightcone[i].vertex[0] * sim.boxsize,
-                             sim.lightcone[i].vertex[1] * sim.boxsize,
-                             sim.lightcone[i].vertex[2] * sim.boxsize,
-                             sim.lightcone[i].z,
-                             sim.lightcone[i].distance[0] * sim.boxsize,
-                             sim.lightcone[i].distance[1] * sim.boxsize,
-                             (sim.lightcone[i].opening > -1.)
-                                 ? acos (sim.lightcone[i].opening) * 180. / M_PI
-                                 : 180.,
-                             sim.lightcone[i].direction[0],
-                             sim.lightcone[i].direction[1],
-                             sim.lightcone[i].direction[2]);
-                else
-                    fprintf (outfile,
-                             "# information file for lightcone\n# "
-                             "geometric "
-                             "parameters:\n# vertex = (%f, %f, %f) "
-                             "Mpc/h\n# "
-                             "redshift = "
-                             "%f\n# distance = (%f - %f) Mpc/h\n# "
-                             "opening "
-                             "half-angle = "
-                             "%f degrees\n# direction = (%f, %f, %f)\n# "
-                             "cycle   "
-                             "tau/boxsize    a              pcl_inner   "
-                             "     "
-                             "pcl_outer  "
-                             "      metric_inner     metric_outer\n",
-                             sim.lightcone[i].vertex[0] * sim.boxsize,
-                             sim.lightcone[i].vertex[1] * sim.boxsize,
-                             sim.lightcone[i].vertex[2] * sim.boxsize,
-                             sim.lightcone[i].z,
-                             sim.lightcone[i].distance[0] * sim.boxsize,
-                             sim.lightcone[i].distance[1] * sim.boxsize,
-                             (sim.lightcone[i].opening > -1.)
-                                 ? acos (sim.lightcone[i].opening) * 180. / M_PI
-                                 : 180.,
-                             sim.lightcone[i].direction[0],
-                             sim.lightcone[i].direction[1],
-                             sim.lightcone[i].direction[2]);
-            }
-        }
-
-        d = particleHorizon (1. / (1. + sim.lightcone[i].z), cosmo);
-
-        s[0] = d - tau - 0.5 * sim.covering[i] * dtau;
-        s[1] = d - tau + 0.5 * sim.covering[i] * dtau_old;
-
-#ifdef HAVE_HEALPIX
-        shell_inner = (s[0] > sim.lightcone[i].distance[1])
-                          ? ceil (s[0] * sim.numpts * sim.shellfactor[i])
-                          : ceil (sim.lightcone[i].distance[1] * sim.numpts
-                                  * sim.shellfactor[i]);
-        shell_outer = (sim.lightcone[i].distance[0] > s[1])
-                          ? floor (s[1] * sim.numpts * sim.shellfactor[i])
-                          : (ceil (sim.lightcone[i].distance[0] * sim.numpts
-                                   * sim.shellfactor[i])
-                             - 1);
-        if (shell_outer < shell_inner && s[1] > 0)
-            shell_outer = shell_inner;
-
-        maphdr.precision = sizeof (Real);
-        maphdr.Ngrid = sim.numpts;
-        maphdr.direction[0] = sim.lightcone[i].direction[0];
-        maphdr.direction[1] = sim.lightcone[i].direction[1];
-        maphdr.direction[2] = sim.lightcone[i].direction[2];
-        maphdr.boxsize = sim.boxsize;
-        memset ((void *)maphdr.fill, 0, 256 - 5 * 4 - 5 * 8);
-
-        xsim.initialize (phi->lattice ());
-
-        if (sim.lightcone[i].direction[0] == 0
-            && sim.lightcone[i].direction[1] == 0)
-        {
-            R[0][0] = sim.lightcone[i].direction[2];
-            R[0][1] = 0;
-            R[0][2] = 0;
-            R[1][0] = 0;
-            R[1][1] = 1;
-            R[1][2] = 0;
-            R[2][0] = 0;
-            R[2][1] = 0;
-            R[2][2] = sim.lightcone[i].direction[2];
-        }
-        else
-        {
-            temp = atan2 (sim.lightcone[i].direction[1],
-                          sim.lightcone[i].direction[0]);
-            R[0][0] = cos (temp) * sim.lightcone[i].direction[2];
-            R[0][1] = -sin (temp);
-            R[0][2] = sim.lightcone[i].direction[0];
-            R[1][0] = sin (temp) * sim.lightcone[i].direction[2];
-            R[1][1] = cos (temp);
-            R[1][2] = sim.lightcone[i].direction[1];
-            R[2][0] = -sqrt (1.
-                             - sim.lightcone[i].direction[2]
-                                   * sim.lightcone[i].direction[2]);
-            R[2][1] = 0;
-            R[2][2] = sim.lightcone[i].direction[2];
-        }
-#endif
-
-        if (sim.lightcone[i].distance[0] > s[0]
-            && sim.lightcone[i].distance[1] <= s[1] && s[1] > 0.)
-        {
-            if (parallel.isRoot () && outfile != NULL)
-            {
-                fprintf (outfile,
-                         "%6d   %e   %e   %2.12f   %2.12f   %2.12f "
-                         "  %2.12f\n",
-                         cycle, tau, a, d - tau - 0.5 * dtau,
-                         d - tau + 0.5 * dtau_old, s[0], s[1]);
-                fclose (outfile);
-
-                if (sim.num_lightcone > 1)
-                    sprintf (filename, "%s%s%d_info.bin", sim.output_path,
-                             sim.basename_lightcone, i);
-                else
-                    sprintf (filename, "%s%s_info.bin", sim.output_path,
-                             sim.basename_lightcone);
-
-                outfile = fopen (filename, "a");
-                if (outfile == NULL)
-                {
-                    std::cout << " error opening file for lightcone "
-                                 "info!"
-                              << std::endl;
-                }
-                else
-                {
-                    ((double *)buffer)[0] = tau;
-                    ((double *)buffer)[1] = a;
-                    ((double *)buffer)[2] = d - tau - 0.5 * dtau;
-                    ((double *)buffer)[3] = d - tau + 0.5 * dtau_old;
-
-                    fwrite ((const void *)&cycle, sizeof (int), 1, outfile);
-                    fwrite ((const void *)buffer, sizeof (double), 4, outfile);
-                    fwrite ((const void *)s, sizeof (double), 2, outfile);
-
-                    fclose (outfile);
-                }
-            }
-
-#ifdef HAVE_HEALPIX
-            bytes = 0;
-            bytes2 = 0;
-
-            for (j = 0; j < 9; j++)
-                pixbuf_reserve[j] = PIXBUFFER;
-
-            if (sim.out_lightcone[i] & MASK_PHI)
-            {
-                for (j = 0; j < 9; j++)
-                    pixbuf[LIGHTCONE_PHI_OFFSET][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-            }
-
-            if (sim.out_lightcone[i] & MASK_CHI)
-            {
-                for (j = 0; j < 9; j++)
-                    pixbuf[LIGHTCONE_CHI_OFFSET][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-            }
-
-            if (sim.out_lightcone[i] & MASK_B)
-            {
-                for (j = 0; j < 9; j++)
-                {
-                    pixbuf[LIGHTCONE_B_OFFSET][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-                    pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-                    pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-                }
-            }
-
-            if (sim.out_lightcone[i] & MASK_HIJ)
-            {
-                for (j = 0; j < 9; j++)
-                {
-                    pixbuf[LIGHTCONE_HIJ_OFFSET][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-                    pixbuf[LIGHTCONE_HIJ_OFFSET + 1][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-                    pixbuf[LIGHTCONE_HIJ_OFFSET + 2][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-                    pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-                    pixbuf[LIGHTCONE_HIJ_OFFSET + 4][j]
-                        = (Real *)malloc (sizeof (Real) * PIXBUFFER);
-                }
-            }
-
-            if (sim.gr_flag == gravity_theory::Newtonian && sim.out_lightcone[i] & MASK_B
-                && done_B == 0)
-            {
-                plan_Bi->execute (FFT_BACKWARD);
-                Bi->updateHalo ();
-                done_B = 1;
-            }
-
-            if (sim.out_lightcone[i] & MASK_HIJ && done_hij == 0)
-            {
-                projectFTtensor (*SijFT, *SijFT);
-                plan_Sij->execute (FFT_BACKWARD);
-                Sij->updateHalo ();
-                done_hij = 1;
-            }
-
-            if ((shell_outer + 1 - shell_inner) > parallel.size ())
-            {
-                shell_write
-                    = ((shell_outer + 1 - shell_inner) * parallel.rank ()
-                       + parallel.size () - 1)
-                      / parallel.size ();
-                io_group_size = 0;
-            }
-            else
-            {
-                shell_write
-                    = ((shell_outer + 1 - shell_inner) * parallel.rank ())
-                      / parallel.size ();
-                io_group_size = (((shell_write + 1) * parallel.size ()
-                                  + shell_outer - shell_inner)
-                                 / (shell_outer + 1 - shell_inner))
-                                - ((shell_write * parallel.size () + shell_outer
-                                    - shell_inner)
-                                   / (shell_outer + 1 - shell_inner));
-            }
-
-            for (shell = shell_inner; shell <= shell_outer; shell++)
-            {
-                maphdr.distance
-                    = (double)shell / (double)sim.numpts / sim.shellfactor[i];
-
-                for (maphdr.Nside = sim.Nside[i][0];
-                     maphdr.Nside < sim.Nside[i][1]; maphdr.Nside *= 2)
-                {
-                    if (12. * maphdr.Nside * maphdr.Nside
-                        > sim.pixelfactor[i] * 4. * M_PI * maphdr.distance
-                              * maphdr.distance * sim.numpts * sim.numpts)
-                        break;
-                }
-
-                for (maphdr.Nside_ring = 2;
-                     2.137937882409166 * sim.numpts * maphdr.distance
-                             / maphdr.Nside_ring
-                         > phi->lattice ().sizeLocal (1)
-                     && 2.137937882409166 * sim.numpts * maphdr.distance
-                                / maphdr.Nside_ring
-                            > phi->lattice ().sizeLocal (2)
-                     && maphdr.Nside_ring < maphdr.Nside;
-                     maphdr.Nside_ring *= 2)
-                    ;
-
-                if (sim.lightcone[i].opening > 2. / 3.)
-                {
-                    p = 1
-                        + (int)floor (
-                              maphdr.Nside
-                              * sqrt (3. - 3. * sim.lightcone[i].opening));
-                    maphdr.Npix = 2 * p * (p + 1);
-                }
-                else if (sim.lightcone[i].opening > -2. / 3.)
-                {
-                    p = 1
-                        + (int)floor (maphdr.Nside
-                                      * (2. - 1.5 * sim.lightcone[i].opening));
-                    maphdr.Npix = 2 * maphdr.Nside * (maphdr.Nside + 1)
-                                  + (p - maphdr.Nside) * 4 * maphdr.Nside;
-                }
-                else if (sim.lightcone[i].opening > -1.)
-                {
-                    p = (int)floor (
-                        maphdr.Nside
-                        * sqrt (3. + 3. * sim.lightcone[i].opening));
-                    maphdr.Npix
-                        = 12 * maphdr.Nside * maphdr.Nside - 2 * p * (p + 1);
-                    p = 4 * maphdr.Nside - 1 - p;
-                }
-                else
-                {
-                    maphdr.Npix = 12 * maphdr.Nside * maphdr.Nside;
-                    p = 4 * maphdr.Nside - 1;
-                }
-
-                pixbatch_size[0].push_back (maphdr.Nside / maphdr.Nside_ring);
-
-                pixbatch_delim[1].push_back (p / pixbatch_size[0].back ());
-                pixbatch_delim[0].push_back ((pixbatch_delim[1].back () > 0)
-                                                 ? pixbatch_delim[1].back () - 1
-                                                 : 0);
-                pixbatch_delim[2].push_back (pixbatch_delim[1].back () + 1);
-                pixbatch_size[1].push_back (
-                    (pixbatch_size[0].back () * (pixbatch_size[0].back () + 1)
-                     + (2 * pixbatch_size[0].back () - 1
-                        - p % pixbatch_size[0].back ())
-                           * (p % pixbatch_size[0].back ()))
-                    / 2);
-                pixbatch_size[2].push_back (((p % pixbatch_size[0].back () + 1)
-                                             * (p % pixbatch_size[0].back ()))
-                                            / 2);
-                pixbatch_size[0].back () *= pixbatch_size[0].back ();
-                for (p = 0; p < 3; p++)
-                {
-                    if (pixbatch_delim[p].back () <= maphdr.Nside_ring)
-                        pixbatch_delim[p].back ()
-                            = 2 * pixbatch_delim[p].back ()
-                              * (pixbatch_delim[p].back () + 1);
-                    else if (pixbatch_delim[p].back () <= 3 * maphdr.Nside_ring)
-                        pixbatch_delim[p].back ()
-                            = 2 * maphdr.Nside_ring * (maphdr.Nside_ring + 1)
-                              + (pixbatch_delim[p].back () - maphdr.Nside_ring)
-                                    * 4 * maphdr.Nside_ring;
-                    else if (pixbatch_delim[p].back () < 4 * maphdr.Nside_ring)
-                        pixbatch_delim[p].back ()
-                            = 12 * maphdr.Nside_ring * maphdr.Nside_ring
-                              - 2
-                                    * (4 * maphdr.Nside_ring - 1
-                                       - pixbatch_delim[p].back ())
-                                    * (4 * maphdr.Nside_ring
-                                       - pixbatch_delim[p].back ());
-                    else
-                        pixbatch_delim[p].back ()
-                            = 12 * maphdr.Nside_ring * maphdr.Nside_ring;
-                }
-
-                if (pixbatch_size[1].back () == pixbatch_size[0].back ())
-                    pixbatch_delim[0].back () = pixbatch_delim[1].back ();
-
-                for (j = 0; j < 9; j++)
-                    pixbuf_size[j] = 0;
-
-                for (p = 0; p < pixbatch_delim[2].back (); p++)
-                {
-                    pix2vec_ring64 (maphdr.Nside_ring, p, w);
-
-                    base_pos[1]
-                        = (int)floor ((maphdr.distance
-                                           * (R[1][0] * w[0] + R[1][1] * w[1]
-                                              + R[1][2] * w[2])
-                                       + sim.lightcone[i].vertex[1])
-                                      * sim.numpts)
-                          % sim.numpts;
-                    if (base_pos[1] < 0)
-                        base_pos[1] += sim.numpts;
-
-                    commdir[1] = phi->lattice ().getRankDim1 (base_pos[1]);
-                    j = commdir[1] * parallel.grid_size ()[0];
-                    commdir[1] -= parallel.grid_rank ()[1];
-
-                    if (commdir[1] < -1)
-                        commdir[1] += parallel.grid_size ()[1];
-                    else if (commdir[1] > 1)
-                        commdir[1] -= parallel.grid_size ()[1];
-
-                    base_pos[2]
-                        = (int)floor ((maphdr.distance
-                                           * (R[2][0] * w[0] + R[2][1] * w[1]
-                                              + R[2][2] * w[2])
-                                       + sim.lightcone[i].vertex[2])
-                                      * sim.numpts)
-                          % sim.numpts;
-                    if (base_pos[2] < 0)
-                        base_pos[2] += sim.numpts;
-
-                    commdir[0] = phi->lattice ().getRankDim0 (base_pos[2]);
-                    j += commdir[0];
-                    commdir[0] -= parallel.grid_rank ()[0];
-
-                    if (commdir[0] < -1)
-                        commdir[0] += parallel.grid_size ()[0];
-                    else if (commdir[0] > 1)
-                        commdir[0] -= parallel.grid_size ()[0];
-
-                    if ((io_group_size == 0
-                         && parallel.rank ()
-                                == ((shell - shell_inner) * parallel.size ())
-                                       / (shell_outer + 1 - shell_inner))
-                        || (io_group_size > 0
-                            && shell - shell_inner == shell_write
-                            && ((pixbatch_delim[2].back () >= io_group_size
-                                 && p
-                                            / (pixbatch_delim[2].back ()
-                                               / io_group_size)
-                                        < io_group_size
-                                 && p
-                                            / (pixbatch_delim[2].back ()
-                                               / io_group_size)
-                                        == parallel.rank ()
-                                               - (shell_write * parallel.size ()
-                                                  + shell_outer - shell_inner)
-                                                     / (shell_outer + 1
-                                                        - shell_inner))
-                                || (parallel.rank ()
-                                            - (shell_write * parallel.size ()
-                                               + shell_outer - shell_inner)
-                                                  / (shell_outer + 1
-                                                     - shell_inner)
-                                        == io_group_size - 1
-                                    && (pixbatch_delim[2].back ()
-                                            < io_group_size
-                                        || p
-                                                   / (pixbatch_delim[2].back ()
-                                                      / io_group_size)
-                                               >= io_group_size)))))
-                    {
-                        sender_proc.push_back (j);
-                    }
-
-                    if (commdir[0] * commdir[0] > 1
-                        || commdir[1] * commdir[1] > 1)
-                        continue;
-
-                    ring2nest64 (maphdr.Nside_ring, p, &pix);
-                    pix *= pixbatch_size[0].back ();
-
-                    if (p < pixbatch_delim[0].back ())
-                        pixbatch_type = 0;
-                    else if (p < pixbatch_delim[1].back ())
-                        pixbatch_type = 1;
-                    else
-                        pixbatch_type = 2;
-
-                    j = 3 * commdir[0] + commdir[1] + 4;
-
-                    if (pixbuf_size[j] + pixbatch_size[pixbatch_type].back ()
-                        > pixbuf_reserve[j])
-                    {
-                        do
-                        {
-                            pixbuf_reserve[j] += PIXBUFFER;
-                        } while (pixbuf_size[j]
-                                     + pixbatch_size[pixbatch_type].back ()
-                                 > pixbuf_reserve[j]);
-
-                        for (q = 0; q < LIGHTCONE_MAX_FIELDS; q++)
-                        {
-                            if (pixbuf[q][j] != NULL)
-                            {
-                                pixbuf[q][j] = (Real *)realloc (
-                                    (void *)pixbuf[q][j],
-                                    sizeof (Real) * pixbuf_reserve[j]);
-                                if (pixbuf[q][j] == NULL)
-                                {
-                                    std::cout << COLORTEXT_RED
-                                              << " er"
-                                                 "ror"
-                                              << COLORTEXT_RESET
-                                              << ": "
-                                                 "pro"
-                                                 "c#"
-                                              << parallel.rank ()
-                                              << " un"
-                                                 "abl"
-                                                 "e "
-                                                 "to "
-                                                 "all"
-                                                 "oca"
-                                                 "te "
-                                                 "mem"
-                                                 "ory"
-                                                 " fo"
-                                                 "r "
-                                                 "pix"
-                                                 "eli"
-                                                 "sat"
-                                                 "ion"
-                                                 "!"
-                                              << std::endl;
-                                    parallel.abortForce ();
-                                }
-                            }
-                        }
-                    }
-
-                    for (q = 0; q < pixbatch_size[pixbatch_type].back (); pix++)
-                    {
-                        pixcount++;
-
-                        if (pixbatch_type)
-                        {
-                            nest2ring64 (maphdr.Nside, pix, &pix2);
-                            if (pix2 >= maphdr.Npix)
-                                continue;
-                        }
-
-                        pix2vec_nest64 (maphdr.Nside, pix, w);
-
-                        pos[0] = (maphdr.distance
-                                      * (R[0][0] * w[0] + R[0][1] * w[1]
-                                         + R[0][2] * w[2])
-                                  + sim.lightcone[i].vertex[0])
-                                 * sim.numpts;
-                        pos[1] = (maphdr.distance
-                                      * (R[1][0] * w[0] + R[1][1] * w[1]
-                                         + R[1][2] * w[2])
-                                  + sim.lightcone[i].vertex[1])
-                                 * sim.numpts;
-                        pos[2] = (maphdr.distance
-                                      * (R[2][0] * w[0] + R[2][1] * w[1]
-                                         + R[2][2] * w[2])
-                                  + sim.lightcone[i].vertex[2])
-                                 * sim.numpts;
-
-                        if (pos[0] >= 0)
-                        {
-                            w[0] = modf (pos[0], &temp);
-                            base_pos[0] = (int)temp % sim.numpts;
-                        }
-                        else
-                        {
-                            w[0] = 1. + modf (pos[0], &temp);
-                            base_pos[0]
-                                = sim.numpts - 1 - (((int)-temp) % sim.numpts);
-                        }
-                        if (pos[1] >= 0)
-                        {
-                            w[1] = modf (pos[1], &temp);
-                            base_pos[1] = (int)temp % sim.numpts;
-                        }
-                        else
-                        {
-                            w[1] = 1. + modf (pos[1], &temp);
-                            base_pos[1]
-                                = sim.numpts - 1 - (((int)-temp) % sim.numpts);
-                        }
-                        if (pos[2] >= 0)
-                        {
-                            w[2] = modf (pos[2], &temp);
-                            base_pos[2] = (int)temp % sim.numpts;
-                        }
-                        else
-                        {
-                            w[2] = 1. + modf (pos[2], &temp);
-                            base_pos[2]
-                                = sim.numpts - 1 - (((int)-temp) % sim.numpts);
-                        }
-
-                        if (xsim.setCoord (base_pos))
-                        {
-                            if (sim.out_lightcone[i] & MASK_PHI)
-                            {
-                                *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[0]) * (1. - w[1])
-                                      * ((1. - w[2]) * (*phi) (xsim)
-                                         + w[2] * (*phi) (xsim + 2));
-                                *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * (1. - w[1])
-                                       * ((1. - w[2]) * (*phi) (xsim + 0)
-                                          + w[2] * (*phi) (xsim + 0 + 2));
-                                *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * w[1]
-                                       * ((1. - w[2]) * (*phi) (xsim + 0 + 1)
-                                          + w[2] * (*phi) (xsim + 0 + 1 + 2));
-                                *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += (1. - w[0]) * w[1]
-                                       * ((1. - w[2]) * (*phi) (xsim + 1)
-                                          + w[2] * (*phi) (xsim + 1 + 2));
-                            }
-                            if (sim.out_lightcone[i] & MASK_CHI)
-                            {
-                                *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[0]) * (1. - w[1])
-                                      * ((1. - w[2]) * (*chi) (xsim)
-                                         + w[2] * (*chi) (xsim + 2));
-                                *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * (1. - w[1])
-                                       * ((1. - w[2]) * (*chi) (xsim + 0)
-                                          + w[2] * (*chi) (xsim + 0 + 2));
-                                *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * w[1]
-                                       * ((1. - w[2]) * (*chi) (xsim + 0 + 1)
-                                          + w[2] * (*chi) (xsim + 0 + 1 + 2));
-                                *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += (1. - w[0]) * w[1]
-                                       * ((1. - w[2]) * (*chi) (xsim + 1)
-                                          + w[2] * (*chi) (xsim + 1 + 2));
-                            }
-                            if (sim.out_lightcone[i] & MASK_B)
-                            {
-#ifdef LIGHTCONE_INTERPOLATE
-                                *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
-                                  + q)
-                                    = (1. - w[2]) * (1. - w[1])
-                                      * ((1. - w[0]) * (*Bi) (xsim - 0, 0)
-                                         + w[0] * (*Bi) (xsim + 0, 0)
-                                         + (*Bi) (xsim, 0));
-                                *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
-                                  + q)
-                                    += w[2] * (1. - w[1])
-                                       * ((1. - w[0]) * (*Bi) (xsim - 0 + 2, 0)
-                                          + w[0] * (*Bi) (xsim + 0 + 2, 0)
-                                          + (*Bi) (xsim + 2, 0));
-                                *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
-                                  + q)
-                                    += w[2] * w[1]
-                                       * ((1. - w[0])
-                                              * (*Bi) (xsim - 0 + 1 + 2, 0)
-                                          + w[0] * (*Bi) (xsim + 0 + 1 + 2, 0)
-                                          + (*Bi) (xsim + 1 + 2, 0));
-                                *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
-                                  + q)
-                                    += (1. - w[2]) * w[1]
-                                       * ((1. - w[0]) * (*Bi) (xsim - 0 + 1, 0)
-                                          + w[0] * (*Bi) (xsim + 0 + 1, 0)
-                                          + (*Bi) (xsim + 1, 0));
-
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[2]) * (1. - w[0])
-                                      * ((1. - w[1]) * (*Bi) (xsim - 1, 1)
-                                         + w[1] * (*Bi) (xsim + 1, 1)
-                                         + (*Bi) (xsim, 1));
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[2] * (1. - w[0])
-                                       * ((1. - w[1]) * (*Bi) (xsim - 1 + 2, 1)
-                                          + w[1] * (*Bi) (xsim + 1 + 2, 1)
-                                          + (*Bi) (xsim + 2, 1));
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[2] * w[0]
-                                       * ((1. - w[1])
-                                              * (*Bi) (xsim + 0 - 1 + 2, 1)
-                                          + w[1] * (*Bi) (xsim + 0 + 1 + 2, 1)
-                                          + (*Bi) (xsim + 0 + 2, 1));
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    += (1. - w[2]) * w[0]
-                                       * ((1. - w[1]) * (*Bi) (xsim + 0 - 1, 1)
-                                          + w[1] * (*Bi) (xsim + 0 + 1, 1)
-                                          + (*Bi) (xsim + 0, 1));
-
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[0]) * (1. - w[1])
-                                      * ((1. - w[2]) * (*Bi) (xsim - 2, 2)
-                                         + w[2] * (*Bi) (xsim + 2, 2)
-                                         + (*Bi) (xsim, 2));
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * (1. - w[1])
-                                       * ((1. - w[2]) * (*Bi) (xsim + 0 - 2, 2)
-                                          + w[2] * (*Bi) (xsim + 0 + 2, 2)
-                                          + (*Bi) (xsim + 0, 2));
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * w[1]
-                                       * ((1. - w[2])
-                                              * (*Bi) (xsim + 0 + 1 - 2, 2)
-                                          + w[2] * (*Bi) (xsim + 0 + 1 + 2, 2)
-                                          + (*Bi) (xsim + 0 + 1, 2));
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    += (1. - w[0]) * w[1]
-                                       * ((1. - w[2]) * (*Bi) (xsim + 1 - 2, 2)
-                                          + w[2] * (*Bi) (xsim + 1 + 2, 2)
-                                          + (*Bi) (xsim + 1, 2));
-
-                                *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
-                                  + q)
-                                    /= 2. * a * a * sim.numpts;
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    /= 2. * a * a * sim.numpts;
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    /= 2. * a * a * sim.numpts;
-#else
-                                if (w[0] > 0.5)
-                                {
-                                    *(pixbuf[LIGHTCONE_B_OFFSET][j]
-                                      + pixbuf_size[j] + q)
-                                        = (1.5 - w[0]) * (1. - w[1])
-                                          * ((1. - w[2]) * (*Bi) (xsim, 0)
-                                             + w[2] * (*Bi) (xsim + 2, 0));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET][j]
-                                      + pixbuf_size[j] + q)
-                                        += (1.5 - w[0]) * w[1]
-                                           * ((1. - w[2]) * (*Bi) (xsim + 1, 0)
-                                              + w[2] * (*Bi) (xsim + 1 + 2, 0));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET][j]
-                                      + pixbuf_size[j] + q)
-                                        += (w[0] - 0.5) * w[1]
-                                           * ((1. - w[2])
-                                                  * (*Bi) (xsim + 0 + 1, 0)
-                                              + w[2]
-                                                    * (*Bi) (xsim + 0 + 1 + 2,
-                                                             0));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET][j]
-                                      + pixbuf_size[j] + q)
-                                        += (w[0] - 0.5) * (1. - w[1])
-                                           * ((1. - w[2]) * (*Bi) (xsim + 0, 0)
-                                              + w[2] * (*Bi) (xsim + 0 + 2, 0));
-                                }
-                                else
-                                {
-                                    *(pixbuf[LIGHTCONE_B_OFFSET][j]
-                                      + pixbuf_size[j] + q)
-                                        = (0.5 + w[0]) * (1. - w[1])
-                                          * ((1. - w[2]) * (*Bi) (xsim, 0)
-                                             + w[2] * (*Bi) (xsim + 2, 0));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET][j]
-                                      + pixbuf_size[j] + q)
-                                        += (0.5 + w[0]) * w[1]
-                                           * ((1. - w[2]) * (*Bi) (xsim + 1, 0)
-                                              + w[2] * (*Bi) (xsim + 1 + 2, 0));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET][j]
-                                      + pixbuf_size[j] + q)
-                                        += (0.5 - w[0]) * w[1]
-                                           * ((1. - w[2])
-                                                  * (*Bi) (xsim - 0 + 1, 0)
-                                              + w[2]
-                                                    * (*Bi) (xsim - 0 + 1 + 2,
-                                                             0));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET][j]
-                                      + pixbuf_size[j] + q)
-                                        += (0.5 - w[0]) * (1. - w[1])
-                                           * ((1. - w[2]) * (*Bi) (xsim - 0, 0)
-                                              + w[2] * (*Bi) (xsim - 0 + 2, 0));
-                                }
-                                if (w[1] > 0.5)
-                                {
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                      + pixbuf_size[j] + q)
-                                        = (1. - w[0]) * (1.5 - w[1])
-                                          * ((1. - w[2]) * (*Bi) (xsim, 1)
-                                             + w[2] * (*Bi) (xsim + 2, 1));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                      + pixbuf_size[j] + q)
-                                        += (1. - w[0]) * (w[1] - 0.5)
-                                           * ((1. - w[2]) * (*Bi) (xsim + 1, 1)
-                                              + w[2] * (*Bi) (xsim + 1 + 2, 1));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                      + pixbuf_size[j] + q)
-                                        += w[0] * (w[1] - 0.5)
-                                           * ((1. - w[2])
-                                                  * (*Bi) (xsim + 0 + 1, 1)
-                                              + w[2]
-                                                    * (*Bi) (xsim + 0 + 1 + 2,
-                                                             1));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                      + pixbuf_size[j] + q)
-                                        += w[0] * (1.5 - w[1])
-                                           * ((1. - w[2]) * (*Bi) (xsim + 0, 1)
-                                              + w[2] * (*Bi) (xsim + 0 + 2, 1));
-                                }
-                                else
-                                {
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                      + pixbuf_size[j] + q)
-                                        = (1. - w[0]) * (0.5 + w[1])
-                                          * ((1. - w[2]) * (*Bi) (xsim, 1)
-                                             + w[2] * (*Bi) (xsim + 2, 1));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                      + pixbuf_size[j] + q)
-                                        += (1. - w[0]) * (0.5 - w[1])
-                                           * ((1. - w[2]) * (*Bi) (xsim - 1, 1)
-                                              + w[2] * (*Bi) (xsim - 1 + 2, 1));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                      + pixbuf_size[j] + q)
-                                        += w[0] * (0.5 - w[1])
-                                           * ((1. - w[2])
-                                                  * (*Bi) (xsim + 0 - 1, 1)
-                                              + w[2]
-                                                    * (*Bi) (xsim + 0 - 1 + 2,
-                                                             1));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                      + pixbuf_size[j] + q)
-                                        += w[0] * (0.5 + w[1])
-                                           * ((1. - w[2]) * (*Bi) (xsim + 0, 1)
-                                              + w[2] * (*Bi) (xsim + 0 + 2, 1));
-                                }
-                                if (w[2] > 0.5)
-                                {
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                      + pixbuf_size[j] + q)
-                                        = (1. - w[0]) * (1. - w[1])
-                                          * ((1.5 - w[2]) * (*Bi) (xsim, 2)
-                                             + (w[2] - 0.5)
-                                                   * (*Bi) (xsim + 2, 2));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                      + pixbuf_size[j] + q)
-                                        += (1. - w[0]) * w[1]
-                                           * ((1.5 - w[2]) * (*Bi) (xsim + 1, 2)
-                                              + (w[2] - 0.5)
-                                                    * (*Bi) (xsim + 1 + 2, 2));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                      + pixbuf_size[j] + q)
-                                        += w[0] * w[1]
-                                           * ((1.5 - w[2])
-                                                  * (*Bi) (xsim + 0 + 1, 2)
-                                              + (w[2] - 0.5)
-                                                    * (*Bi) (xsim + 0 + 1 + 2,
-                                                             2));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                      + pixbuf_size[j] + q)
-                                        += w[0] * (1. - w[1])
-                                           * ((1.5 - w[2]) * (*Bi) (xsim + 0, 2)
-                                              + (w[2] - 0.5)
-                                                    * (*Bi) (xsim + 0 + 2, 2));
-                                }
-                                else
-                                {
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                      + pixbuf_size[j] + q)
-                                        = (1. - w[0]) * (1. - w[1])
-                                          * ((0.5 + w[2]) * (*Bi) (xsim, 2)
-                                             + (0.5 - w[2])
-                                                   * (*Bi) (xsim - 2, 2));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                      + pixbuf_size[j] + q)
-                                        += (1. - w[0]) * w[1]
-                                           * ((0.5 + w[2]) * (*Bi) (xsim + 1, 2)
-                                              + (0.5 - w[2])
-                                                    * (*Bi) (xsim + 1 - 2, 2));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                      + pixbuf_size[j] + q)
-                                        += w[0] * w[1]
-                                           * ((0.5 + w[2])
-                                                  * (*Bi) (xsim + 0 + 1, 2)
-                                              + (0.5 - w[2])
-                                                    * (*Bi) (xsim + 0 + 1 - 2,
-                                                             2));
-                                    *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                      + pixbuf_size[j] + q)
-                                        += w[0] * (1. - w[1])
-                                           * ((0.5 + w[2]) * (*Bi) (xsim + 0, 2)
-                                              + (0.5 - w[2])
-                                                    * (*Bi) (xsim + 0 - 2, 2));
-                                }
-                                *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
-                                  + q)
-                                    /= a * a * sim.numpts;
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    /= a * a * sim.numpts;
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    /= a * a * sim.numpts;
-#endif
-                            }
-                            if (sim.out_lightcone[i] & MASK_HIJ)
-                            {
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[0]) * (1. - w[1])
-                                      * ((1. - w[2]) * (*Sij) (xsim, 0, 0)
-                                         + w[2] * (*Sij) (xsim + 2, 0, 0));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * (1. - w[1])
-                                       * ((1. - w[2]) * (*Sij) (xsim + 0, 0, 0)
-                                          + w[2] * (*Sij) (xsim + 0 + 2, 0, 0));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * w[1]
-                                       * ((1. - w[2])
-                                              * (*Sij) (xsim + 0 + 1, 0, 0)
-                                          + w[2]
-                                                * (*Sij) (xsim + 0 + 1 + 2, 0,
-                                                          0));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    += (1. - w[0]) * w[1]
-                                       * ((1. - w[2]) * (*Sij) (xsim + 1, 0, 0)
-                                          + w[2] * (*Sij) (xsim + 1 + 2, 0, 0));
-
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[2]) * 0.25
-                                      * ((*Sij) (xsim, 0, 1)
-                                         + (1. - w[0])
-                                               * ((*Sij) (xsim - 0, 0, 1)
-                                                  + (1. - w[1])
-                                                        * (*Sij) (xsim - 0 - 1,
-                                                                  0, 1)
-                                                  + w[1]
-                                                        * (*Sij) (xsim - 0 + 1,
-                                                                  0, 1))
-                                         + w[0]
-                                               * ((*Sij) (xsim + 0, 0, 1)
-                                                  + (1. - w[1])
-                                                        * (*Sij) (xsim + 0 - 1,
-                                                                  0, 1)
-                                                  + w[1]
-                                                        * (*Sij) (xsim + 0 + 1,
-                                                                  0, 1))
-                                         + (1. - w[1]) * (*Sij) (xsim - 1, 0, 1)
-                                         + w[1] * (*Sij) (xsim + 1, 0, 1));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[2] * 0.25
-                                       * ((*Sij) (xsim + 2, 0, 1)
-                                          + (1. - w[0])
-                                                * ((*Sij) (xsim - 0 + 2, 0, 1)
-                                                   + (1. - w[1])
-                                                         * (*Sij) (xsim - 0 - 1
-                                                                       + 2,
-                                                                   0, 1)
-                                                   + w[1]
-                                                         * (*Sij) (xsim - 0 + 1
-                                                                       + 2,
-                                                                   0, 1))
-                                          + w[0]
-                                                * ((*Sij) (xsim + 0 + 2, 0, 1)
-                                                   + (1. - w[1])
-                                                         * (*Sij) (xsim + 0 - 1
-                                                                       + 2,
-                                                                   0, 1)
-                                                   + w[1]
-                                                         * (*Sij) (xsim + 0 + 1
-                                                                       + 2,
-                                                                   0, 1))
-                                          + (1. - w[1])
-                                                * (*Sij) (xsim - 1 + 2, 0, 1)
-                                          + w[1] * (*Sij) (xsim + 1 + 2, 0, 1));
-
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[1]) * 0.25
-                                      * ((*Sij) (xsim, 0, 2)
-                                         + (1. - w[0])
-                                               * ((*Sij) (xsim - 0, 0, 2)
-                                                  + (1. - w[2])
-                                                        * (*Sij) (xsim - 0 - 2,
-                                                                  0, 2)
-                                                  + w[2]
-                                                        * (*Sij) (xsim - 0 + 2,
-                                                                  0, 2))
-                                         + w[0]
-                                               * ((*Sij) (xsim + 0, 0, 2)
-                                                  + (1. - w[2])
-                                                        * (*Sij) (xsim + 0 - 2,
-                                                                  0, 2)
-                                                  + w[2]
-                                                        * (*Sij) (xsim + 0 + 2,
-                                                                  0, 2))
-                                         + (1. - w[2]) * (*Sij) (xsim - 2, 0, 2)
-                                         + w[2] * (*Sij) (xsim + 2, 0, 2));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[1] * 0.25
-                                       * ((*Sij) (xsim + 1, 0, 2)
-                                          + (1. - w[0])
-                                                * ((*Sij) (xsim - 0 + 1, 0, 2)
-                                                   + (1. - w[2])
-                                                         * (*Sij) (xsim - 0 + 1
-                                                                       - 2,
-                                                                   0, 2)
-                                                   + w[2]
-                                                         * (*Sij) (xsim - 0 + 1
-                                                                       + 2,
-                                                                   0, 2))
-                                          + w[0]
-                                                * ((*Sij) (xsim + 0 + 1, 0, 2)
-                                                   + (1. - w[2])
-                                                         * (*Sij) (xsim + 0 + 1
-                                                                       - 2,
-                                                                   0, 2)
-                                                   + w[2]
-                                                         * (*Sij) (xsim + 0 + 1
-                                                                       + 2,
-                                                                   0, 2))
-                                          + (1. - w[2])
-                                                * (*Sij) (xsim + 1 - 2, 0, 2)
-                                          + w[2] * (*Sij) (xsim + 1 + 2, 0, 2));
-
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[0]) * (1. - w[1])
-                                      * ((1. - w[2]) * (*Sij) (xsim, 1, 1)
-                                         + w[2] * (*Sij) (xsim + 2, 1, 1));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * (1. - w[1])
-                                       * ((1. - w[2]) * (*Sij) (xsim + 0, 1, 1)
-                                          + w[2] * (*Sij) (xsim + 0 + 2, 1, 1));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * w[1]
-                                       * ((1. - w[2])
-                                              * (*Sij) (xsim + 0 + 1, 1, 1)
-                                          + w[2]
-                                                * (*Sij) (xsim + 0 + 1 + 2, 1,
-                                                          1));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
-                                  + pixbuf_size[j] + q)
-                                    += (1. - w[0]) * w[1]
-                                       * ((1. - w[2]) * (*Sij) (xsim + 1, 1, 1)
-                                          + w[2] * (*Sij) (xsim + 1 + 2, 1, 1));
-
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 4][j]
-                                  + pixbuf_size[j] + q)
-                                    = (1. - w[0]) * 0.25
-                                      * ((*Sij) (xsim, 1, 2)
-                                         + (1. - w[1])
-                                               * ((*Sij) (xsim - 1, 1, 2)
-                                                  + (1. - w[2])
-                                                        * (*Sij) (xsim - 1 - 2,
-                                                                  1, 2)
-                                                  + w[2]
-                                                        * (*Sij) (xsim - 1 + 2,
-                                                                  1, 2))
-                                         + w[1]
-                                               * ((*Sij) (xsim + 1, 1, 2)
-                                                  + (1. - w[2])
-                                                        * (*Sij) (xsim + 1 - 2,
-                                                                  1, 2)
-                                                  + w[2]
-                                                        * (*Sij) (xsim + 1 + 2,
-                                                                  1, 2))
-                                         + (1. - w[2]) * (*Sij) (xsim - 2, 1, 2)
-                                         + w[2] * (*Sij) (xsim + 2, 1, 2));
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 4][j]
-                                  + pixbuf_size[j] + q)
-                                    += w[0] * 0.25
-                                       * ((*Sij) (xsim + 0, 1, 2)
-                                          + (1. - w[1])
-                                                * ((*Sij) (xsim + 0 - 1, 1, 2)
-                                                   + (1. - w[2])
-                                                         * (*Sij) (xsim + 0 - 1
-                                                                       - 2,
-                                                                   1, 2)
-                                                   + w[2]
-                                                         * (*Sij) (xsim + 0 - 1
-                                                                       + 2,
-                                                                   1, 2))
-                                          + w[1]
-                                                * ((*Sij) (xsim + 0 + 1, 1, 2)
-                                                   + (1. - w[2])
-                                                         * (*Sij) (xsim + 0 + 1
-                                                                       - 2,
-                                                                   1, 2)
-                                                   + w[2]
-                                                         * (*Sij) (xsim + 0 + 1
-                                                                       + 2,
-                                                                   1, 2))
-                                          + (1. - w[2])
-                                                * (*Sij) (xsim + 0 - 2, 1, 2)
-                                          + w[2] * (*Sij) (xsim + 0 + 2, 1, 2));
-                            }
-                        }
-                        else
-                        {
-                            if (sim.out_lightcone[i] & MASK_PHI)
-                                *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                            if (sim.out_lightcone[i] & MASK_CHI)
-                                *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                            if (sim.out_lightcone[i] & MASK_B)
-                            {
-                                *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
-                                  + q)
-                                    = 0;
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                                *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                            }
-                            if (sim.out_lightcone[i] & MASK_HIJ)
-                            {
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 1][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 2][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                                *(pixbuf[LIGHTCONE_HIJ_OFFSET + 4][j]
-                                  + pixbuf_size[j] + q)
-                                    = 0;
-                            }
-                        }
-
-                        q++;
-                    } // q-loop
-
-                    pixbuf_size[j] += pixbatch_size[pixbatch_type].back ();
-
-                    if (j == 4)
-                    {
-                        pixbatch_id.push_back (p);
-                    }
-                } // p-loop
-
-                p = 0;
-                for (j = 0; j < 3; j++)
-                {
-                    if (pixbuf_size[3 * j] + pixbuf_size[3 * j + 1]
-                            + pixbuf_size[3 * j + 2]
-                        > p)
-                        p = pixbuf_size[3 * j] + pixbuf_size[3 * j + 1]
-                            + pixbuf_size[3 * j + 2];
-                }
-
-                if (p > 0)
-                {
-                    commbuf = (Real *)malloc (sizeof (Real) * p);
-
-                    for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                    {
-                        if (pixbuf[j][0] != NULL)
-                        {
-                            if (parallel.grid_rank ()[0] % 2 == 0)
-                            {
-                                if (pixbuf_size[0] + pixbuf_size[1]
-                                        + pixbuf_size[2]
-                                    > 0)
-                                {
-                                    if (pixbuf_size[0] > 0)
-                                        memcpy ((void *)commbuf,
-                                                (void *)pixbuf[j][0],
-                                                pixbuf_size[0] * sizeof (Real));
-                                    if (pixbuf_size[1] > 0)
-                                        memcpy (
-                                            (void *)(commbuf + pixbuf_size[0]),
-                                            (void *)pixbuf[j][1],
-                                            pixbuf_size[1] * sizeof (Real));
-                                    if (pixbuf_size[2] > 0)
-                                        memcpy ((void *)(commbuf
-                                                         + pixbuf_size[0]
-                                                         + pixbuf_size[1]),
-                                                (void *)pixbuf[j][2],
-                                                pixbuf_size[2] * sizeof (Real));
-                                    parallel.send_dim0<Real> (
-                                        commbuf,
-                                        pixbuf_size[0] + pixbuf_size[1]
-                                            + pixbuf_size[2],
-                                        (parallel.grid_size ()[0]
-                                         + parallel.grid_rank ()[0] - 1)
-                                            % parallel.grid_size ()[0]);
-                                }
-                                if (pixbuf_size[3] + pixbuf_size[4]
-                                        + pixbuf_size[5]
-                                    > 0)
-                                {
-                                    parallel.receive_dim0<Real> (
-                                        commbuf,
-                                        pixbuf_size[3] + pixbuf_size[4]
-                                            + pixbuf_size[5],
-                                        (parallel.grid_rank ()[0] + 1)
-                                            % parallel.grid_size ()[0]);
-                                    for (q = 0; q < pixbuf_size[3]; q++)
-                                        *(pixbuf[j][3] + q) += commbuf[q];
-                                    for (q = 0; q < pixbuf_size[4]; q++)
-                                        *(pixbuf[j][4] + q)
-                                            += commbuf[pixbuf_size[3] + q];
-                                    for (q = 0; q < pixbuf_size[5]; q++)
-                                        *(pixbuf[j][5] + q)
-                                            += commbuf[pixbuf_size[3]
-                                                       + pixbuf_size[4] + q];
-                                }
-                            }
-                            else
-                            {
-                                if (pixbuf_size[3] + pixbuf_size[4]
-                                            + pixbuf_size[5]
-                                        > 0
-                                    && parallel.grid_size ()[0] > 2)
-                                {
-                                    parallel.receive_dim0<Real> (
-                                        commbuf,
-                                        pixbuf_size[3] + pixbuf_size[4]
-                                            + pixbuf_size[5],
-                                        (parallel.grid_rank ()[0] + 1)
-                                            % parallel.grid_size ()[0]);
-                                    for (q = 0; q < pixbuf_size[3]; q++)
-                                        *(pixbuf[j][3] + q) += commbuf[q];
-                                    for (q = 0; q < pixbuf_size[4]; q++)
-                                        *(pixbuf[j][4] + q)
-                                            += commbuf[pixbuf_size[3] + q];
-                                    for (q = 0; q < pixbuf_size[5]; q++)
-                                        *(pixbuf[j][5] + q)
-                                            += commbuf[pixbuf_size[3]
-                                                       + pixbuf_size[4] + q];
-                                }
-                                if (pixbuf_size[0] + pixbuf_size[1]
-                                        + pixbuf_size[2]
-                                    > 0)
-                                {
-                                    if (pixbuf_size[0] > 0)
-                                        memcpy ((void *)commbuf,
-                                                (void *)pixbuf[j][0],
-                                                pixbuf_size[0] * sizeof (Real));
-                                    if (pixbuf_size[1] > 0)
-                                        memcpy (
-                                            (void *)(commbuf + pixbuf_size[0]),
-                                            (void *)pixbuf[j][1],
-                                            pixbuf_size[1] * sizeof (Real));
-                                    if (pixbuf_size[2] > 0)
-                                        memcpy ((void *)(commbuf
-                                                         + pixbuf_size[0]
-                                                         + pixbuf_size[1]),
-                                                (void *)pixbuf[j][2],
-                                                pixbuf_size[2] * sizeof (Real));
-                                    parallel.send_dim0<Real> (
-                                        commbuf,
-                                        pixbuf_size[0] + pixbuf_size[1]
-                                            + pixbuf_size[2],
-                                        (parallel.grid_size ()[0]
-                                         + parallel.grid_rank ()[0] - 1)
-                                            % parallel.grid_size ()[0]);
-                                }
-                            }
-
-                            if (parallel.grid_rank ()[0] % 2 == 0)
-                            {
-                                if (pixbuf_size[6] + pixbuf_size[7]
-                                        + pixbuf_size[8]
-                                    > 0)
-                                {
-                                    if (pixbuf_size[6] > 0)
-                                        memcpy ((void *)commbuf,
-                                                (void *)pixbuf[j][6],
-                                                pixbuf_size[6] * sizeof (Real));
-                                    if (pixbuf_size[7] > 0)
-                                        memcpy (
-                                            (void *)(commbuf + pixbuf_size[6]),
-                                            (void *)pixbuf[j][7],
-                                            pixbuf_size[7] * sizeof (Real));
-                                    if (pixbuf_size[8] > 0)
-                                        memcpy ((void *)(commbuf
-                                                         + pixbuf_size[6]
-                                                         + pixbuf_size[7]),
-                                                (void *)pixbuf[j][8],
-                                                pixbuf_size[8] * sizeof (Real));
-                                    parallel.send_dim0<Real> (
-                                        commbuf,
-                                        pixbuf_size[6] + pixbuf_size[7]
-                                            + pixbuf_size[8],
-                                        (parallel.grid_rank ()[0] + 1)
-                                            % parallel.grid_size ()[0]);
-                                }
-                                if (pixbuf_size[3] + pixbuf_size[4]
-                                            + pixbuf_size[5]
-                                        > 0
-                                    && parallel.grid_size ()[0] > 2)
-                                {
-                                    parallel.receive_dim0<Real> (
-                                        commbuf,
-                                        pixbuf_size[3] + pixbuf_size[4]
-                                            + pixbuf_size[5],
-                                        (parallel.grid_size ()[0]
-                                         + parallel.grid_rank ()[0] - 1)
-                                            % parallel.grid_size ()[0]);
-                                    for (q = 0; q < pixbuf_size[3]; q++)
-                                        *(pixbuf[j][3] + q) += commbuf[q];
-                                    for (q = 0; q < pixbuf_size[4]; q++)
-                                        *(pixbuf[j][4] + q)
-                                            += commbuf[pixbuf_size[3] + q];
-                                    for (q = 0; q < pixbuf_size[5]; q++)
-                                        *(pixbuf[j][5] + q)
-                                            += commbuf[pixbuf_size[3]
-                                                       + pixbuf_size[4] + q];
-                                }
-                            }
-                            else
-                            {
-                                if (pixbuf_size[3] + pixbuf_size[4]
-                                        + pixbuf_size[5]
-                                    > 0)
-                                {
-                                    parallel.receive_dim0<Real> (
-                                        commbuf,
-                                        pixbuf_size[3] + pixbuf_size[4]
-                                            + pixbuf_size[5],
-                                        (parallel.grid_size ()[0]
-                                         + parallel.grid_rank ()[0] - 1)
-                                            % parallel.grid_size ()[0]);
-                                    for (q = 0; q < pixbuf_size[3]; q++)
-                                        *(pixbuf[j][3] + q) += commbuf[q];
-                                    for (q = 0; q < pixbuf_size[4]; q++)
-                                        *(pixbuf[j][4] + q)
-                                            += commbuf[pixbuf_size[3] + q];
-                                    for (q = 0; q < pixbuf_size[5]; q++)
-                                        *(pixbuf[j][5] + q)
-                                            += commbuf[pixbuf_size[3]
-                                                       + pixbuf_size[4] + q];
-                                }
-                                if (pixbuf_size[6] + pixbuf_size[7]
-                                        + pixbuf_size[8]
-                                    > 0)
-                                {
-                                    if (pixbuf_size[6] > 0)
-                                        memcpy ((void *)commbuf,
-                                                (void *)pixbuf[j][6],
-                                                pixbuf_size[6] * sizeof (Real));
-                                    if (pixbuf_size[7] > 0)
-                                        memcpy (
-                                            (void *)(commbuf + pixbuf_size[6]),
-                                            (void *)pixbuf[j][7],
-                                            pixbuf_size[7] * sizeof (Real));
-                                    if (pixbuf_size[8] > 0)
-                                        memcpy ((void *)(commbuf
-                                                         + pixbuf_size[6]
-                                                         + pixbuf_size[7]),
-                                                (void *)pixbuf[j][8],
-                                                pixbuf_size[8] * sizeof (Real));
-                                    parallel.send_dim0<Real> (
-                                        commbuf,
-                                        pixbuf_size[6] + pixbuf_size[7]
-                                            + pixbuf_size[8],
-                                        (parallel.grid_rank ()[0] + 1)
-                                            % parallel.grid_size ()[0]);
-                                }
-                            }
-
-                            if (parallel.grid_rank ()[1] % 2 == 0)
-                            {
-                                if (pixbuf_size[3] > 0)
-                                    parallel.send_dim1<Real> (
-                                        pixbuf[j][3], pixbuf_size[3],
-                                        (parallel.grid_size ()[1]
-                                         + parallel.grid_rank ()[1] - 1)
-                                            % parallel.grid_size ()[1]);
-                                if (pixbuf_size[4] > 0)
-                                {
-                                    parallel.receive_dim1<Real> (
-                                        commbuf, pixbuf_size[4],
-                                        (parallel.grid_rank ()[1] + 1)
-                                            % parallel.grid_size ()[1]);
-                                    for (q = 0; q < pixbuf_size[4]; q++)
-                                        *(pixbuf[j][4] + q) += commbuf[q];
-                                }
-                            }
-                            else
-                            {
-                                if (pixbuf_size[4] > 0
-                                    && parallel.grid_size ()[1] > 2)
-                                {
-                                    parallel.receive_dim1<Real> (
-                                        commbuf, pixbuf_size[4],
-                                        (parallel.grid_rank ()[1] + 1)
-                                            % parallel.grid_size ()[1]);
-                                    for (q = 0; q < pixbuf_size[4]; q++)
-                                        *(pixbuf[j][4] + q) += commbuf[q];
-                                }
-                                if (pixbuf_size[3] > 0)
-                                    parallel.send_dim1<Real> (
-                                        pixbuf[j][3], pixbuf_size[3],
-                                        (parallel.grid_size ()[1]
-                                         + parallel.grid_rank ()[1] - 1)
-                                            % parallel.grid_size ()[1]);
-                            }
-
-                            if (parallel.grid_rank ()[1] % 2 == 0)
-                            {
-                                if (pixbuf_size[5] > 0)
-                                    parallel.send_dim1<Real> (
-                                        pixbuf[j][5], pixbuf_size[5],
-                                        (parallel.grid_rank ()[1] + 1)
-                                            % parallel.grid_size ()[1]);
-                                if (pixbuf_size[4] > 0
-                                    && parallel.grid_size ()[1] > 2)
-                                {
-                                    parallel.receive_dim1<Real> (
-                                        commbuf, pixbuf_size[4],
-                                        (parallel.grid_size ()[1]
-                                         + parallel.grid_rank ()[1] - 1)
-                                            % parallel.grid_size ()[1]);
-                                    for (q = 0; q < pixbuf_size[4]; q++)
-                                        *(pixbuf[j][4] + q) += commbuf[q];
-                                }
-                            }
-                            else
-                            {
-                                if (pixbuf_size[4] > 0)
-                                {
-                                    parallel.receive_dim1<Real> (
-                                        commbuf, pixbuf_size[4],
-                                        (parallel.grid_size ()[1]
-                                         + parallel.grid_rank ()[1] - 1)
-                                            % parallel.grid_size ()[1]);
-                                    for (q = 0; q < pixbuf_size[4]; q++)
-                                        *(pixbuf[j][4] + q) += commbuf[q];
-                                }
-                                if (pixbuf_size[5] > 0)
-                                    parallel.send_dim1<Real> (
-                                        pixbuf[j][5], pixbuf_size[5],
-                                        (parallel.grid_rank ()[1] + 1)
-                                            % parallel.grid_size ()[1]);
-                            }
-                        }
-                    }
-
-                    free (commbuf);
-                }
-
-                if (io_group_size == 0
-                    && parallel.rank ()
-                           == ((shell - shell_inner) * parallel.size ()
-                               / (shell_outer + 1 - shell_inner)))
-                {
-                    for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                    {
-                        if (pixbuf[j][0] != NULL)
-                        {
-                            if (bytes2 == 0)
-                            {
-                                outbuf[j] = (char *)malloc (
-                                    maphdr.Npix * maphdr.precision + 272);
-
-                                if (outbuf[j] == NULL)
-                                {
-                                    std::cout
-                                        << COLORTEXT_RED
-                                        << " er"
-                                           "ror"
-                                        << COLORTEXT_RESET
-                                        << ": "
-                                           "pro"
-                                           "c#"
-                                        << parallel.rank ()
-                                        << " un"
-                                           "abl"
-                                           "e "
-                                           "to "
-                                           "all"
-                                           "oca"
-                                           "te "
-                                        << maphdr.Npix * maphdr.precision + 272
-                                        << " by"
-                                           "tes"
-                                           " of"
-                                           " me"
-                                           "mor"
-                                           "y "
-                                           "for"
-                                           " pi"
-                                           "xel"
-                                           "isa"
-                                           "tio"
-                                           "n!"
-                                        << std::endl;
-                                    parallel.abortForce ();
-                                }
-                            }
-                            else
-                            {
-                                outbuf[j] = (char *)realloc (
-                                    (void *)outbuf[j],
-                                    bytes2 + maphdr.Npix * maphdr.precision
-                                        + 272);
-
-                                if (outbuf[j] == NULL)
-                                {
-                                    std::cout
-                                        << COLORTEXT_RED
-                                        << " er"
-                                           "ror"
-                                        << COLORTEXT_RESET
-                                        << ": "
-                                           "pro"
-                                           "c#"
-                                        << parallel.rank ()
-                                        << " un"
-                                           "abl"
-                                           "e "
-                                           "to "
-                                           "rea"
-                                           "llo"
-                                           "cat"
-                                           "e "
-                                        << bytes2
-                                               + maphdr.Npix * maphdr.precision
-                                               + 272
-                                        << " by"
-                                           "tes"
-                                           " of"
-                                           " me"
-                                           "mor"
-                                           "y ("
-                                        << maphdr.Npix * maphdr.precision + 272
-                                        << " ad"
-                                           "dit"
-                                           "ion"
-                                           "al "
-                                           "byt"
-                                           "es)"
-                                           " fo"
-                                           "r "
-                                           "pix"
-                                           "eli"
-                                           "sat"
-                                           "ion"
-                                           "!"
-                                        << std::endl;
-                                    parallel.abortForce ();
-                                }
-                            }
-
-                            blocksize = 256;
-                            memcpy ((void *)(outbuf[j] + bytes2),
-                                    (void *)&blocksize, 4);
-                            memcpy ((void *)(outbuf[j] + bytes2 + 4),
-                                    (void *)&maphdr, 256);
-                            memcpy ((void *)(outbuf[j] + bytes2 + 260),
-                                    (void *)&blocksize, 4);
-                            blocksize = maphdr.precision * maphdr.Npix;
-                            memcpy ((void *)(outbuf[j] + bytes2 + 264),
-                                    (void *)&blocksize, 4);
-                            memcpy (
-                                (void *)(outbuf[j] + bytes2 + 268 + blocksize),
-                                (void *)&blocksize, 4);
-                        }
-                    }
-                    offset2 = bytes2 + 268;
-                    bytes2 += maphdr.Npix * maphdr.precision + 272;
-                    p = 0;
-                    q = pixbatch_delim[2].back ();
-                }
-                else if (io_group_size > 0
-                         && shell - shell_inner == shell_write)
-                {
-                    q = pixbatch_delim[2].back () / io_group_size;
-                    p = parallel.rank ()
-                        - (shell_write * parallel.size () + shell_outer
-                           - shell_inner)
-                              / (shell_outer + 1 - shell_inner);
-
-                    for (j = 0; p * q >= pixbatch_delim[j].back (); j++)
-                        ;
-
-                    if ((p + 1) * q >= pixbatch_delim[j].back () && j < 2)
-                    {
-                        bytes2 = (pixbatch_delim[j].back () - p * q)
-                                 * pixbatch_size[j].back () * maphdr.precision;
-                        if ((p + 1) * q >= pixbatch_delim[j + 1].back ()
-                            && j < 1)
-                        {
-                            bytes2 += (pixbatch_delim[j + 1].back ()
-                                       - pixbatch_delim[j].back ())
-                                      * pixbatch_size[j + 1].back ()
-                                      * maphdr.precision;
-                            bytes2
-                                += ((p + 1) * q - pixbatch_delim[j + 1].back ())
-                                   * pixbatch_size[j + 2].back ()
-                                   * maphdr.precision;
-                        }
-                        else
-                            bytes2 += ((p + 1) * q - pixbatch_delim[j].back ())
-                                      * pixbatch_size[j + 1].back ()
-                                      * maphdr.precision;
-                    }
-                    else
-                        bytes2
-                            = q * pixbatch_size[j].back () * maphdr.precision;
-
-                    if (p == 0)
-                    {
-                        bytes2 += 268;
-                        offset2 = 268;
-                    }
-                    else
-                        offset2 = 0;
-
-                    if (p == io_group_size - 1)
-                    {
-                        bytes2 += 4;
-                        q = pixbatch_delim[2].back () % io_group_size;
-                        if (pixbatch_delim[2].back ()
-                                - pixbatch_delim[1].back ()
-                            < q)
-                        {
-                            bytes2 += (pixbatch_delim[2].back ()
-                                       - pixbatch_delim[1].back ())
-                                      * pixbatch_size[2].back ()
-                                      * maphdr.precision;
-                            if (pixbatch_delim[2].back ()
-                                    - pixbatch_delim[0].back ()
-                                < q)
-                            {
-                                bytes2 += (pixbatch_delim[1].back ()
-                                           - pixbatch_delim[0].back ())
-                                          * pixbatch_size[1].back ()
-                                          * maphdr.precision;
-                                bytes2 += (q - pixbatch_delim[2].back ()
-                                           + pixbatch_delim[0].back ())
-                                          * pixbatch_size[0].back ()
-                                          * maphdr.precision;
-                            }
-                            else
-                                bytes2 += (q - pixbatch_delim[2].back ()
-                                           + pixbatch_delim[1].back ())
-                                          * pixbatch_size[1].back ()
-                                          * maphdr.precision;
-                        }
-                        else
-                            bytes2 += q * pixbatch_size[2].back ()
-                                      * maphdr.precision;
-
-                        q += pixbatch_delim[2].back () / io_group_size;
-                    }
-
-                    for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                    {
-                        if (pixbuf[j][0] != NULL)
-                        {
-                            if (bytes2 > 0)
-                            {
-                                outbuf[j] = (char *)malloc (bytes2);
-
-                                if (outbuf[j] == NULL)
-                                {
-                                    std::cout << COLORTEXT_RED
-                                              << " er"
-                                                 "ror"
-                                              << COLORTEXT_RESET
-                                              << ": "
-                                                 "pro"
-                                                 "c#"
-                                              << parallel.rank ()
-                                              << " un"
-                                                 "abl"
-                                                 "e "
-                                                 "to "
-                                                 "all"
-                                                 "oca"
-                                                 "te "
-                                              << bytes2
-                                              << " by"
-                                                 "tes"
-                                                 " of"
-                                                 " me"
-                                                 "mor"
-                                                 "y "
-                                                 "for"
-                                                 " pi"
-                                                 "xel"
-                                                 "isa"
-                                                 "tio"
-                                                 "n!"
-                                              << std::endl;
-                                    parallel.abortForce ();
-                                }
-                            }
-
-                            if (p == 0)
-                            {
-                                blocksize = 256;
-                                memcpy ((void *)outbuf[j], (void *)&blocksize,
-                                        4);
-                                memcpy ((void *)(outbuf[j] + 4),
-                                        (void *)&maphdr, 256);
-                                memcpy ((void *)(outbuf[j] + 260),
-                                        (void *)&blocksize, 4);
-                                blocksize = maphdr.precision * maphdr.Npix;
-                                memcpy ((void *)(outbuf[j] + 264),
-                                        (void *)&blocksize, 4);
-                            }
-
-                            if (p == io_group_size - 1)
-                            {
-                                blocksize = maphdr.precision * maphdr.Npix;
-                                memcpy ((void *)(outbuf[j] + bytes2 - 4),
-                                        (void *)&blocksize, 4);
-                            }
-                        }
-                    }
-
-                    p *= pixbatch_delim[2].back () / io_group_size;
-                }
-
-                pix = 0;
-                pix2 = 0;
-
-                if ((io_group_size == 0
-                     && parallel.rank ()
-                            == ((shell - shell_inner) * parallel.size ())
-                                   / (shell_outer + 1 - shell_inner))
-                    || (io_group_size > 0
-                        && shell - shell_inner == shell_write))
-                {
-                    if (q != sender_proc.size ())
-                    {
-                        std::cout
-                            << COLORTEXT_RED << " error" << COLORTEXT_RESET
-                            << ": proc#" << parallel.rank ()
-                            << " pixel batch count "
-                               "mismatch! expecting "
-                            << q << " but sender list contains "
-                            << sender_proc.size () << " entries!" << std::endl;
-                        std::exit (-99);
-                    }
-
-                    for (int64_t p2 = p; p2 < p + q; p2 += n)
-                    {
-                        while (pix < pixbatch_id.size ()
-                               && pixbatch_id[pix] < p2)
-                        {
-                            for (pixbatch_type = 0;
-                                 pixbatch_delim[pixbatch_type].back ()
-                                 <= pixbatch_id[pix];
-                                 pixbatch_type++)
-                                ;
-                            if (io_group_size > 0
-                                && pixbatch_delim[2].back () >= io_group_size
-                                && pixbatch_id[pix]
-                                           / (pixbatch_delim[2].back ()
-                                              / io_group_size)
-                                       < io_group_size)
-                            {
-                                for (n = 1;
-                                     pix + n < pixbatch_id.size ()
-                                     && pixbatch_id[pix + n]
-                                            == pixbatch_id[pix + n - 1] + 1
-                                     && pixbatch_id[pix + n]
-                                            < pixbatch_delim[pixbatch_type]
-                                                  .back ()
-                                     && (pixbatch_id[pix + n]
-                                                 / (pixbatch_delim[2].back ()
-                                                    / io_group_size)
-                                             == pixbatch_id[pix]
-                                                    / (pixbatch_delim[2].back ()
-                                                       / io_group_size)
-                                         || pixbatch_id[pix]
-                                                    / (pixbatch_delim[2].back ()
-                                                       / io_group_size)
-                                                == io_group_size - 1);
-                                     n++)
-                                    ;
-                                for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                                {
-                                    if (pixbuf[j][4] != NULL
-                                        && pixbatch_size[pixbatch_type].back ()
-                                               > 0)
-                                        parallel.send<Real> (
-                                            pixbuf[j][4] + pix2,
-                                            n
-                                                * pixbatch_size[pixbatch_type]
-                                                      .back (),
-                                            (pixbatch_id[pix]
-                                             / (pixbatch_delim[2].back ()
-                                                / io_group_size))
-                                                + ((shell - shell_inner)
-                                                       * parallel.size ()
-                                                   + shell_outer - shell_inner)
-                                                      / (shell_outer + 1
-                                                         - shell_inner));
-                                }
-                            }
-                            else
-                            {
-                                for (n = 1;
-                                     pix + n < pixbatch_id.size ()
-                                     && pixbatch_id[pix + n]
-                                            == pixbatch_id[pix + n - 1] + 1
-                                     && pixbatch_id[pix + n]
-                                            < pixbatch_delim[pixbatch_type]
-                                                  .back ();
-                                     n++)
-                                    ;
-                                for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                                {
-                                    if (pixbuf[j][4] != NULL
-                                        && pixbatch_size[pixbatch_type].back ()
-                                               > 0)
-                                        parallel.send<Real> (
-                                            pixbuf[j][4] + pix2,
-                                            n
-                                                * pixbatch_size[pixbatch_type]
-                                                      .back (),
-                                            (io_group_size ? io_group_size - 1
-                                                           : 0)
-                                                + ((shell - shell_inner)
-                                                       * parallel.size ()
-                                                   + (io_group_size
-                                                          ? shell_outer
-                                                                - shell_inner
-                                                          : 0))
-                                                      / (shell_outer + 1
-                                                         - shell_inner));
-                                }
-                            }
-                            pix += n;
-                            pix2 += n * pixbatch_size[pixbatch_type].back ();
-                        }
-
-                        for (pixbatch_type = 0;
-                             pixbatch_delim[pixbatch_type].back () <= p2;
-                             pixbatch_type++)
-                            ;
-
-                        for (n = 1;
-                             p2 + n < p + q
-                             && sender_proc[p2 + n - p] == sender_proc[p2 - p]
-                             && p2 + n < pixbatch_delim[pixbatch_type].back ();
-                             n++)
-                            ;
-
-                        if (sender_proc[p2 - p] == parallel.rank ())
-                        {
-                            if (pix + n - 1 >= pixbatch_id.size ())
-                            {
-                                cerr << COLORTEXT_RED << " error"
-                                     << COLORTEXT_RESET << ": proc#"
-                                     << parallel.rank ()
-                                     << " pixel "
-                                        "batch "
-                                        "index "
-                                        "mismatch! "
-                                        "expecting "
-                                     << p2
-                                     << " but ID "
-                                        "list "
-                                        "contains "
-                                        "not enough "
-                                        "elements!"
-                                     << std::endl;
-                                std::exit (-99);
-                            }
-                            else if (pixbatch_id[pix] != p2)
-                            {
-                                cerr << COLORTEXT_RED << " error"
-                                     << COLORTEXT_RESET << ": proc#"
-                                     << parallel.rank ()
-                                     << " pixel "
-                                        "batch "
-                                        "index "
-                                        "mismatch! "
-                                        "expecting "
-                                     << p2
-                                     << " but ID "
-                                        "list says "
-                                     << pixbatch_id[pix] << "!" << std::endl;
-                                std::exit (-99);
-                            }
-                            for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                            {
-                                if (pixbuf[j][4] != NULL
-                                    && pixbatch_size[pixbatch_type].back () > 0)
-                                    memcpy (
-                                        (void *)(outbuf[j] + offset2),
-                                        (void *)(pixbuf[j][4] + pix2),
-                                        n * pixbatch_size[pixbatch_type].back ()
-                                            * maphdr.precision);
-                            }
-                            pix += n;
-                            pix2 += n * pixbatch_size[pixbatch_type].back ();
-                        }
-                        else
-                        {
-                            for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                            {
-                                if (outbuf[j] != NULL
-                                    && pixbatch_size[pixbatch_type].back () > 0)
-                                    parallel.receive<Real> (
-                                        (Real *)(outbuf[j] + offset2),
-                                        n
-                                            * pixbatch_size[pixbatch_type]
-                                                  .back (),
-                                        sender_proc[p2 - p]);
-                            }
-                        }
-
-                        offset2 += n * pixbatch_size[pixbatch_type].back ()
-                                   * maphdr.precision;
-                    }
-
-                    if (io_group_size > 0)
-                    {
-                        if (p > 0)
-                        {
-                            if (p >= pixbatch_delim[0].back ())
-                            {
-                                offset2 = 268
-                                          + pixbatch_delim[0].back ()
-                                                * pixbatch_size[0].back ()
-                                                * maphdr.precision;
-                                if (p >= pixbatch_delim[1].back ())
-                                {
-                                    offset2 += (pixbatch_delim[1].back ()
-                                                - pixbatch_delim[0].back ())
-                                               * pixbatch_size[1].back ()
-                                               * maphdr.precision;
-                                    offset2 += (p - pixbatch_delim[1].back ())
-                                               * pixbatch_size[2].back ()
-                                               * maphdr.precision;
-                                }
-                                else
-                                    offset2 += (p - pixbatch_delim[0].back ())
-                                               * pixbatch_size[1].back ()
-                                               * maphdr.precision;
-                            }
-                            else
-                                offset2 = 268
-                                          + p * pixbatch_size[0].back ()
-                                                * maphdr.precision;
-                        }
-                        else if (parallel.rank ()
-                                 == (shell_write * parallel.size ()
-                                     + shell_outer - shell_inner)
-                                        / (shell_outer + 1 - shell_inner))
-                            offset2 = 0;
-                        else
-                            offset2 = 268;
-                    }
-                }
-
-                p = ((((shell + 1 - shell_inner) * parallel.size ()
-                       + shell_outer - shell_inner)
-                      / (shell_outer + 1 - shell_inner))
-                     - (((shell - shell_inner) * parallel.size () + shell_outer
-                         - shell_inner)
-                        / (shell_outer + 1 - shell_inner)));
-
-                while (pix < pixbatch_id.size ())
-                {
-                    for (pixbatch_type = 0;
-                         pixbatch_delim[pixbatch_type].back ()
-                         <= pixbatch_id[pix];
-                         pixbatch_type++)
-                        ;
-
-                    if (p > 0 && pixbatch_delim[2].back () >= p
-                        && pixbatch_id[pix] / (pixbatch_delim[2].back () / p)
-                               < p)
-                    {
-                        for (n = 1;
-                             pix + n < pixbatch_id.size ()
-                             && pixbatch_id[pix + n]
-                                    == pixbatch_id[pix + n - 1] + 1
-                             && pixbatch_id[pix + n]
-                                    < pixbatch_delim[pixbatch_type].back ()
-                             && (pixbatch_id[pix + n]
-                                         / (pixbatch_delim[2].back () / p)
-                                     == pixbatch_id[pix]
-                                            / (pixbatch_delim[2].back () / p)
-                                 || pixbatch_id[pix]
-                                            / (pixbatch_delim[2].back () / p)
-                                        == p - 1);
-                             n++)
-                            ;
-                        for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                        {
-                            if (pixbuf[j][4] != NULL
-                                && pixbatch_size[pixbatch_type].back () > 0)
-                                parallel.send<Real> (
-                                    pixbuf[j][4] + pix2,
-                                    n * pixbatch_size[pixbatch_type].back (),
-                                    (pixbatch_id[pix]
-                                     / (pixbatch_delim[2].back () / p))
-                                        + ((shell - shell_inner)
-                                               * parallel.size ()
-                                           + (io_group_size
-                                                  ? shell_outer - shell_inner
-                                                  : 0))
-                                              / (shell_outer + 1
-                                                 - shell_inner));
-                        }
-                    }
-                    else
-                    {
-                        for (n = 1;
-                             pix + n < pixbatch_id.size ()
-                             && pixbatch_id[pix + n]
-                                    == pixbatch_id[pix + n - 1] + 1
-                             && pixbatch_id[pix + n]
-                                    < pixbatch_delim[pixbatch_type].back ();
-                             n++)
-                            ;
-                        for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-                        {
-                            if (pixbuf[j][4] != NULL
-                                && pixbatch_size[pixbatch_type].back () > 0)
-                                parallel.send<Real> (
-                                    pixbuf[j][4] + pix2,
-                                    n * pixbatch_size[pixbatch_type].back (),
-                                    (p ? p - 1 : 0)
-                                        + ((shell - shell_inner)
-                                               * parallel.size ()
-                                           + (p ? shell_outer - shell_inner
-                                                : 0))
-                                              / (shell_outer + 1
-                                                 - shell_inner));
-                        }
-                    }
-
-                    pix += n;
-                    pix2 += n * pixbatch_size[pixbatch_type].back ();
-                }
-
-                offset.push_back (bytes);
-                bytes += maphdr.Npix * maphdr.precision + 272;
-
-                pixbatch_id.clear ();
-                sender_proc.clear ();
-            } // shell-loop
-
-            if (io_group_size == 0)
-                offset2 = 0;
-
-            for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-            {
-                if (pixbuf[j][0] == NULL || shell_outer < shell_inner)
-                    continue;
-
-                if (sim.num_lightcone > 1)
-                {
-                    if (j == LIGHTCONE_PHI_OFFSET)
-                        sprintf (filename, "%s%s%d_%04d_phi.map",
-                                 sim.output_path, sim.basename_lightcone, i,
-                                 cycle);
-                    else if (j == LIGHTCONE_CHI_OFFSET)
-                        sprintf (filename, "%s%s%d_%04d_chi.map",
-                                 sim.output_path, sim.basename_lightcone, i,
-                                 cycle);
-                    else if (j >= LIGHTCONE_B_OFFSET
-                             && j < LIGHTCONE_B_OFFSET + 3)
-                        sprintf (filename, "%s%s%d_%04d_B%d.map",
-                                 sim.output_path, sim.basename_lightcone, i,
-                                 cycle, j + 1 - LIGHTCONE_B_OFFSET);
-                    else if (j >= LIGHTCONE_HIJ_OFFSET
-                             && j < LIGHTCONE_HIJ_OFFSET + 5)
-                        sprintf (filename, "%s%s%d_%04d_h%d%d.map",
-                                 sim.output_path, sim.basename_lightcone, i,
-                                 cycle, (j - LIGHTCONE_HIJ_OFFSET < 3 ? 1 : 2),
-                                 j - LIGHTCONE_HIJ_OFFSET
-                                     + (j - LIGHTCONE_HIJ_OFFSET < 3 ? 1 : -1));
-                }
-                else
-                {
-                    if (j == LIGHTCONE_PHI_OFFSET)
-                        sprintf (filename, "%s%s_%04d_phi.map", sim.output_path,
-                                 sim.basename_lightcone, cycle);
-                    else if (j == LIGHTCONE_CHI_OFFSET)
-                        sprintf (filename, "%s%s_%04d_chi.map", sim.output_path,
-                                 sim.basename_lightcone, cycle);
-                    else if (j >= LIGHTCONE_B_OFFSET
-                             && j < LIGHTCONE_B_OFFSET + 3)
-                        sprintf (filename, "%s%s_%04d_B%d.map", sim.output_path,
-                                 sim.basename_lightcone, cycle,
-                                 j + 1 - LIGHTCONE_B_OFFSET);
-                    else if (j >= LIGHTCONE_HIJ_OFFSET
-                             && j < LIGHTCONE_HIJ_OFFSET + 5)
-                        sprintf (filename, "%s%s_%04d_h%d%d.map",
-                                 sim.output_path, sim.basename_lightcone, cycle,
-                                 (j - LIGHTCONE_HIJ_OFFSET < 3 ? 1 : 2),
-                                 j - LIGHTCONE_HIJ_OFFSET
-                                     + (j - LIGHTCONE_HIJ_OFFSET < 3 ? 1 : -1));
-                }
-
-                MPI_File_open (parallel.lat_world_comm (), filename,
-                               MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL,
-                               &mapfile);
-                MPI_File_set_size (mapfile, (MPI_Offset)bytes);
-                MPI_File_write_at_all (
-                    mapfile, (MPI_Offset)offset[shell_write] + offset2,
-                    (void *)outbuf[j], bytes2, MPI_BYTE, &status);
-                MPI_File_close (&mapfile);
-            }
-
-            for (j = 0; j < 3; j++)
-            {
-                pixbatch_size[j].clear ();
-                pixbatch_delim[j].clear ();
-            }
-
-            offset.clear ();
-
-            for (j = 0; j < 9 * LIGHTCONE_MAX_FIELDS; j++)
-            {
-                if (pixbuf[j / 9][j % 9] != NULL)
-                {
-                    free (pixbuf[j / 9][j % 9]);
-                    pixbuf[j / 9][j % 9] = NULL;
-                }
-            }
-
-            for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
-            {
-                if (outbuf[j] != NULL)
-                {
-                    free (outbuf[j]);
-                    outbuf[j] = NULL;
-                }
-            }
-#endif // HAVE_HEALPIX
-        }
-        else if (parallel.isRoot () && outfile != NULL)
-            fclose (outfile);
-
-        if (sim.out_lightcone[i] & MASK_GADGET
-            && sim.lightcone[i].distance[0] > d - tau + 0.5 * dtau_old
-            && sim.lightcone[i].distance[1] <= d - tau + 0.5 * dtau_old
-            && d - tau + 0.5 * dtau_old > 0.)
-        {
-            n = findIntersectingLightcones (
-                sim.lightcone[i],
-                d - tau + (0.5 + LIGHTCONE_IDCHECK_ZONE) * dtau_old,
-                d - tau - 0.5 * dtau, domain, vertex);
-
-            hdr.num_files = 1;
-            hdr.Omega0 = cosmo.Omega_m;
-            hdr.OmegaLambda = cosmo.Omega_Lambda;
-            hdr.HubbleParam = cosmo.h;
-            hdr.BoxSize = sim.boxsize / GADGET_LENGTH_CONVERSION;
-            hdr.flag_sfr = 0;
-            hdr.flag_cooling = 0;
-            hdr.flag_feedback = 0;
-            hdr.flag_age = 0;
-            hdr.flag_metals = 0;
-            for (p = 0; p < 256 - 6 * 4 - 6 * 8 - 2 * 8 - 2 * 4 - 6 * 4 - 2 * 4
-                                - 4 * 8 - 2 * 4 - 6 * 4;
-                 p++)
-                hdr.fill[p] = 0;
-            for (p = 0; p < 6; p++)
-            {
-                hdr.npart[p] = 0;
-                hdr.npartTotal[p] = 0;
-                hdr.npartTotalHW[p] = 0;
-                hdr.mass[p] = 0.;
-            }
-
-            hdr.time = a;
-            hdr.redshift = (1. / a) - 1.;
-
-            if (sim.baryon_flag)
-                hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
-                              * cosmo.Omega_cdm * sim.boxsize * sim.boxsize
-                              * sim.boxsize / sim.numpcl[0]
-                              / GADGET_MASS_CONVERSION;
-            else
-                hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
-                              * (cosmo.Omega_cdm + cosmo.Omega_b) * sim.boxsize
-                              * sim.boxsize * sim.boxsize / sim.numpcl[0]
-                              / GADGET_MASS_CONVERSION;
-
-            if (sim.num_lightcone > 1)
-                sprintf (filename, "%d_%04d", i, cycle);
-            else
-                sprintf (filename, "_%04d", cycle);
-
-            if (sim.tracer_factor[0] > 0)
-                pcls_cdm->saveGadget2 (h5filename + filename + "_cdm", hdr,
-                                       sim.lightcone[i], d - tau, dtau,
-                                       dtau_old, a * Hconf (a, cosmo),
-                                       vertex, n, IDbacklog[0], IDprelog[0],
-                                       phi, sim.tracer_factor[0]);
-
-            if (sim.baryon_flag && sim.tracer_factor[1] > 0)
-            {
-                hdr.mass[1] = (double)sim.tracer_factor[1] * cosmo.C_RHO_CRIT
-                              * cosmo.Omega_b * sim.boxsize * sim.boxsize
-                              * sim.boxsize / sim.numpcl[1]
-                              / GADGET_MASS_CONVERSION;
-                pcls_b->saveGadget2 (h5filename + filename + "_b", hdr,
-                                     sim.lightcone[i], d - tau, dtau, dtau_old,
-                                     a * Hconf (a, cosmo), vertex, n,
-                                     IDbacklog[1], IDprelog[1], phi,
-                                     sim.tracer_factor[1]);
-            }
-
-            for (p = 0; p < cosmo.num_ncdm; p++)
-            {
-                if (sim.numpcl[1 + sim.baryon_flag + p] == 0
-                    || sim.tracer_factor[p + 1 + sim.baryon_flag] == 0)
-                    continue;
-                sprintf (buffer, "_ncdm%d", p);
-                hdr.mass[1] = (double)sim.tracer_factor[p + 1 + sim.baryon_flag]
-                              * cosmo.C_RHO_CRIT * cosmo.Omega_ncdm[p] * sim.boxsize
-                              * sim.boxsize * sim.boxsize
-                              / sim.numpcl[p + 1 + sim.baryon_flag]
-                              / GADGET_MASS_CONVERSION;
-                pcls_ncdm[p].saveGadget2 (
-                    h5filename + filename + buffer, hdr, sim.lightcone[i],
-                    d - tau, dtau, dtau_old, a * Hconf (a, cosmo),
-                    vertex, n, IDbacklog[p + 1 + sim.baryon_flag],
-                    IDprelog[p + 1 + sim.baryon_flag], phi,
-                    sim.tracer_factor[p + 1 + sim.baryon_flag]);
-            }
-        }
-    }
-
-#ifdef HAVE_HEALPIX
-    delete[] outbuf;
-#endif
-
-    for (p = 0; p <= cosmo.num_ncdm + sim.baryon_flag; p++)
-    {
-        IDbacklog[p] = IDprelog[p];
-        IDprelog[p].clear ();
-
-        n = IDbacklog[p].size ();
-        // dim 0 send/rec
-        if (parallel.grid_rank ()[0] % 2 == 0)
-        {
-            parallel.send_dim0<int> (
-                n, (parallel.grid_size ()[0] + parallel.grid_rank ()[0] - 1)
-                       % parallel.grid_size ()[0]);
-            parallel.receive_dim0<int> (
-                i, (parallel.grid_size ()[0] + parallel.grid_rank ()[0] - 1)
-                       % parallel.grid_size ()[0]);
-            parallel.send_dim0<int> (n, (parallel.grid_rank ()[0] + 1)
-                                            % parallel.grid_size ()[0]);
-            parallel.receive_dim0<int> (j, (parallel.grid_rank ()[0] + 1)
-                                               % parallel.grid_size ()[0]);
-        }
-        else
-        {
-            parallel.receive_dim0<int> (i, (parallel.grid_rank ()[0] + 1)
-                                               % parallel.grid_size ()[0]);
-            parallel.send_dim0<int> (n, (parallel.grid_rank ()[0] + 1)
-                                            % parallel.grid_size ()[0]);
-            parallel.receive_dim0<int> (
-                j, (parallel.grid_size ()[0] + parallel.grid_rank ()[0] - 1)
-                       % parallel.grid_size ()[0]);
-            parallel.send_dim0<int> (
-                n, (parallel.grid_size ()[0] + parallel.grid_rank ()[0] - 1)
-                       % parallel.grid_size ()[0]);
-        }
-
-        if (n + i + j > 0)
-        {
-            IDcombuf = (long *)malloc ((n + i + j) * sizeof (long));
-
-            n = 0;
-            for (std::set<long>::iterator it = IDbacklog[p].begin ();
-                 it != IDbacklog[p].end (); it++)
-                IDcombuf[n++] = *it;
-
-            if (parallel.grid_rank ()[0] % 2 == 0)
-            {
-                if (n > 0)
-                    parallel.send_dim0<long> (IDcombuf, n,
-                                              (parallel.grid_size ()[0]
-                                               + parallel.grid_rank ()[0] - 1)
-                                                  % parallel.grid_size ()[0]);
-                if (i > 0)
-                    parallel.receive_dim0<long> (
-                        IDcombuf + n, i,
-                        (parallel.grid_size ()[0] + parallel.grid_rank ()[0]
-                         - 1)
-                            % parallel.grid_size ()[0]);
-                if (n > 0)
-                    parallel.send_dim0<long> (IDcombuf, n,
-                                              (parallel.grid_rank ()[0] + 1)
-                                                  % parallel.grid_size ()[0]);
-                if (j > 0)
-                    parallel.receive_dim0<long> (
-                        IDcombuf + n + i, j,
-                        (parallel.grid_rank ()[0] + 1)
-                            % parallel.grid_size ()[0]);
-            }
-            else
-            {
-                if (i > 0)
-                    parallel.receive_dim0<long> (
-                        IDcombuf + n, i,
-                        (parallel.grid_rank ()[0] + 1)
-                            % parallel.grid_size ()[0]);
-                if (n > 0)
-                    parallel.send_dim0<long> (IDcombuf, n,
-                                              (parallel.grid_rank ()[0] + 1)
-                                                  % parallel.grid_size ()[0]);
-                if (j > 0)
-                    parallel.receive_dim0<long> (
-                        IDcombuf + n + i, j,
-                        (parallel.grid_size ()[0] + parallel.grid_rank ()[0]
-                         - 1)
-                            % parallel.grid_size ()[0]);
-                if (n > 0)
-                    parallel.send_dim0<long> (IDcombuf, n,
-                                              (parallel.grid_size ()[0]
-                                               + parallel.grid_rank ()[0] - 1)
-                                                  % parallel.grid_size ()[0]);
-            }
-
-            n += i + j;
-
-            for (i = IDbacklog[p].size (); i < n; i++)
-                IDbacklog[p].insert (IDcombuf[i]);
-        }
-
-        // dim 1 send/rec
-        if (parallel.grid_rank ()[1] % 2 == 0)
-        {
-            parallel.send_dim1<int> (
-                n, (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
-                       % parallel.grid_size ()[1]);
-            parallel.receive_dim1<int> (
-                i, (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
-                       % parallel.grid_size ()[1]);
-            parallel.send_dim1<int> (n, (parallel.grid_rank ()[1] + 1)
-                                            % parallel.grid_size ()[1]);
-            parallel.receive_dim1<int> (j, (parallel.grid_rank ()[1] + 1)
-                                               % parallel.grid_size ()[1]);
-
-            if (n > 0)
-                parallel.send_dim1<long> (
-                    IDcombuf, n,
-                    (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
-                        % parallel.grid_size ()[1]);
-
-            if (i > 0)
-            {
-                IDcombuf2 = (long *)malloc (i * sizeof (long));
-                parallel.receive_dim1<long> (
-                    IDcombuf2, i,
-                    (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
-                        % parallel.grid_size ()[1]);
-                while (i > 0)
-                    IDbacklog[p].insert (IDcombuf2[--i]);
-                free (IDcombuf2);
-            }
-
-            if (n > 0)
-            {
-                parallel.send_dim1<long> (IDcombuf, n,
-                                          (parallel.grid_rank ()[1] + 1)
-                                              % parallel.grid_size ()[1]);
-                free (IDcombuf);
-            }
-
-            if (j > 0)
-            {
-                IDcombuf2 = (long *)malloc (j * sizeof (long));
-                parallel.receive_dim1<long> (IDcombuf2, j,
-                                             (parallel.grid_rank ()[1] + 1)
-                                                 % parallel.grid_size ()[1]);
-                while (j > 0)
-                    IDbacklog[p].insert (IDcombuf2[--j]);
-                free (IDcombuf2);
-            }
-        }
-        else
-        {
-            parallel.receive_dim1<int> (i, (parallel.grid_rank ()[1] + 1)
-                                               % parallel.grid_size ()[1]);
-            parallel.send_dim1<int> (n, (parallel.grid_rank ()[1] + 1)
-                                            % parallel.grid_size ()[1]);
-            parallel.receive_dim1<int> (
-                j, (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
-                       % parallel.grid_size ()[1]);
-            parallel.send_dim1<int> (
-                n, (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
-                       % parallel.grid_size ()[1]);
-
-            if (i > 0)
-            {
-                IDcombuf2 = (long *)malloc (i * sizeof (long));
-                parallel.receive_dim1<long> (IDcombuf2, i,
-                                             (parallel.grid_rank ()[1] + 1)
-                                                 % parallel.grid_size ()[1]);
-                while (i > 0)
-                    IDbacklog[p].insert (IDcombuf2[--i]);
-                free (IDcombuf2);
-            }
-
-            if (n > 0)
-                parallel.send_dim1<long> (IDcombuf, n,
-                                          (parallel.grid_rank ()[1] + 1)
-                                              % parallel.grid_size ()[1]);
-
-            if (j > 0)
-            {
-                IDcombuf2 = (long *)malloc (j * sizeof (long));
-                parallel.receive_dim1<long> (
-                    IDcombuf2, j,
-                    (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
-                        % parallel.grid_size ()[1]);
-                while (j > 0)
-                    IDbacklog[p].insert (IDcombuf2[--j]);
-                free (IDcombuf2);
-            }
-
-            if (n > 0)
-            {
-                parallel.send_dim1<long> (
-                    IDcombuf, n,
-                    (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
-                        % parallel.grid_size ()[1]);
-                free (IDcombuf);
-            }
-        }
-    }
-}
+// void writeLightcones (
+//     metadata &sim, const cosmology cosmo, const double a,
+//     const double tau, const double dtau, const double dtau_old,
+//     const double /* maxvel */, 
+//     const int cycle, 
+//     std::string h5filename,
+//     Particles_gevolution *pcls_cdm,
+//     Particles_gevolution *pcls_b,
+//     Particles_gevolution *pcls_ncdm,
+//     Field<Real> *phi, 
+//     Field<Real> * /* chi */, 
+//     Field<Real> * /* Bi */, 
+//     Field<Real> * /* Sij */,
+//     Field<Cplx> * /* BiFT */, 
+//     Field<Cplx> * /* SijFT */, 
+//     PlanFFT<Cplx> * /* plan_Bi */,
+//     PlanFFT<Cplx> * /* plan_Sij */, 
+//     int &done_hij, 
+//     std::set<long> *IDbacklog)
+// {
+//     int i, j, n, p;
+//     double d;
+//     double vertex[MAX_INTERSECTS][3];
+//     double domain[6];
+//     // double pos[3];
+//     double s[2];
+//     char filename[2 * PARAM_MAX_LENGTH + 24];
+//     char buffer[268];
+//     FILE *outfile = nullptr;
+//     gadget2_header hdr;
+//     std::set<long> IDprelog[MAX_PCL_SPECIES];
+//     long *IDcombuf;
+//     long *IDcombuf2;
+//     Site xsim;
+//     // int done_B = 0;
+// #ifdef HAVE_HEALPIX
+//     int64_t pix, pix2, q;
+//     vector<int> pixbatch_id;
+//     vector<int> sender_proc;
+//     vector<int> pixbatch_size[3];
+//     vector<int> pixbatch_delim[3];
+//     int pixbatch_type;
+//     int commdir[2];
+//     Real *pixbuf[LIGHTCONE_MAX_FIELDS][9];
+//     Real *commbuf;
+//     int pixbuf_size[9];
+//     int pixbuf_reserve[9];
+//     int64_t bytes, bytes2, offset2;
+//     vector<MPI_Offset> offset;
+//     char **outbuf = new char *[LIGHTCONE_MAX_FIELDS];
+//     healpix_header maphdr;
+//     double R[3][3];
+//     double w[3];
+//     double temp;
+//     int base_pos[3];
+//     int shell, shell_inner, shell_outer, shell_write;
+//     uint32_t blocksize;
+//     MPI_File mapfile;
+//     MPI_Status status;
+//     MPI_Datatype patch;
+//     int io_group_size;
+//     long pixcount = 0;
+// 
+//     for (j = 0; j < 9 * LIGHTCONE_MAX_FIELDS; j++)
+//         pixbuf[j / 9][j % 9] = NULL;
+// 
+//     for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//         outbuf[j] = NULL;
+// #endif
+// 
+//     done_hij = 0;
+// 
+//     domain[0] = -0.5;
+//     domain[1] = phi->lattice ().coordSkip ()[1] - 0.5;
+//     domain[2] = phi->lattice ().coordSkip ()[0] - 0.5;
+//     for (i = 0; i < 3; i++)
+//         domain[i + 3] = domain[i] + phi->lattice ().sizeLocal (i) + 1.;
+// 
+//     for (i = 0; i < 6; i++)
+//         domain[i] /= (double)sim.numpts;
+// 
+//     for (i = 0; i < sim.num_lightcone; i++)
+//     {
+//         if (parallel.isRoot ())
+//         {
+//             if (sim.num_lightcone > 1)
+//                 sprintf (filename, "%s%s%d_info.dat", sim.output_path,
+//                          sim.basename_lightcone, i);
+//             else
+//                 sprintf (filename, "%s%s_info.dat", sim.output_path,
+//                          sim.basename_lightcone);
+// 
+//             outfile = fopen (filename, "a");
+//             if (outfile == NULL)
+//             {
+//                 std::cout << " error opening file for lightcone info!"
+//                           << std::endl;
+//             }
+//             else if (cycle == 0)
+//             {
+//                 if (sim.num_lightcone > 1)
+//                     fprintf (outfile,
+//                              "# information file for lightcone %d\n# "
+//                              "geometric "
+//                              "parameters:\n# vertex = (%f, %f, %f) "
+//                              "Mpc/h\n# "
+//                              "redshift = "
+//                              "%f\n# distance = (%f - %f) Mpc/h\n# "
+//                              "opening "
+//                              "half-angle = "
+//                              "%f degrees\n# direction = (%f, %f, %f)\n# "
+//                              "cycle   "
+//                              "tau/boxsize    a              pcl_inner   "
+//                              "     "
+//                              "pcl_outer  "
+//                              "      metric_inner     metric_outer\n",
+//                              i, sim.lightcone[i].vertex[0] * sim.boxsize,
+//                              sim.lightcone[i].vertex[1] * sim.boxsize,
+//                              sim.lightcone[i].vertex[2] * sim.boxsize,
+//                              sim.lightcone[i].z,
+//                              sim.lightcone[i].distance[0] * sim.boxsize,
+//                              sim.lightcone[i].distance[1] * sim.boxsize,
+//                              (sim.lightcone[i].opening > -1.)
+//                                  ? acos (sim.lightcone[i].opening) * 180. / M_PI
+//                                  : 180.,
+//                              sim.lightcone[i].direction[0],
+//                              sim.lightcone[i].direction[1],
+//                              sim.lightcone[i].direction[2]);
+//                 else
+//                     fprintf (outfile,
+//                              "# information file for lightcone\n# "
+//                              "geometric "
+//                              "parameters:\n# vertex = (%f, %f, %f) "
+//                              "Mpc/h\n# "
+//                              "redshift = "
+//                              "%f\n# distance = (%f - %f) Mpc/h\n# "
+//                              "opening "
+//                              "half-angle = "
+//                              "%f degrees\n# direction = (%f, %f, %f)\n# "
+//                              "cycle   "
+//                              "tau/boxsize    a              pcl_inner   "
+//                              "     "
+//                              "pcl_outer  "
+//                              "      metric_inner     metric_outer\n",
+//                              sim.lightcone[i].vertex[0] * sim.boxsize,
+//                              sim.lightcone[i].vertex[1] * sim.boxsize,
+//                              sim.lightcone[i].vertex[2] * sim.boxsize,
+//                              sim.lightcone[i].z,
+//                              sim.lightcone[i].distance[0] * sim.boxsize,
+//                              sim.lightcone[i].distance[1] * sim.boxsize,
+//                              (sim.lightcone[i].opening > -1.)
+//                                  ? acos (sim.lightcone[i].opening) * 180. / M_PI
+//                                  : 180.,
+//                              sim.lightcone[i].direction[0],
+//                              sim.lightcone[i].direction[1],
+//                              sim.lightcone[i].direction[2]);
+//             }
+//         }
+// 
+//         d = particleHorizon (1. / (1. + sim.lightcone[i].z), cosmo);
+// 
+//         s[0] = d - tau - 0.5 * sim.covering[i] * dtau;
+//         s[1] = d - tau + 0.5 * sim.covering[i] * dtau_old;
+// 
+// #ifdef HAVE_HEALPIX
+//         shell_inner = (s[0] > sim.lightcone[i].distance[1])
+//                           ? ceil (s[0] * sim.numpts * sim.shellfactor[i])
+//                           : ceil (sim.lightcone[i].distance[1] * sim.numpts
+//                                   * sim.shellfactor[i]);
+//         shell_outer = (sim.lightcone[i].distance[0] > s[1])
+//                           ? floor (s[1] * sim.numpts * sim.shellfactor[i])
+//                           : (ceil (sim.lightcone[i].distance[0] * sim.numpts
+//                                    * sim.shellfactor[i])
+//                              - 1);
+//         if (shell_outer < shell_inner && s[1] > 0)
+//             shell_outer = shell_inner;
+// 
+//         maphdr.precision = sizeof (Real);
+//         maphdr.Ngrid = sim.numpts;
+//         maphdr.direction[0] = sim.lightcone[i].direction[0];
+//         maphdr.direction[1] = sim.lightcone[i].direction[1];
+//         maphdr.direction[2] = sim.lightcone[i].direction[2];
+//         maphdr.boxsize = sim.boxsize;
+//         memset ((void *)maphdr.fill, 0, 256 - 5 * 4 - 5 * 8);
+// 
+//         xsim.initialize (phi->lattice ());
+// 
+//         if (sim.lightcone[i].direction[0] == 0
+//             && sim.lightcone[i].direction[1] == 0)
+//         {
+//             R[0][0] = sim.lightcone[i].direction[2];
+//             R[0][1] = 0;
+//             R[0][2] = 0;
+//             R[1][0] = 0;
+//             R[1][1] = 1;
+//             R[1][2] = 0;
+//             R[2][0] = 0;
+//             R[2][1] = 0;
+//             R[2][2] = sim.lightcone[i].direction[2];
+//         }
+//         else
+//         {
+//             temp = atan2 (sim.lightcone[i].direction[1],
+//                           sim.lightcone[i].direction[0]);
+//             R[0][0] = cos (temp) * sim.lightcone[i].direction[2];
+//             R[0][1] = -sin (temp);
+//             R[0][2] = sim.lightcone[i].direction[0];
+//             R[1][0] = sin (temp) * sim.lightcone[i].direction[2];
+//             R[1][1] = cos (temp);
+//             R[1][2] = sim.lightcone[i].direction[1];
+//             R[2][0] = -sqrt (1.
+//                              - sim.lightcone[i].direction[2]
+//                                    * sim.lightcone[i].direction[2]);
+//             R[2][1] = 0;
+//             R[2][2] = sim.lightcone[i].direction[2];
+//         }
+// #endif
+// 
+//         if (sim.lightcone[i].distance[0] > s[0]
+//             && sim.lightcone[i].distance[1] <= s[1] && s[1] > 0.)
+//         {
+//             if (parallel.isRoot () && outfile != NULL)
+//             {
+//                 fprintf (outfile,
+//                          "%6d   %e   %e   %2.12f   %2.12f   %2.12f "
+//                          "  %2.12f\n",
+//                          cycle, tau, a, d - tau - 0.5 * dtau,
+//                          d - tau + 0.5 * dtau_old, s[0], s[1]);
+//                 fclose (outfile);
+// 
+//                 if (sim.num_lightcone > 1)
+//                     sprintf (filename, "%s%s%d_info.bin", sim.output_path,
+//                              sim.basename_lightcone, i);
+//                 else
+//                     sprintf (filename, "%s%s_info.bin", sim.output_path,
+//                              sim.basename_lightcone);
+// 
+//                 outfile = fopen (filename, "a");
+//                 if (outfile == NULL)
+//                 {
+//                     std::cout << " error opening file for lightcone "
+//                                  "info!"
+//                               << std::endl;
+//                 }
+//                 else
+//                 {
+//                     ((double *)buffer)[0] = tau;
+//                     ((double *)buffer)[1] = a;
+//                     ((double *)buffer)[2] = d - tau - 0.5 * dtau;
+//                     ((double *)buffer)[3] = d - tau + 0.5 * dtau_old;
+// 
+//                     fwrite ((const void *)&cycle, sizeof (int), 1, outfile);
+//                     fwrite ((const void *)buffer, sizeof (double), 4, outfile);
+//                     fwrite ((const void *)s, sizeof (double), 2, outfile);
+// 
+//                     fclose (outfile);
+//                 }
+//             }
+// 
+// #ifdef HAVE_HEALPIX
+//             bytes = 0;
+//             bytes2 = 0;
+// 
+//             for (j = 0; j < 9; j++)
+//                 pixbuf_reserve[j] = PIXBUFFER;
+// 
+//             if (sim.out_lightcone[i] & MASK_PHI)
+//             {
+//                 for (j = 0; j < 9; j++)
+//                     pixbuf[LIGHTCONE_PHI_OFFSET][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//             }
+// 
+//             if (sim.out_lightcone[i] & MASK_CHI)
+//             {
+//                 for (j = 0; j < 9; j++)
+//                     pixbuf[LIGHTCONE_CHI_OFFSET][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//             }
+// 
+//             if (sim.out_lightcone[i] & MASK_B)
+//             {
+//                 for (j = 0; j < 9; j++)
+//                 {
+//                     pixbuf[LIGHTCONE_B_OFFSET][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//                     pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//                     pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//                 }
+//             }
+// 
+//             if (sim.out_lightcone[i] & MASK_HIJ)
+//             {
+//                 for (j = 0; j < 9; j++)
+//                 {
+//                     pixbuf[LIGHTCONE_HIJ_OFFSET][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//                     pixbuf[LIGHTCONE_HIJ_OFFSET + 1][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//                     pixbuf[LIGHTCONE_HIJ_OFFSET + 2][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//                     pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//                     pixbuf[LIGHTCONE_HIJ_OFFSET + 4][j]
+//                         = (Real *)malloc (sizeof (Real) * PIXBUFFER);
+//                 }
+//             }
+// 
+//             if (sim.gr_flag == gravity_theory::Newtonian && sim.out_lightcone[i] & MASK_B
+//                 && done_B == 0)
+//             {
+//                 plan_Bi->execute (FFT_BACKWARD);
+//                 Bi->updateHalo ();
+//                 done_B = 1;
+//             }
+// 
+//             if (sim.out_lightcone[i] & MASK_HIJ && done_hij == 0)
+//             {
+//                 projectFTtensor (*SijFT, *SijFT);
+//                 plan_Sij->execute (FFT_BACKWARD);
+//                 Sij->updateHalo ();
+//                 done_hij = 1;
+//             }
+// 
+//             if ((shell_outer + 1 - shell_inner) > parallel.size ())
+//             {
+//                 shell_write
+//                     = ((shell_outer + 1 - shell_inner) * parallel.rank ()
+//                        + parallel.size () - 1)
+//                       / parallel.size ();
+//                 io_group_size = 0;
+//             }
+//             else
+//             {
+//                 shell_write
+//                     = ((shell_outer + 1 - shell_inner) * parallel.rank ())
+//                       / parallel.size ();
+//                 io_group_size = (((shell_write + 1) * parallel.size ()
+//                                   + shell_outer - shell_inner)
+//                                  / (shell_outer + 1 - shell_inner))
+//                                 - ((shell_write * parallel.size () + shell_outer
+//                                     - shell_inner)
+//                                    / (shell_outer + 1 - shell_inner));
+//             }
+// 
+//             for (shell = shell_inner; shell <= shell_outer; shell++)
+//             {
+//                 maphdr.distance
+//                     = (double)shell / (double)sim.numpts / sim.shellfactor[i];
+// 
+//                 for (maphdr.Nside = sim.Nside[i][0];
+//                      maphdr.Nside < sim.Nside[i][1]; maphdr.Nside *= 2)
+//                 {
+//                     if (12. * maphdr.Nside * maphdr.Nside
+//                         > sim.pixelfactor[i] * 4. * M_PI * maphdr.distance
+//                               * maphdr.distance * sim.numpts * sim.numpts)
+//                         break;
+//                 }
+// 
+//                 for (maphdr.Nside_ring = 2;
+//                      2.137937882409166 * sim.numpts * maphdr.distance
+//                              / maphdr.Nside_ring
+//                          > phi->lattice ().sizeLocal (1)
+//                      && 2.137937882409166 * sim.numpts * maphdr.distance
+//                                 / maphdr.Nside_ring
+//                             > phi->lattice ().sizeLocal (2)
+//                      && maphdr.Nside_ring < maphdr.Nside;
+//                      maphdr.Nside_ring *= 2)
+//                     ;
+// 
+//                 if (sim.lightcone[i].opening > 2. / 3.)
+//                 {
+//                     p = 1
+//                         + (int)floor (
+//                               maphdr.Nside
+//                               * sqrt (3. - 3. * sim.lightcone[i].opening));
+//                     maphdr.Npix = 2 * p * (p + 1);
+//                 }
+//                 else if (sim.lightcone[i].opening > -2. / 3.)
+//                 {
+//                     p = 1
+//                         + (int)floor (maphdr.Nside
+//                                       * (2. - 1.5 * sim.lightcone[i].opening));
+//                     maphdr.Npix = 2 * maphdr.Nside * (maphdr.Nside + 1)
+//                                   + (p - maphdr.Nside) * 4 * maphdr.Nside;
+//                 }
+//                 else if (sim.lightcone[i].opening > -1.)
+//                 {
+//                     p = (int)floor (
+//                         maphdr.Nside
+//                         * sqrt (3. + 3. * sim.lightcone[i].opening));
+//                     maphdr.Npix
+//                         = 12 * maphdr.Nside * maphdr.Nside - 2 * p * (p + 1);
+//                     p = 4 * maphdr.Nside - 1 - p;
+//                 }
+//                 else
+//                 {
+//                     maphdr.Npix = 12 * maphdr.Nside * maphdr.Nside;
+//                     p = 4 * maphdr.Nside - 1;
+//                 }
+// 
+//                 pixbatch_size[0].push_back (maphdr.Nside / maphdr.Nside_ring);
+// 
+//                 pixbatch_delim[1].push_back (p / pixbatch_size[0].back ());
+//                 pixbatch_delim[0].push_back ((pixbatch_delim[1].back () > 0)
+//                                                  ? pixbatch_delim[1].back () - 1
+//                                                  : 0);
+//                 pixbatch_delim[2].push_back (pixbatch_delim[1].back () + 1);
+//                 pixbatch_size[1].push_back (
+//                     (pixbatch_size[0].back () * (pixbatch_size[0].back () + 1)
+//                      + (2 * pixbatch_size[0].back () - 1
+//                         - p % pixbatch_size[0].back ())
+//                            * (p % pixbatch_size[0].back ()))
+//                     / 2);
+//                 pixbatch_size[2].push_back (((p % pixbatch_size[0].back () + 1)
+//                                              * (p % pixbatch_size[0].back ()))
+//                                             / 2);
+//                 pixbatch_size[0].back () *= pixbatch_size[0].back ();
+//                 for (p = 0; p < 3; p++)
+//                 {
+//                     if (pixbatch_delim[p].back () <= maphdr.Nside_ring)
+//                         pixbatch_delim[p].back ()
+//                             = 2 * pixbatch_delim[p].back ()
+//                               * (pixbatch_delim[p].back () + 1);
+//                     else if (pixbatch_delim[p].back () <= 3 * maphdr.Nside_ring)
+//                         pixbatch_delim[p].back ()
+//                             = 2 * maphdr.Nside_ring * (maphdr.Nside_ring + 1)
+//                               + (pixbatch_delim[p].back () - maphdr.Nside_ring)
+//                                     * 4 * maphdr.Nside_ring;
+//                     else if (pixbatch_delim[p].back () < 4 * maphdr.Nside_ring)
+//                         pixbatch_delim[p].back ()
+//                             = 12 * maphdr.Nside_ring * maphdr.Nside_ring
+//                               - 2
+//                                     * (4 * maphdr.Nside_ring - 1
+//                                        - pixbatch_delim[p].back ())
+//                                     * (4 * maphdr.Nside_ring
+//                                        - pixbatch_delim[p].back ());
+//                     else
+//                         pixbatch_delim[p].back ()
+//                             = 12 * maphdr.Nside_ring * maphdr.Nside_ring;
+//                 }
+// 
+//                 if (pixbatch_size[1].back () == pixbatch_size[0].back ())
+//                     pixbatch_delim[0].back () = pixbatch_delim[1].back ();
+// 
+//                 for (j = 0; j < 9; j++)
+//                     pixbuf_size[j] = 0;
+// 
+//                 for (p = 0; p < pixbatch_delim[2].back (); p++)
+//                 {
+//                     pix2vec_ring64 (maphdr.Nside_ring, p, w);
+// 
+//                     base_pos[1]
+//                         = (int)floor ((maphdr.distance
+//                                            * (R[1][0] * w[0] + R[1][1] * w[1]
+//                                               + R[1][2] * w[2])
+//                                        + sim.lightcone[i].vertex[1])
+//                                       * sim.numpts)
+//                           % sim.numpts;
+//                     if (base_pos[1] < 0)
+//                         base_pos[1] += sim.numpts;
+// 
+//                     commdir[1] = phi->lattice ().getRankDim1 (base_pos[1]);
+//                     j = commdir[1] * parallel.grid_size ()[0];
+//                     commdir[1] -= parallel.grid_rank ()[1];
+// 
+//                     if (commdir[1] < -1)
+//                         commdir[1] += parallel.grid_size ()[1];
+//                     else if (commdir[1] > 1)
+//                         commdir[1] -= parallel.grid_size ()[1];
+// 
+//                     base_pos[2]
+//                         = (int)floor ((maphdr.distance
+//                                            * (R[2][0] * w[0] + R[2][1] * w[1]
+//                                               + R[2][2] * w[2])
+//                                        + sim.lightcone[i].vertex[2])
+//                                       * sim.numpts)
+//                           % sim.numpts;
+//                     if (base_pos[2] < 0)
+//                         base_pos[2] += sim.numpts;
+// 
+//                     commdir[0] = phi->lattice ().getRankDim0 (base_pos[2]);
+//                     j += commdir[0];
+//                     commdir[0] -= parallel.grid_rank ()[0];
+// 
+//                     if (commdir[0] < -1)
+//                         commdir[0] += parallel.grid_size ()[0];
+//                     else if (commdir[0] > 1)
+//                         commdir[0] -= parallel.grid_size ()[0];
+// 
+//                     if ((io_group_size == 0
+//                          && parallel.rank ()
+//                                 == ((shell - shell_inner) * parallel.size ())
+//                                        / (shell_outer + 1 - shell_inner))
+//                         || (io_group_size > 0
+//                             && shell - shell_inner == shell_write
+//                             && ((pixbatch_delim[2].back () >= io_group_size
+//                                  && p
+//                                             / (pixbatch_delim[2].back ()
+//                                                / io_group_size)
+//                                         < io_group_size
+//                                  && p
+//                                             / (pixbatch_delim[2].back ()
+//                                                / io_group_size)
+//                                         == parallel.rank ()
+//                                                - (shell_write * parallel.size ()
+//                                                   + shell_outer - shell_inner)
+//                                                      / (shell_outer + 1
+//                                                         - shell_inner))
+//                                 || (parallel.rank ()
+//                                             - (shell_write * parallel.size ()
+//                                                + shell_outer - shell_inner)
+//                                                   / (shell_outer + 1
+//                                                      - shell_inner)
+//                                         == io_group_size - 1
+//                                     && (pixbatch_delim[2].back ()
+//                                             < io_group_size
+//                                         || p
+//                                                    / (pixbatch_delim[2].back ()
+//                                                       / io_group_size)
+//                                                >= io_group_size)))))
+//                     {
+//                         sender_proc.push_back (j);
+//                     }
+// 
+//                     if (commdir[0] * commdir[0] > 1
+//                         || commdir[1] * commdir[1] > 1)
+//                         continue;
+// 
+//                     ring2nest64 (maphdr.Nside_ring, p, &pix);
+//                     pix *= pixbatch_size[0].back ();
+// 
+//                     if (p < pixbatch_delim[0].back ())
+//                         pixbatch_type = 0;
+//                     else if (p < pixbatch_delim[1].back ())
+//                         pixbatch_type = 1;
+//                     else
+//                         pixbatch_type = 2;
+// 
+//                     j = 3 * commdir[0] + commdir[1] + 4;
+// 
+//                     if (pixbuf_size[j] + pixbatch_size[pixbatch_type].back ()
+//                         > pixbuf_reserve[j])
+//                     {
+//                         do
+//                         {
+//                             pixbuf_reserve[j] += PIXBUFFER;
+//                         } while (pixbuf_size[j]
+//                                      + pixbatch_size[pixbatch_type].back ()
+//                                  > pixbuf_reserve[j]);
+// 
+//                         for (q = 0; q < LIGHTCONE_MAX_FIELDS; q++)
+//                         {
+//                             if (pixbuf[q][j] != NULL)
+//                             {
+//                                 pixbuf[q][j] = (Real *)realloc (
+//                                     (void *)pixbuf[q][j],
+//                                     sizeof (Real) * pixbuf_reserve[j]);
+//                                 if (pixbuf[q][j] == NULL)
+//                                 {
+//                                     std::cout << COLORTEXT_RED
+//                                               << " er"
+//                                                  "ror"
+//                                               << COLORTEXT_RESET
+//                                               << ": "
+//                                                  "pro"
+//                                                  "c#"
+//                                               << parallel.rank ()
+//                                               << " un"
+//                                                  "abl"
+//                                                  "e "
+//                                                  "to "
+//                                                  "all"
+//                                                  "oca"
+//                                                  "te "
+//                                                  "mem"
+//                                                  "ory"
+//                                                  " fo"
+//                                                  "r "
+//                                                  "pix"
+//                                                  "eli"
+//                                                  "sat"
+//                                                  "ion"
+//                                                  "!"
+//                                               << std::endl;
+//                                     parallel.abortForce ();
+//                                 }
+//                             }
+//                         }
+//                     }
+// 
+//                     for (q = 0; q < pixbatch_size[pixbatch_type].back (); pix++)
+//                     {
+//                         pixcount++;
+// 
+//                         if (pixbatch_type)
+//                         {
+//                             nest2ring64 (maphdr.Nside, pix, &pix2);
+//                             if (pix2 >= maphdr.Npix)
+//                                 continue;
+//                         }
+// 
+//                         pix2vec_nest64 (maphdr.Nside, pix, w);
+// 
+//                         pos[0] = (maphdr.distance
+//                                       * (R[0][0] * w[0] + R[0][1] * w[1]
+//                                          + R[0][2] * w[2])
+//                                   + sim.lightcone[i].vertex[0])
+//                                  * sim.numpts;
+//                         pos[1] = (maphdr.distance
+//                                       * (R[1][0] * w[0] + R[1][1] * w[1]
+//                                          + R[1][2] * w[2])
+//                                   + sim.lightcone[i].vertex[1])
+//                                  * sim.numpts;
+//                         pos[2] = (maphdr.distance
+//                                       * (R[2][0] * w[0] + R[2][1] * w[1]
+//                                          + R[2][2] * w[2])
+//                                   + sim.lightcone[i].vertex[2])
+//                                  * sim.numpts;
+// 
+//                         if (pos[0] >= 0)
+//                         {
+//                             w[0] = modf (pos[0], &temp);
+//                             base_pos[0] = (int)temp % sim.numpts;
+//                         }
+//                         else
+//                         {
+//                             w[0] = 1. + modf (pos[0], &temp);
+//                             base_pos[0]
+//                                 = sim.numpts - 1 - (((int)-temp) % sim.numpts);
+//                         }
+//                         if (pos[1] >= 0)
+//                         {
+//                             w[1] = modf (pos[1], &temp);
+//                             base_pos[1] = (int)temp % sim.numpts;
+//                         }
+//                         else
+//                         {
+//                             w[1] = 1. + modf (pos[1], &temp);
+//                             base_pos[1]
+//                                 = sim.numpts - 1 - (((int)-temp) % sim.numpts);
+//                         }
+//                         if (pos[2] >= 0)
+//                         {
+//                             w[2] = modf (pos[2], &temp);
+//                             base_pos[2] = (int)temp % sim.numpts;
+//                         }
+//                         else
+//                         {
+//                             w[2] = 1. + modf (pos[2], &temp);
+//                             base_pos[2]
+//                                 = sim.numpts - 1 - (((int)-temp) % sim.numpts);
+//                         }
+// 
+//                         if (xsim.setCoord (base_pos))
+//                         {
+//                             if (sim.out_lightcone[i] & MASK_PHI)
+//                             {
+//                                 *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[0]) * (1. - w[1])
+//                                       * ((1. - w[2]) * (*phi) (xsim)
+//                                          + w[2] * (*phi) (xsim + 2));
+//                                 *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * (1. - w[1])
+//                                        * ((1. - w[2]) * (*phi) (xsim + 0)
+//                                           + w[2] * (*phi) (xsim + 0 + 2));
+//                                 *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * w[1]
+//                                        * ((1. - w[2]) * (*phi) (xsim + 0 + 1)
+//                                           + w[2] * (*phi) (xsim + 0 + 1 + 2));
+//                                 *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += (1. - w[0]) * w[1]
+//                                        * ((1. - w[2]) * (*phi) (xsim + 1)
+//                                           + w[2] * (*phi) (xsim + 1 + 2));
+//                             }
+//                             if (sim.out_lightcone[i] & MASK_CHI)
+//                             {
+//                                 *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[0]) * (1. - w[1])
+//                                       * ((1. - w[2]) * (*chi) (xsim)
+//                                          + w[2] * (*chi) (xsim + 2));
+//                                 *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * (1. - w[1])
+//                                        * ((1. - w[2]) * (*chi) (xsim + 0)
+//                                           + w[2] * (*chi) (xsim + 0 + 2));
+//                                 *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * w[1]
+//                                        * ((1. - w[2]) * (*chi) (xsim + 0 + 1)
+//                                           + w[2] * (*chi) (xsim + 0 + 1 + 2));
+//                                 *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += (1. - w[0]) * w[1]
+//                                        * ((1. - w[2]) * (*chi) (xsim + 1)
+//                                           + w[2] * (*chi) (xsim + 1 + 2));
+//                             }
+//                             if (sim.out_lightcone[i] & MASK_B)
+//                             {
+// #ifdef LIGHTCONE_INTERPOLATE
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
+//                                   + q)
+//                                     = (1. - w[2]) * (1. - w[1])
+//                                       * ((1. - w[0]) * (*Bi) (xsim - 0, 0)
+//                                          + w[0] * (*Bi) (xsim + 0, 0)
+//                                          + (*Bi) (xsim, 0));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
+//                                   + q)
+//                                     += w[2] * (1. - w[1])
+//                                        * ((1. - w[0]) * (*Bi) (xsim - 0 + 2, 0)
+//                                           + w[0] * (*Bi) (xsim + 0 + 2, 0)
+//                                           + (*Bi) (xsim + 2, 0));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
+//                                   + q)
+//                                     += w[2] * w[1]
+//                                        * ((1. - w[0])
+//                                               * (*Bi) (xsim - 0 + 1 + 2, 0)
+//                                           + w[0] * (*Bi) (xsim + 0 + 1 + 2, 0)
+//                                           + (*Bi) (xsim + 1 + 2, 0));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
+//                                   + q)
+//                                     += (1. - w[2]) * w[1]
+//                                        * ((1. - w[0]) * (*Bi) (xsim - 0 + 1, 0)
+//                                           + w[0] * (*Bi) (xsim + 0 + 1, 0)
+//                                           + (*Bi) (xsim + 1, 0));
+// 
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[2]) * (1. - w[0])
+//                                       * ((1. - w[1]) * (*Bi) (xsim - 1, 1)
+//                                          + w[1] * (*Bi) (xsim + 1, 1)
+//                                          + (*Bi) (xsim, 1));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[2] * (1. - w[0])
+//                                        * ((1. - w[1]) * (*Bi) (xsim - 1 + 2, 1)
+//                                           + w[1] * (*Bi) (xsim + 1 + 2, 1)
+//                                           + (*Bi) (xsim + 2, 1));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[2] * w[0]
+//                                        * ((1. - w[1])
+//                                               * (*Bi) (xsim + 0 - 1 + 2, 1)
+//                                           + w[1] * (*Bi) (xsim + 0 + 1 + 2, 1)
+//                                           + (*Bi) (xsim + 0 + 2, 1));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += (1. - w[2]) * w[0]
+//                                        * ((1. - w[1]) * (*Bi) (xsim + 0 - 1, 1)
+//                                           + w[1] * (*Bi) (xsim + 0 + 1, 1)
+//                                           + (*Bi) (xsim + 0, 1));
+// 
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[0]) * (1. - w[1])
+//                                       * ((1. - w[2]) * (*Bi) (xsim - 2, 2)
+//                                          + w[2] * (*Bi) (xsim + 2, 2)
+//                                          + (*Bi) (xsim, 2));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * (1. - w[1])
+//                                        * ((1. - w[2]) * (*Bi) (xsim + 0 - 2, 2)
+//                                           + w[2] * (*Bi) (xsim + 0 + 2, 2)
+//                                           + (*Bi) (xsim + 0, 2));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * w[1]
+//                                        * ((1. - w[2])
+//                                               * (*Bi) (xsim + 0 + 1 - 2, 2)
+//                                           + w[2] * (*Bi) (xsim + 0 + 1 + 2, 2)
+//                                           + (*Bi) (xsim + 0 + 1, 2));
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += (1. - w[0]) * w[1]
+//                                        * ((1. - w[2]) * (*Bi) (xsim + 1 - 2, 2)
+//                                           + w[2] * (*Bi) (xsim + 1 + 2, 2)
+//                                           + (*Bi) (xsim + 1, 2));
+// 
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
+//                                   + q)
+//                                     /= 2. * a * a * sim.numpts;
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     /= 2. * a * a * sim.numpts;
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     /= 2. * a * a * sim.numpts;
+// #else
+//                                 if (w[0] > 0.5)
+//                                 {
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET][j]
+//                                       + pixbuf_size[j] + q)
+//                                         = (1.5 - w[0]) * (1. - w[1])
+//                                           * ((1. - w[2]) * (*Bi) (xsim, 0)
+//                                              + w[2] * (*Bi) (xsim + 2, 0));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (1.5 - w[0]) * w[1]
+//                                            * ((1. - w[2]) * (*Bi) (xsim + 1, 0)
+//                                               + w[2] * (*Bi) (xsim + 1 + 2, 0));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (w[0] - 0.5) * w[1]
+//                                            * ((1. - w[2])
+//                                                   * (*Bi) (xsim + 0 + 1, 0)
+//                                               + w[2]
+//                                                     * (*Bi) (xsim + 0 + 1 + 2,
+//                                                              0));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (w[0] - 0.5) * (1. - w[1])
+//                                            * ((1. - w[2]) * (*Bi) (xsim + 0, 0)
+//                                               + w[2] * (*Bi) (xsim + 0 + 2, 0));
+//                                 }
+//                                 else
+//                                 {
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET][j]
+//                                       + pixbuf_size[j] + q)
+//                                         = (0.5 + w[0]) * (1. - w[1])
+//                                           * ((1. - w[2]) * (*Bi) (xsim, 0)
+//                                              + w[2] * (*Bi) (xsim + 2, 0));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (0.5 + w[0]) * w[1]
+//                                            * ((1. - w[2]) * (*Bi) (xsim + 1, 0)
+//                                               + w[2] * (*Bi) (xsim + 1 + 2, 0));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (0.5 - w[0]) * w[1]
+//                                            * ((1. - w[2])
+//                                                   * (*Bi) (xsim - 0 + 1, 0)
+//                                               + w[2]
+//                                                     * (*Bi) (xsim - 0 + 1 + 2,
+//                                                              0));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (0.5 - w[0]) * (1. - w[1])
+//                                            * ((1. - w[2]) * (*Bi) (xsim - 0, 0)
+//                                               + w[2] * (*Bi) (xsim - 0 + 2, 0));
+//                                 }
+//                                 if (w[1] > 0.5)
+//                                 {
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                       + pixbuf_size[j] + q)
+//                                         = (1. - w[0]) * (1.5 - w[1])
+//                                           * ((1. - w[2]) * (*Bi) (xsim, 1)
+//                                              + w[2] * (*Bi) (xsim + 2, 1));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (1. - w[0]) * (w[1] - 0.5)
+//                                            * ((1. - w[2]) * (*Bi) (xsim + 1, 1)
+//                                               + w[2] * (*Bi) (xsim + 1 + 2, 1));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += w[0] * (w[1] - 0.5)
+//                                            * ((1. - w[2])
+//                                                   * (*Bi) (xsim + 0 + 1, 1)
+//                                               + w[2]
+//                                                     * (*Bi) (xsim + 0 + 1 + 2,
+//                                                              1));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += w[0] * (1.5 - w[1])
+//                                            * ((1. - w[2]) * (*Bi) (xsim + 0, 1)
+//                                               + w[2] * (*Bi) (xsim + 0 + 2, 1));
+//                                 }
+//                                 else
+//                                 {
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                       + pixbuf_size[j] + q)
+//                                         = (1. - w[0]) * (0.5 + w[1])
+//                                           * ((1. - w[2]) * (*Bi) (xsim, 1)
+//                                              + w[2] * (*Bi) (xsim + 2, 1));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (1. - w[0]) * (0.5 - w[1])
+//                                            * ((1. - w[2]) * (*Bi) (xsim - 1, 1)
+//                                               + w[2] * (*Bi) (xsim - 1 + 2, 1));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += w[0] * (0.5 - w[1])
+//                                            * ((1. - w[2])
+//                                                   * (*Bi) (xsim + 0 - 1, 1)
+//                                               + w[2]
+//                                                     * (*Bi) (xsim + 0 - 1 + 2,
+//                                                              1));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += w[0] * (0.5 + w[1])
+//                                            * ((1. - w[2]) * (*Bi) (xsim + 0, 1)
+//                                               + w[2] * (*Bi) (xsim + 0 + 2, 1));
+//                                 }
+//                                 if (w[2] > 0.5)
+//                                 {
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                       + pixbuf_size[j] + q)
+//                                         = (1. - w[0]) * (1. - w[1])
+//                                           * ((1.5 - w[2]) * (*Bi) (xsim, 2)
+//                                              + (w[2] - 0.5)
+//                                                    * (*Bi) (xsim + 2, 2));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (1. - w[0]) * w[1]
+//                                            * ((1.5 - w[2]) * (*Bi) (xsim + 1, 2)
+//                                               + (w[2] - 0.5)
+//                                                     * (*Bi) (xsim + 1 + 2, 2));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += w[0] * w[1]
+//                                            * ((1.5 - w[2])
+//                                                   * (*Bi) (xsim + 0 + 1, 2)
+//                                               + (w[2] - 0.5)
+//                                                     * (*Bi) (xsim + 0 + 1 + 2,
+//                                                              2));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += w[0] * (1. - w[1])
+//                                            * ((1.5 - w[2]) * (*Bi) (xsim + 0, 2)
+//                                               + (w[2] - 0.5)
+//                                                     * (*Bi) (xsim + 0 + 2, 2));
+//                                 }
+//                                 else
+//                                 {
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                       + pixbuf_size[j] + q)
+//                                         = (1. - w[0]) * (1. - w[1])
+//                                           * ((0.5 + w[2]) * (*Bi) (xsim, 2)
+//                                              + (0.5 - w[2])
+//                                                    * (*Bi) (xsim - 2, 2));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += (1. - w[0]) * w[1]
+//                                            * ((0.5 + w[2]) * (*Bi) (xsim + 1, 2)
+//                                               + (0.5 - w[2])
+//                                                     * (*Bi) (xsim + 1 - 2, 2));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += w[0] * w[1]
+//                                            * ((0.5 + w[2])
+//                                                   * (*Bi) (xsim + 0 + 1, 2)
+//                                               + (0.5 - w[2])
+//                                                     * (*Bi) (xsim + 0 + 1 - 2,
+//                                                              2));
+//                                     *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                       + pixbuf_size[j] + q)
+//                                         += w[0] * (1. - w[1])
+//                                            * ((0.5 + w[2]) * (*Bi) (xsim + 0, 2)
+//                                               + (0.5 - w[2])
+//                                                     * (*Bi) (xsim + 0 - 2, 2));
+//                                 }
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
+//                                   + q)
+//                                     /= a * a * sim.numpts;
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     /= a * a * sim.numpts;
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     /= a * a * sim.numpts;
+// #endif
+//                             }
+//                             if (sim.out_lightcone[i] & MASK_HIJ)
+//                             {
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[0]) * (1. - w[1])
+//                                       * ((1. - w[2]) * (*Sij) (xsim, 0, 0)
+//                                          + w[2] * (*Sij) (xsim + 2, 0, 0));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * (1. - w[1])
+//                                        * ((1. - w[2]) * (*Sij) (xsim + 0, 0, 0)
+//                                           + w[2] * (*Sij) (xsim + 0 + 2, 0, 0));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * w[1]
+//                                        * ((1. - w[2])
+//                                               * (*Sij) (xsim + 0 + 1, 0, 0)
+//                                           + w[2]
+//                                                 * (*Sij) (xsim + 0 + 1 + 2, 0,
+//                                                           0));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += (1. - w[0]) * w[1]
+//                                        * ((1. - w[2]) * (*Sij) (xsim + 1, 0, 0)
+//                                           + w[2] * (*Sij) (xsim + 1 + 2, 0, 0));
+// 
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[2]) * 0.25
+//                                       * ((*Sij) (xsim, 0, 1)
+//                                          + (1. - w[0])
+//                                                * ((*Sij) (xsim - 0, 0, 1)
+//                                                   + (1. - w[1])
+//                                                         * (*Sij) (xsim - 0 - 1,
+//                                                                   0, 1)
+//                                                   + w[1]
+//                                                         * (*Sij) (xsim - 0 + 1,
+//                                                                   0, 1))
+//                                          + w[0]
+//                                                * ((*Sij) (xsim + 0, 0, 1)
+//                                                   + (1. - w[1])
+//                                                         * (*Sij) (xsim + 0 - 1,
+//                                                                   0, 1)
+//                                                   + w[1]
+//                                                         * (*Sij) (xsim + 0 + 1,
+//                                                                   0, 1))
+//                                          + (1. - w[1]) * (*Sij) (xsim - 1, 0, 1)
+//                                          + w[1] * (*Sij) (xsim + 1, 0, 1));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[2] * 0.25
+//                                        * ((*Sij) (xsim + 2, 0, 1)
+//                                           + (1. - w[0])
+//                                                 * ((*Sij) (xsim - 0 + 2, 0, 1)
+//                                                    + (1. - w[1])
+//                                                          * (*Sij) (xsim - 0 - 1
+//                                                                        + 2,
+//                                                                    0, 1)
+//                                                    + w[1]
+//                                                          * (*Sij) (xsim - 0 + 1
+//                                                                        + 2,
+//                                                                    0, 1))
+//                                           + w[0]
+//                                                 * ((*Sij) (xsim + 0 + 2, 0, 1)
+//                                                    + (1. - w[1])
+//                                                          * (*Sij) (xsim + 0 - 1
+//                                                                        + 2,
+//                                                                    0, 1)
+//                                                    + w[1]
+//                                                          * (*Sij) (xsim + 0 + 1
+//                                                                        + 2,
+//                                                                    0, 1))
+//                                           + (1. - w[1])
+//                                                 * (*Sij) (xsim - 1 + 2, 0, 1)
+//                                           + w[1] * (*Sij) (xsim + 1 + 2, 0, 1));
+// 
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[1]) * 0.25
+//                                       * ((*Sij) (xsim, 0, 2)
+//                                          + (1. - w[0])
+//                                                * ((*Sij) (xsim - 0, 0, 2)
+//                                                   + (1. - w[2])
+//                                                         * (*Sij) (xsim - 0 - 2,
+//                                                                   0, 2)
+//                                                   + w[2]
+//                                                         * (*Sij) (xsim - 0 + 2,
+//                                                                   0, 2))
+//                                          + w[0]
+//                                                * ((*Sij) (xsim + 0, 0, 2)
+//                                                   + (1. - w[2])
+//                                                         * (*Sij) (xsim + 0 - 2,
+//                                                                   0, 2)
+//                                                   + w[2]
+//                                                         * (*Sij) (xsim + 0 + 2,
+//                                                                   0, 2))
+//                                          + (1. - w[2]) * (*Sij) (xsim - 2, 0, 2)
+//                                          + w[2] * (*Sij) (xsim + 2, 0, 2));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[1] * 0.25
+//                                        * ((*Sij) (xsim + 1, 0, 2)
+//                                           + (1. - w[0])
+//                                                 * ((*Sij) (xsim - 0 + 1, 0, 2)
+//                                                    + (1. - w[2])
+//                                                          * (*Sij) (xsim - 0 + 1
+//                                                                        - 2,
+//                                                                    0, 2)
+//                                                    + w[2]
+//                                                          * (*Sij) (xsim - 0 + 1
+//                                                                        + 2,
+//                                                                    0, 2))
+//                                           + w[0]
+//                                                 * ((*Sij) (xsim + 0 + 1, 0, 2)
+//                                                    + (1. - w[2])
+//                                                          * (*Sij) (xsim + 0 + 1
+//                                                                        - 2,
+//                                                                    0, 2)
+//                                                    + w[2]
+//                                                          * (*Sij) (xsim + 0 + 1
+//                                                                        + 2,
+//                                                                    0, 2))
+//                                           + (1. - w[2])
+//                                                 * (*Sij) (xsim + 1 - 2, 0, 2)
+//                                           + w[2] * (*Sij) (xsim + 1 + 2, 0, 2));
+// 
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[0]) * (1. - w[1])
+//                                       * ((1. - w[2]) * (*Sij) (xsim, 1, 1)
+//                                          + w[2] * (*Sij) (xsim + 2, 1, 1));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * (1. - w[1])
+//                                        * ((1. - w[2]) * (*Sij) (xsim + 0, 1, 1)
+//                                           + w[2] * (*Sij) (xsim + 0 + 2, 1, 1));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * w[1]
+//                                        * ((1. - w[2])
+//                                               * (*Sij) (xsim + 0 + 1, 1, 1)
+//                                           + w[2]
+//                                                 * (*Sij) (xsim + 0 + 1 + 2, 1,
+//                                                           1));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += (1. - w[0]) * w[1]
+//                                        * ((1. - w[2]) * (*Sij) (xsim + 1, 1, 1)
+//                                           + w[2] * (*Sij) (xsim + 1 + 2, 1, 1));
+// 
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 4][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = (1. - w[0]) * 0.25
+//                                       * ((*Sij) (xsim, 1, 2)
+//                                          + (1. - w[1])
+//                                                * ((*Sij) (xsim - 1, 1, 2)
+//                                                   + (1. - w[2])
+//                                                         * (*Sij) (xsim - 1 - 2,
+//                                                                   1, 2)
+//                                                   + w[2]
+//                                                         * (*Sij) (xsim - 1 + 2,
+//                                                                   1, 2))
+//                                          + w[1]
+//                                                * ((*Sij) (xsim + 1, 1, 2)
+//                                                   + (1. - w[2])
+//                                                         * (*Sij) (xsim + 1 - 2,
+//                                                                   1, 2)
+//                                                   + w[2]
+//                                                         * (*Sij) (xsim + 1 + 2,
+//                                                                   1, 2))
+//                                          + (1. - w[2]) * (*Sij) (xsim - 2, 1, 2)
+//                                          + w[2] * (*Sij) (xsim + 2, 1, 2));
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 4][j]
+//                                   + pixbuf_size[j] + q)
+//                                     += w[0] * 0.25
+//                                        * ((*Sij) (xsim + 0, 1, 2)
+//                                           + (1. - w[1])
+//                                                 * ((*Sij) (xsim + 0 - 1, 1, 2)
+//                                                    + (1. - w[2])
+//                                                          * (*Sij) (xsim + 0 - 1
+//                                                                        - 2,
+//                                                                    1, 2)
+//                                                    + w[2]
+//                                                          * (*Sij) (xsim + 0 - 1
+//                                                                        + 2,
+//                                                                    1, 2))
+//                                           + w[1]
+//                                                 * ((*Sij) (xsim + 0 + 1, 1, 2)
+//                                                    + (1. - w[2])
+//                                                          * (*Sij) (xsim + 0 + 1
+//                                                                        - 2,
+//                                                                    1, 2)
+//                                                    + w[2]
+//                                                          * (*Sij) (xsim + 0 + 1
+//                                                                        + 2,
+//                                                                    1, 2))
+//                                           + (1. - w[2])
+//                                                 * (*Sij) (xsim + 0 - 2, 1, 2)
+//                                           + w[2] * (*Sij) (xsim + 0 + 2, 1, 2));
+//                             }
+//                         }
+//                         else
+//                         {
+//                             if (sim.out_lightcone[i] & MASK_PHI)
+//                                 *(pixbuf[LIGHTCONE_PHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                             if (sim.out_lightcone[i] & MASK_CHI)
+//                                 *(pixbuf[LIGHTCONE_CHI_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                             if (sim.out_lightcone[i] & MASK_B)
+//                             {
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET][j] + pixbuf_size[j]
+//                                   + q)
+//                                     = 0;
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                                 *(pixbuf[LIGHTCONE_B_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                             }
+//                             if (sim.out_lightcone[i] & MASK_HIJ)
+//                             {
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 1][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 2][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 3][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                                 *(pixbuf[LIGHTCONE_HIJ_OFFSET + 4][j]
+//                                   + pixbuf_size[j] + q)
+//                                     = 0;
+//                             }
+//                         }
+// 
+//                         q++;
+//                     } // q-loop
+// 
+//                     pixbuf_size[j] += pixbatch_size[pixbatch_type].back ();
+// 
+//                     if (j == 4)
+//                     {
+//                         pixbatch_id.push_back (p);
+//                     }
+//                 } // p-loop
+// 
+//                 p = 0;
+//                 for (j = 0; j < 3; j++)
+//                 {
+//                     if (pixbuf_size[3 * j] + pixbuf_size[3 * j + 1]
+//                             + pixbuf_size[3 * j + 2]
+//                         > p)
+//                         p = pixbuf_size[3 * j] + pixbuf_size[3 * j + 1]
+//                             + pixbuf_size[3 * j + 2];
+//                 }
+// 
+//                 if (p > 0)
+//                 {
+//                     commbuf = (Real *)malloc (sizeof (Real) * p);
+// 
+//                     for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                     {
+//                         if (pixbuf[j][0] != NULL)
+//                         {
+//                             if (parallel.grid_rank ()[0] % 2 == 0)
+//                             {
+//                                 if (pixbuf_size[0] + pixbuf_size[1]
+//                                         + pixbuf_size[2]
+//                                     > 0)
+//                                 {
+//                                     if (pixbuf_size[0] > 0)
+//                                         memcpy ((void *)commbuf,
+//                                                 (void *)pixbuf[j][0],
+//                                                 pixbuf_size[0] * sizeof (Real));
+//                                     if (pixbuf_size[1] > 0)
+//                                         memcpy (
+//                                             (void *)(commbuf + pixbuf_size[0]),
+//                                             (void *)pixbuf[j][1],
+//                                             pixbuf_size[1] * sizeof (Real));
+//                                     if (pixbuf_size[2] > 0)
+//                                         memcpy ((void *)(commbuf
+//                                                          + pixbuf_size[0]
+//                                                          + pixbuf_size[1]),
+//                                                 (void *)pixbuf[j][2],
+//                                                 pixbuf_size[2] * sizeof (Real));
+//                                     parallel.send_dim0<Real> (
+//                                         commbuf,
+//                                         pixbuf_size[0] + pixbuf_size[1]
+//                                             + pixbuf_size[2],
+//                                         (parallel.grid_size ()[0]
+//                                          + parallel.grid_rank ()[0] - 1)
+//                                             % parallel.grid_size ()[0]);
+//                                 }
+//                                 if (pixbuf_size[3] + pixbuf_size[4]
+//                                         + pixbuf_size[5]
+//                                     > 0)
+//                                 {
+//                                     parallel.receive_dim0<Real> (
+//                                         commbuf,
+//                                         pixbuf_size[3] + pixbuf_size[4]
+//                                             + pixbuf_size[5],
+//                                         (parallel.grid_rank ()[0] + 1)
+//                                             % parallel.grid_size ()[0]);
+//                                     for (q = 0; q < pixbuf_size[3]; q++)
+//                                         *(pixbuf[j][3] + q) += commbuf[q];
+//                                     for (q = 0; q < pixbuf_size[4]; q++)
+//                                         *(pixbuf[j][4] + q)
+//                                             += commbuf[pixbuf_size[3] + q];
+//                                     for (q = 0; q < pixbuf_size[5]; q++)
+//                                         *(pixbuf[j][5] + q)
+//                                             += commbuf[pixbuf_size[3]
+//                                                        + pixbuf_size[4] + q];
+//                                 }
+//                             }
+//                             else
+//                             {
+//                                 if (pixbuf_size[3] + pixbuf_size[4]
+//                                             + pixbuf_size[5]
+//                                         > 0
+//                                     && parallel.grid_size ()[0] > 2)
+//                                 {
+//                                     parallel.receive_dim0<Real> (
+//                                         commbuf,
+//                                         pixbuf_size[3] + pixbuf_size[4]
+//                                             + pixbuf_size[5],
+//                                         (parallel.grid_rank ()[0] + 1)
+//                                             % parallel.grid_size ()[0]);
+//                                     for (q = 0; q < pixbuf_size[3]; q++)
+//                                         *(pixbuf[j][3] + q) += commbuf[q];
+//                                     for (q = 0; q < pixbuf_size[4]; q++)
+//                                         *(pixbuf[j][4] + q)
+//                                             += commbuf[pixbuf_size[3] + q];
+//                                     for (q = 0; q < pixbuf_size[5]; q++)
+//                                         *(pixbuf[j][5] + q)
+//                                             += commbuf[pixbuf_size[3]
+//                                                        + pixbuf_size[4] + q];
+//                                 }
+//                                 if (pixbuf_size[0] + pixbuf_size[1]
+//                                         + pixbuf_size[2]
+//                                     > 0)
+//                                 {
+//                                     if (pixbuf_size[0] > 0)
+//                                         memcpy ((void *)commbuf,
+//                                                 (void *)pixbuf[j][0],
+//                                                 pixbuf_size[0] * sizeof (Real));
+//                                     if (pixbuf_size[1] > 0)
+//                                         memcpy (
+//                                             (void *)(commbuf + pixbuf_size[0]),
+//                                             (void *)pixbuf[j][1],
+//                                             pixbuf_size[1] * sizeof (Real));
+//                                     if (pixbuf_size[2] > 0)
+//                                         memcpy ((void *)(commbuf
+//                                                          + pixbuf_size[0]
+//                                                          + pixbuf_size[1]),
+//                                                 (void *)pixbuf[j][2],
+//                                                 pixbuf_size[2] * sizeof (Real));
+//                                     parallel.send_dim0<Real> (
+//                                         commbuf,
+//                                         pixbuf_size[0] + pixbuf_size[1]
+//                                             + pixbuf_size[2],
+//                                         (parallel.grid_size ()[0]
+//                                          + parallel.grid_rank ()[0] - 1)
+//                                             % parallel.grid_size ()[0]);
+//                                 }
+//                             }
+// 
+//                             if (parallel.grid_rank ()[0] % 2 == 0)
+//                             {
+//                                 if (pixbuf_size[6] + pixbuf_size[7]
+//                                         + pixbuf_size[8]
+//                                     > 0)
+//                                 {
+//                                     if (pixbuf_size[6] > 0)
+//                                         memcpy ((void *)commbuf,
+//                                                 (void *)pixbuf[j][6],
+//                                                 pixbuf_size[6] * sizeof (Real));
+//                                     if (pixbuf_size[7] > 0)
+//                                         memcpy (
+//                                             (void *)(commbuf + pixbuf_size[6]),
+//                                             (void *)pixbuf[j][7],
+//                                             pixbuf_size[7] * sizeof (Real));
+//                                     if (pixbuf_size[8] > 0)
+//                                         memcpy ((void *)(commbuf
+//                                                          + pixbuf_size[6]
+//                                                          + pixbuf_size[7]),
+//                                                 (void *)pixbuf[j][8],
+//                                                 pixbuf_size[8] * sizeof (Real));
+//                                     parallel.send_dim0<Real> (
+//                                         commbuf,
+//                                         pixbuf_size[6] + pixbuf_size[7]
+//                                             + pixbuf_size[8],
+//                                         (parallel.grid_rank ()[0] + 1)
+//                                             % parallel.grid_size ()[0]);
+//                                 }
+//                                 if (pixbuf_size[3] + pixbuf_size[4]
+//                                             + pixbuf_size[5]
+//                                         > 0
+//                                     && parallel.grid_size ()[0] > 2)
+//                                 {
+//                                     parallel.receive_dim0<Real> (
+//                                         commbuf,
+//                                         pixbuf_size[3] + pixbuf_size[4]
+//                                             + pixbuf_size[5],
+//                                         (parallel.grid_size ()[0]
+//                                          + parallel.grid_rank ()[0] - 1)
+//                                             % parallel.grid_size ()[0]);
+//                                     for (q = 0; q < pixbuf_size[3]; q++)
+//                                         *(pixbuf[j][3] + q) += commbuf[q];
+//                                     for (q = 0; q < pixbuf_size[4]; q++)
+//                                         *(pixbuf[j][4] + q)
+//                                             += commbuf[pixbuf_size[3] + q];
+//                                     for (q = 0; q < pixbuf_size[5]; q++)
+//                                         *(pixbuf[j][5] + q)
+//                                             += commbuf[pixbuf_size[3]
+//                                                        + pixbuf_size[4] + q];
+//                                 }
+//                             }
+//                             else
+//                             {
+//                                 if (pixbuf_size[3] + pixbuf_size[4]
+//                                         + pixbuf_size[5]
+//                                     > 0)
+//                                 {
+//                                     parallel.receive_dim0<Real> (
+//                                         commbuf,
+//                                         pixbuf_size[3] + pixbuf_size[4]
+//                                             + pixbuf_size[5],
+//                                         (parallel.grid_size ()[0]
+//                                          + parallel.grid_rank ()[0] - 1)
+//                                             % parallel.grid_size ()[0]);
+//                                     for (q = 0; q < pixbuf_size[3]; q++)
+//                                         *(pixbuf[j][3] + q) += commbuf[q];
+//                                     for (q = 0; q < pixbuf_size[4]; q++)
+//                                         *(pixbuf[j][4] + q)
+//                                             += commbuf[pixbuf_size[3] + q];
+//                                     for (q = 0; q < pixbuf_size[5]; q++)
+//                                         *(pixbuf[j][5] + q)
+//                                             += commbuf[pixbuf_size[3]
+//                                                        + pixbuf_size[4] + q];
+//                                 }
+//                                 if (pixbuf_size[6] + pixbuf_size[7]
+//                                         + pixbuf_size[8]
+//                                     > 0)
+//                                 {
+//                                     if (pixbuf_size[6] > 0)
+//                                         memcpy ((void *)commbuf,
+//                                                 (void *)pixbuf[j][6],
+//                                                 pixbuf_size[6] * sizeof (Real));
+//                                     if (pixbuf_size[7] > 0)
+//                                         memcpy (
+//                                             (void *)(commbuf + pixbuf_size[6]),
+//                                             (void *)pixbuf[j][7],
+//                                             pixbuf_size[7] * sizeof (Real));
+//                                     if (pixbuf_size[8] > 0)
+//                                         memcpy ((void *)(commbuf
+//                                                          + pixbuf_size[6]
+//                                                          + pixbuf_size[7]),
+//                                                 (void *)pixbuf[j][8],
+//                                                 pixbuf_size[8] * sizeof (Real));
+//                                     parallel.send_dim0<Real> (
+//                                         commbuf,
+//                                         pixbuf_size[6] + pixbuf_size[7]
+//                                             + pixbuf_size[8],
+//                                         (parallel.grid_rank ()[0] + 1)
+//                                             % parallel.grid_size ()[0]);
+//                                 }
+//                             }
+// 
+//                             if (parallel.grid_rank ()[1] % 2 == 0)
+//                             {
+//                                 if (pixbuf_size[3] > 0)
+//                                     parallel.send_dim1<Real> (
+//                                         pixbuf[j][3], pixbuf_size[3],
+//                                         (parallel.grid_size ()[1]
+//                                          + parallel.grid_rank ()[1] - 1)
+//                                             % parallel.grid_size ()[1]);
+//                                 if (pixbuf_size[4] > 0)
+//                                 {
+//                                     parallel.receive_dim1<Real> (
+//                                         commbuf, pixbuf_size[4],
+//                                         (parallel.grid_rank ()[1] + 1)
+//                                             % parallel.grid_size ()[1]);
+//                                     for (q = 0; q < pixbuf_size[4]; q++)
+//                                         *(pixbuf[j][4] + q) += commbuf[q];
+//                                 }
+//                             }
+//                             else
+//                             {
+//                                 if (pixbuf_size[4] > 0
+//                                     && parallel.grid_size ()[1] > 2)
+//                                 {
+//                                     parallel.receive_dim1<Real> (
+//                                         commbuf, pixbuf_size[4],
+//                                         (parallel.grid_rank ()[1] + 1)
+//                                             % parallel.grid_size ()[1]);
+//                                     for (q = 0; q < pixbuf_size[4]; q++)
+//                                         *(pixbuf[j][4] + q) += commbuf[q];
+//                                 }
+//                                 if (pixbuf_size[3] > 0)
+//                                     parallel.send_dim1<Real> (
+//                                         pixbuf[j][3], pixbuf_size[3],
+//                                         (parallel.grid_size ()[1]
+//                                          + parallel.grid_rank ()[1] - 1)
+//                                             % parallel.grid_size ()[1]);
+//                             }
+// 
+//                             if (parallel.grid_rank ()[1] % 2 == 0)
+//                             {
+//                                 if (pixbuf_size[5] > 0)
+//                                     parallel.send_dim1<Real> (
+//                                         pixbuf[j][5], pixbuf_size[5],
+//                                         (parallel.grid_rank ()[1] + 1)
+//                                             % parallel.grid_size ()[1]);
+//                                 if (pixbuf_size[4] > 0
+//                                     && parallel.grid_size ()[1] > 2)
+//                                 {
+//                                     parallel.receive_dim1<Real> (
+//                                         commbuf, pixbuf_size[4],
+//                                         (parallel.grid_size ()[1]
+//                                          + parallel.grid_rank ()[1] - 1)
+//                                             % parallel.grid_size ()[1]);
+//                                     for (q = 0; q < pixbuf_size[4]; q++)
+//                                         *(pixbuf[j][4] + q) += commbuf[q];
+//                                 }
+//                             }
+//                             else
+//                             {
+//                                 if (pixbuf_size[4] > 0)
+//                                 {
+//                                     parallel.receive_dim1<Real> (
+//                                         commbuf, pixbuf_size[4],
+//                                         (parallel.grid_size ()[1]
+//                                          + parallel.grid_rank ()[1] - 1)
+//                                             % parallel.grid_size ()[1]);
+//                                     for (q = 0; q < pixbuf_size[4]; q++)
+//                                         *(pixbuf[j][4] + q) += commbuf[q];
+//                                 }
+//                                 if (pixbuf_size[5] > 0)
+//                                     parallel.send_dim1<Real> (
+//                                         pixbuf[j][5], pixbuf_size[5],
+//                                         (parallel.grid_rank ()[1] + 1)
+//                                             % parallel.grid_size ()[1]);
+//                             }
+//                         }
+//                     }
+// 
+//                     free (commbuf);
+//                 }
+// 
+//                 if (io_group_size == 0
+//                     && parallel.rank ()
+//                            == ((shell - shell_inner) * parallel.size ()
+//                                / (shell_outer + 1 - shell_inner)))
+//                 {
+//                     for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                     {
+//                         if (pixbuf[j][0] != NULL)
+//                         {
+//                             if (bytes2 == 0)
+//                             {
+//                                 outbuf[j] = (char *)malloc (
+//                                     maphdr.Npix * maphdr.precision + 272);
+// 
+//                                 if (outbuf[j] == NULL)
+//                                 {
+//                                     std::cout
+//                                         << COLORTEXT_RED
+//                                         << " er"
+//                                            "ror"
+//                                         << COLORTEXT_RESET
+//                                         << ": "
+//                                            "pro"
+//                                            "c#"
+//                                         << parallel.rank ()
+//                                         << " un"
+//                                            "abl"
+//                                            "e "
+//                                            "to "
+//                                            "all"
+//                                            "oca"
+//                                            "te "
+//                                         << maphdr.Npix * maphdr.precision + 272
+//                                         << " by"
+//                                            "tes"
+//                                            " of"
+//                                            " me"
+//                                            "mor"
+//                                            "y "
+//                                            "for"
+//                                            " pi"
+//                                            "xel"
+//                                            "isa"
+//                                            "tio"
+//                                            "n!"
+//                                         << std::endl;
+//                                     parallel.abortForce ();
+//                                 }
+//                             }
+//                             else
+//                             {
+//                                 outbuf[j] = (char *)realloc (
+//                                     (void *)outbuf[j],
+//                                     bytes2 + maphdr.Npix * maphdr.precision
+//                                         + 272);
+// 
+//                                 if (outbuf[j] == NULL)
+//                                 {
+//                                     std::cout
+//                                         << COLORTEXT_RED
+//                                         << " er"
+//                                            "ror"
+//                                         << COLORTEXT_RESET
+//                                         << ": "
+//                                            "pro"
+//                                            "c#"
+//                                         << parallel.rank ()
+//                                         << " un"
+//                                            "abl"
+//                                            "e "
+//                                            "to "
+//                                            "rea"
+//                                            "llo"
+//                                            "cat"
+//                                            "e "
+//                                         << bytes2
+//                                                + maphdr.Npix * maphdr.precision
+//                                                + 272
+//                                         << " by"
+//                                            "tes"
+//                                            " of"
+//                                            " me"
+//                                            "mor"
+//                                            "y ("
+//                                         << maphdr.Npix * maphdr.precision + 272
+//                                         << " ad"
+//                                            "dit"
+//                                            "ion"
+//                                            "al "
+//                                            "byt"
+//                                            "es)"
+//                                            " fo"
+//                                            "r "
+//                                            "pix"
+//                                            "eli"
+//                                            "sat"
+//                                            "ion"
+//                                            "!"
+//                                         << std::endl;
+//                                     parallel.abortForce ();
+//                                 }
+//                             }
+// 
+//                             blocksize = 256;
+//                             memcpy ((void *)(outbuf[j] + bytes2),
+//                                     (void *)&blocksize, 4);
+//                             memcpy ((void *)(outbuf[j] + bytes2 + 4),
+//                                     (void *)&maphdr, 256);
+//                             memcpy ((void *)(outbuf[j] + bytes2 + 260),
+//                                     (void *)&blocksize, 4);
+//                             blocksize = maphdr.precision * maphdr.Npix;
+//                             memcpy ((void *)(outbuf[j] + bytes2 + 264),
+//                                     (void *)&blocksize, 4);
+//                             memcpy (
+//                                 (void *)(outbuf[j] + bytes2 + 268 + blocksize),
+//                                 (void *)&blocksize, 4);
+//                         }
+//                     }
+//                     offset2 = bytes2 + 268;
+//                     bytes2 += maphdr.Npix * maphdr.precision + 272;
+//                     p = 0;
+//                     q = pixbatch_delim[2].back ();
+//                 }
+//                 else if (io_group_size > 0
+//                          && shell - shell_inner == shell_write)
+//                 {
+//                     q = pixbatch_delim[2].back () / io_group_size;
+//                     p = parallel.rank ()
+//                         - (shell_write * parallel.size () + shell_outer
+//                            - shell_inner)
+//                               / (shell_outer + 1 - shell_inner);
+// 
+//                     for (j = 0; p * q >= pixbatch_delim[j].back (); j++)
+//                         ;
+// 
+//                     if ((p + 1) * q >= pixbatch_delim[j].back () && j < 2)
+//                     {
+//                         bytes2 = (pixbatch_delim[j].back () - p * q)
+//                                  * pixbatch_size[j].back () * maphdr.precision;
+//                         if ((p + 1) * q >= pixbatch_delim[j + 1].back ()
+//                             && j < 1)
+//                         {
+//                             bytes2 += (pixbatch_delim[j + 1].back ()
+//                                        - pixbatch_delim[j].back ())
+//                                       * pixbatch_size[j + 1].back ()
+//                                       * maphdr.precision;
+//                             bytes2
+//                                 += ((p + 1) * q - pixbatch_delim[j + 1].back ())
+//                                    * pixbatch_size[j + 2].back ()
+//                                    * maphdr.precision;
+//                         }
+//                         else
+//                             bytes2 += ((p + 1) * q - pixbatch_delim[j].back ())
+//                                       * pixbatch_size[j + 1].back ()
+//                                       * maphdr.precision;
+//                     }
+//                     else
+//                         bytes2
+//                             = q * pixbatch_size[j].back () * maphdr.precision;
+// 
+//                     if (p == 0)
+//                     {
+//                         bytes2 += 268;
+//                         offset2 = 268;
+//                     }
+//                     else
+//                         offset2 = 0;
+// 
+//                     if (p == io_group_size - 1)
+//                     {
+//                         bytes2 += 4;
+//                         q = pixbatch_delim[2].back () % io_group_size;
+//                         if (pixbatch_delim[2].back ()
+//                                 - pixbatch_delim[1].back ()
+//                             < q)
+//                         {
+//                             bytes2 += (pixbatch_delim[2].back ()
+//                                        - pixbatch_delim[1].back ())
+//                                       * pixbatch_size[2].back ()
+//                                       * maphdr.precision;
+//                             if (pixbatch_delim[2].back ()
+//                                     - pixbatch_delim[0].back ()
+//                                 < q)
+//                             {
+//                                 bytes2 += (pixbatch_delim[1].back ()
+//                                            - pixbatch_delim[0].back ())
+//                                           * pixbatch_size[1].back ()
+//                                           * maphdr.precision;
+//                                 bytes2 += (q - pixbatch_delim[2].back ()
+//                                            + pixbatch_delim[0].back ())
+//                                           * pixbatch_size[0].back ()
+//                                           * maphdr.precision;
+//                             }
+//                             else
+//                                 bytes2 += (q - pixbatch_delim[2].back ()
+//                                            + pixbatch_delim[1].back ())
+//                                           * pixbatch_size[1].back ()
+//                                           * maphdr.precision;
+//                         }
+//                         else
+//                             bytes2 += q * pixbatch_size[2].back ()
+//                                       * maphdr.precision;
+// 
+//                         q += pixbatch_delim[2].back () / io_group_size;
+//                     }
+// 
+//                     for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                     {
+//                         if (pixbuf[j][0] != NULL)
+//                         {
+//                             if (bytes2 > 0)
+//                             {
+//                                 outbuf[j] = (char *)malloc (bytes2);
+// 
+//                                 if (outbuf[j] == NULL)
+//                                 {
+//                                     std::cout << COLORTEXT_RED
+//                                               << " er"
+//                                                  "ror"
+//                                               << COLORTEXT_RESET
+//                                               << ": "
+//                                                  "pro"
+//                                                  "c#"
+//                                               << parallel.rank ()
+//                                               << " un"
+//                                                  "abl"
+//                                                  "e "
+//                                                  "to "
+//                                                  "all"
+//                                                  "oca"
+//                                                  "te "
+//                                               << bytes2
+//                                               << " by"
+//                                                  "tes"
+//                                                  " of"
+//                                                  " me"
+//                                                  "mor"
+//                                                  "y "
+//                                                  "for"
+//                                                  " pi"
+//                                                  "xel"
+//                                                  "isa"
+//                                                  "tio"
+//                                                  "n!"
+//                                               << std::endl;
+//                                     parallel.abortForce ();
+//                                 }
+//                             }
+// 
+//                             if (p == 0)
+//                             {
+//                                 blocksize = 256;
+//                                 memcpy ((void *)outbuf[j], (void *)&blocksize,
+//                                         4);
+//                                 memcpy ((void *)(outbuf[j] + 4),
+//                                         (void *)&maphdr, 256);
+//                                 memcpy ((void *)(outbuf[j] + 260),
+//                                         (void *)&blocksize, 4);
+//                                 blocksize = maphdr.precision * maphdr.Npix;
+//                                 memcpy ((void *)(outbuf[j] + 264),
+//                                         (void *)&blocksize, 4);
+//                             }
+// 
+//                             if (p == io_group_size - 1)
+//                             {
+//                                 blocksize = maphdr.precision * maphdr.Npix;
+//                                 memcpy ((void *)(outbuf[j] + bytes2 - 4),
+//                                         (void *)&blocksize, 4);
+//                             }
+//                         }
+//                     }
+// 
+//                     p *= pixbatch_delim[2].back () / io_group_size;
+//                 }
+// 
+//                 pix = 0;
+//                 pix2 = 0;
+// 
+//                 if ((io_group_size == 0
+//                      && parallel.rank ()
+//                             == ((shell - shell_inner) * parallel.size ())
+//                                    / (shell_outer + 1 - shell_inner))
+//                     || (io_group_size > 0
+//                         && shell - shell_inner == shell_write))
+//                 {
+//                     if (q != sender_proc.size ())
+//                     {
+//                         std::cout
+//                             << COLORTEXT_RED << " error" << COLORTEXT_RESET
+//                             << ": proc#" << parallel.rank ()
+//                             << " pixel batch count "
+//                                "mismatch! expecting "
+//                             << q << " but sender list contains "
+//                             << sender_proc.size () << " entries!" << std::endl;
+//                         std::exit (-99);
+//                     }
+// 
+//                     for (int64_t p2 = p; p2 < p + q; p2 += n)
+//                     {
+//                         while (pix < pixbatch_id.size ()
+//                                && pixbatch_id[pix] < p2)
+//                         {
+//                             for (pixbatch_type = 0;
+//                                  pixbatch_delim[pixbatch_type].back ()
+//                                  <= pixbatch_id[pix];
+//                                  pixbatch_type++)
+//                                 ;
+//                             if (io_group_size > 0
+//                                 && pixbatch_delim[2].back () >= io_group_size
+//                                 && pixbatch_id[pix]
+//                                            / (pixbatch_delim[2].back ()
+//                                               / io_group_size)
+//                                        < io_group_size)
+//                             {
+//                                 for (n = 1;
+//                                      pix + n < pixbatch_id.size ()
+//                                      && pixbatch_id[pix + n]
+//                                             == pixbatch_id[pix + n - 1] + 1
+//                                      && pixbatch_id[pix + n]
+//                                             < pixbatch_delim[pixbatch_type]
+//                                                   .back ()
+//                                      && (pixbatch_id[pix + n]
+//                                                  / (pixbatch_delim[2].back ()
+//                                                     / io_group_size)
+//                                              == pixbatch_id[pix]
+//                                                     / (pixbatch_delim[2].back ()
+//                                                        / io_group_size)
+//                                          || pixbatch_id[pix]
+//                                                     / (pixbatch_delim[2].back ()
+//                                                        / io_group_size)
+//                                                 == io_group_size - 1);
+//                                      n++)
+//                                     ;
+//                                 for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                                 {
+//                                     if (pixbuf[j][4] != NULL
+//                                         && pixbatch_size[pixbatch_type].back ()
+//                                                > 0)
+//                                         parallel.send<Real> (
+//                                             pixbuf[j][4] + pix2,
+//                                             n
+//                                                 * pixbatch_size[pixbatch_type]
+//                                                       .back (),
+//                                             (pixbatch_id[pix]
+//                                              / (pixbatch_delim[2].back ()
+//                                                 / io_group_size))
+//                                                 + ((shell - shell_inner)
+//                                                        * parallel.size ()
+//                                                    + shell_outer - shell_inner)
+//                                                       / (shell_outer + 1
+//                                                          - shell_inner));
+//                                 }
+//                             }
+//                             else
+//                             {
+//                                 for (n = 1;
+//                                      pix + n < pixbatch_id.size ()
+//                                      && pixbatch_id[pix + n]
+//                                             == pixbatch_id[pix + n - 1] + 1
+//                                      && pixbatch_id[pix + n]
+//                                             < pixbatch_delim[pixbatch_type]
+//                                                   .back ();
+//                                      n++)
+//                                     ;
+//                                 for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                                 {
+//                                     if (pixbuf[j][4] != NULL
+//                                         && pixbatch_size[pixbatch_type].back ()
+//                                                > 0)
+//                                         parallel.send<Real> (
+//                                             pixbuf[j][4] + pix2,
+//                                             n
+//                                                 * pixbatch_size[pixbatch_type]
+//                                                       .back (),
+//                                             (io_group_size ? io_group_size - 1
+//                                                            : 0)
+//                                                 + ((shell - shell_inner)
+//                                                        * parallel.size ()
+//                                                    + (io_group_size
+//                                                           ? shell_outer
+//                                                                 - shell_inner
+//                                                           : 0))
+//                                                       / (shell_outer + 1
+//                                                          - shell_inner));
+//                                 }
+//                             }
+//                             pix += n;
+//                             pix2 += n * pixbatch_size[pixbatch_type].back ();
+//                         }
+// 
+//                         for (pixbatch_type = 0;
+//                              pixbatch_delim[pixbatch_type].back () <= p2;
+//                              pixbatch_type++)
+//                             ;
+// 
+//                         for (n = 1;
+//                              p2 + n < p + q
+//                              && sender_proc[p2 + n - p] == sender_proc[p2 - p]
+//                              && p2 + n < pixbatch_delim[pixbatch_type].back ();
+//                              n++)
+//                             ;
+// 
+//                         if (sender_proc[p2 - p] == parallel.rank ())
+//                         {
+//                             if (pix + n - 1 >= pixbatch_id.size ())
+//                             {
+//                                 cerr << COLORTEXT_RED << " error"
+//                                      << COLORTEXT_RESET << ": proc#"
+//                                      << parallel.rank ()
+//                                      << " pixel "
+//                                         "batch "
+//                                         "index "
+//                                         "mismatch! "
+//                                         "expecting "
+//                                      << p2
+//                                      << " but ID "
+//                                         "list "
+//                                         "contains "
+//                                         "not enough "
+//                                         "elements!"
+//                                      << std::endl;
+//                                 std::exit (-99);
+//                             }
+//                             else if (pixbatch_id[pix] != p2)
+//                             {
+//                                 cerr << COLORTEXT_RED << " error"
+//                                      << COLORTEXT_RESET << ": proc#"
+//                                      << parallel.rank ()
+//                                      << " pixel "
+//                                         "batch "
+//                                         "index "
+//                                         "mismatch! "
+//                                         "expecting "
+//                                      << p2
+//                                      << " but ID "
+//                                         "list says "
+//                                      << pixbatch_id[pix] << "!" << std::endl;
+//                                 std::exit (-99);
+//                             }
+//                             for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                             {
+//                                 if (pixbuf[j][4] != NULL
+//                                     && pixbatch_size[pixbatch_type].back () > 0)
+//                                     memcpy (
+//                                         (void *)(outbuf[j] + offset2),
+//                                         (void *)(pixbuf[j][4] + pix2),
+//                                         n * pixbatch_size[pixbatch_type].back ()
+//                                             * maphdr.precision);
+//                             }
+//                             pix += n;
+//                             pix2 += n * pixbatch_size[pixbatch_type].back ();
+//                         }
+//                         else
+//                         {
+//                             for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                             {
+//                                 if (outbuf[j] != NULL
+//                                     && pixbatch_size[pixbatch_type].back () > 0)
+//                                     parallel.receive<Real> (
+//                                         (Real *)(outbuf[j] + offset2),
+//                                         n
+//                                             * pixbatch_size[pixbatch_type]
+//                                                   .back (),
+//                                         sender_proc[p2 - p]);
+//                             }
+//                         }
+// 
+//                         offset2 += n * pixbatch_size[pixbatch_type].back ()
+//                                    * maphdr.precision;
+//                     }
+// 
+//                     if (io_group_size > 0)
+//                     {
+//                         if (p > 0)
+//                         {
+//                             if (p >= pixbatch_delim[0].back ())
+//                             {
+//                                 offset2 = 268
+//                                           + pixbatch_delim[0].back ()
+//                                                 * pixbatch_size[0].back ()
+//                                                 * maphdr.precision;
+//                                 if (p >= pixbatch_delim[1].back ())
+//                                 {
+//                                     offset2 += (pixbatch_delim[1].back ()
+//                                                 - pixbatch_delim[0].back ())
+//                                                * pixbatch_size[1].back ()
+//                                                * maphdr.precision;
+//                                     offset2 += (p - pixbatch_delim[1].back ())
+//                                                * pixbatch_size[2].back ()
+//                                                * maphdr.precision;
+//                                 }
+//                                 else
+//                                     offset2 += (p - pixbatch_delim[0].back ())
+//                                                * pixbatch_size[1].back ()
+//                                                * maphdr.precision;
+//                             }
+//                             else
+//                                 offset2 = 268
+//                                           + p * pixbatch_size[0].back ()
+//                                                 * maphdr.precision;
+//                         }
+//                         else if (parallel.rank ()
+//                                  == (shell_write * parallel.size ()
+//                                      + shell_outer - shell_inner)
+//                                         / (shell_outer + 1 - shell_inner))
+//                             offset2 = 0;
+//                         else
+//                             offset2 = 268;
+//                     }
+//                 }
+// 
+//                 p = ((((shell + 1 - shell_inner) * parallel.size ()
+//                        + shell_outer - shell_inner)
+//                       / (shell_outer + 1 - shell_inner))
+//                      - (((shell - shell_inner) * parallel.size () + shell_outer
+//                          - shell_inner)
+//                         / (shell_outer + 1 - shell_inner)));
+// 
+//                 while (pix < pixbatch_id.size ())
+//                 {
+//                     for (pixbatch_type = 0;
+//                          pixbatch_delim[pixbatch_type].back ()
+//                          <= pixbatch_id[pix];
+//                          pixbatch_type++)
+//                         ;
+// 
+//                     if (p > 0 && pixbatch_delim[2].back () >= p
+//                         && pixbatch_id[pix] / (pixbatch_delim[2].back () / p)
+//                                < p)
+//                     {
+//                         for (n = 1;
+//                              pix + n < pixbatch_id.size ()
+//                              && pixbatch_id[pix + n]
+//                                     == pixbatch_id[pix + n - 1] + 1
+//                              && pixbatch_id[pix + n]
+//                                     < pixbatch_delim[pixbatch_type].back ()
+//                              && (pixbatch_id[pix + n]
+//                                          / (pixbatch_delim[2].back () / p)
+//                                      == pixbatch_id[pix]
+//                                             / (pixbatch_delim[2].back () / p)
+//                                  || pixbatch_id[pix]
+//                                             / (pixbatch_delim[2].back () / p)
+//                                         == p - 1);
+//                              n++)
+//                             ;
+//                         for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                         {
+//                             if (pixbuf[j][4] != NULL
+//                                 && pixbatch_size[pixbatch_type].back () > 0)
+//                                 parallel.send<Real> (
+//                                     pixbuf[j][4] + pix2,
+//                                     n * pixbatch_size[pixbatch_type].back (),
+//                                     (pixbatch_id[pix]
+//                                      / (pixbatch_delim[2].back () / p))
+//                                         + ((shell - shell_inner)
+//                                                * parallel.size ()
+//                                            + (io_group_size
+//                                                   ? shell_outer - shell_inner
+//                                                   : 0))
+//                                               / (shell_outer + 1
+//                                                  - shell_inner));
+//                         }
+//                     }
+//                     else
+//                     {
+//                         for (n = 1;
+//                              pix + n < pixbatch_id.size ()
+//                              && pixbatch_id[pix + n]
+//                                     == pixbatch_id[pix + n - 1] + 1
+//                              && pixbatch_id[pix + n]
+//                                     < pixbatch_delim[pixbatch_type].back ();
+//                              n++)
+//                             ;
+//                         for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//                         {
+//                             if (pixbuf[j][4] != NULL
+//                                 && pixbatch_size[pixbatch_type].back () > 0)
+//                                 parallel.send<Real> (
+//                                     pixbuf[j][4] + pix2,
+//                                     n * pixbatch_size[pixbatch_type].back (),
+//                                     (p ? p - 1 : 0)
+//                                         + ((shell - shell_inner)
+//                                                * parallel.size ()
+//                                            + (p ? shell_outer - shell_inner
+//                                                 : 0))
+//                                               / (shell_outer + 1
+//                                                  - shell_inner));
+//                         }
+//                     }
+// 
+//                     pix += n;
+//                     pix2 += n * pixbatch_size[pixbatch_type].back ();
+//                 }
+// 
+//                 offset.push_back (bytes);
+//                 bytes += maphdr.Npix * maphdr.precision + 272;
+// 
+//                 pixbatch_id.clear ();
+//                 sender_proc.clear ();
+//             } // shell-loop
+// 
+//             if (io_group_size == 0)
+//                 offset2 = 0;
+// 
+//             for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//             {
+//                 if (pixbuf[j][0] == NULL || shell_outer < shell_inner)
+//                     continue;
+// 
+//                 if (sim.num_lightcone > 1)
+//                 {
+//                     if (j == LIGHTCONE_PHI_OFFSET)
+//                         sprintf (filename, "%s%s%d_%04d_phi.map",
+//                                  sim.output_path, sim.basename_lightcone, i,
+//                                  cycle);
+//                     else if (j == LIGHTCONE_CHI_OFFSET)
+//                         sprintf (filename, "%s%s%d_%04d_chi.map",
+//                                  sim.output_path, sim.basename_lightcone, i,
+//                                  cycle);
+//                     else if (j >= LIGHTCONE_B_OFFSET
+//                              && j < LIGHTCONE_B_OFFSET + 3)
+//                         sprintf (filename, "%s%s%d_%04d_B%d.map",
+//                                  sim.output_path, sim.basename_lightcone, i,
+//                                  cycle, j + 1 - LIGHTCONE_B_OFFSET);
+//                     else if (j >= LIGHTCONE_HIJ_OFFSET
+//                              && j < LIGHTCONE_HIJ_OFFSET + 5)
+//                         sprintf (filename, "%s%s%d_%04d_h%d%d.map",
+//                                  sim.output_path, sim.basename_lightcone, i,
+//                                  cycle, (j - LIGHTCONE_HIJ_OFFSET < 3 ? 1 : 2),
+//                                  j - LIGHTCONE_HIJ_OFFSET
+//                                      + (j - LIGHTCONE_HIJ_OFFSET < 3 ? 1 : -1));
+//                 }
+//                 else
+//                 {
+//                     if (j == LIGHTCONE_PHI_OFFSET)
+//                         sprintf (filename, "%s%s_%04d_phi.map", sim.output_path,
+//                                  sim.basename_lightcone, cycle);
+//                     else if (j == LIGHTCONE_CHI_OFFSET)
+//                         sprintf (filename, "%s%s_%04d_chi.map", sim.output_path,
+//                                  sim.basename_lightcone, cycle);
+//                     else if (j >= LIGHTCONE_B_OFFSET
+//                              && j < LIGHTCONE_B_OFFSET + 3)
+//                         sprintf (filename, "%s%s_%04d_B%d.map", sim.output_path,
+//                                  sim.basename_lightcone, cycle,
+//                                  j + 1 - LIGHTCONE_B_OFFSET);
+//                     else if (j >= LIGHTCONE_HIJ_OFFSET
+//                              && j < LIGHTCONE_HIJ_OFFSET + 5)
+//                         sprintf (filename, "%s%s_%04d_h%d%d.map",
+//                                  sim.output_path, sim.basename_lightcone, cycle,
+//                                  (j - LIGHTCONE_HIJ_OFFSET < 3 ? 1 : 2),
+//                                  j - LIGHTCONE_HIJ_OFFSET
+//                                      + (j - LIGHTCONE_HIJ_OFFSET < 3 ? 1 : -1));
+//                 }
+// 
+//                 MPI_File_open (parallel.lat_world_comm (), filename,
+//                                MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL,
+//                                &mapfile);
+//                 MPI_File_set_size (mapfile, (MPI_Offset)bytes);
+//                 MPI_File_write_at_all (
+//                     mapfile, (MPI_Offset)offset[shell_write] + offset2,
+//                     (void *)outbuf[j], bytes2, MPI_BYTE, &status);
+//                 MPI_File_close (&mapfile);
+//             }
+// 
+//             for (j = 0; j < 3; j++)
+//             {
+//                 pixbatch_size[j].clear ();
+//                 pixbatch_delim[j].clear ();
+//             }
+// 
+//             offset.clear ();
+// 
+//             for (j = 0; j < 9 * LIGHTCONE_MAX_FIELDS; j++)
+//             {
+//                 if (pixbuf[j / 9][j % 9] != NULL)
+//                 {
+//                     free (pixbuf[j / 9][j % 9]);
+//                     pixbuf[j / 9][j % 9] = NULL;
+//                 }
+//             }
+// 
+//             for (j = 0; j < LIGHTCONE_MAX_FIELDS; j++)
+//             {
+//                 if (outbuf[j] != NULL)
+//                 {
+//                     free (outbuf[j]);
+//                     outbuf[j] = NULL;
+//                 }
+//             }
+// #endif // HAVE_HEALPIX
+//         }
+//         else if (parallel.isRoot () && outfile != NULL)
+//             fclose (outfile);
+// 
+//         if (sim.out_lightcone[i] & MASK_GADGET
+//             && sim.lightcone[i].distance[0] > d - tau + 0.5 * dtau_old
+//             && sim.lightcone[i].distance[1] <= d - tau + 0.5 * dtau_old
+//             && d - tau + 0.5 * dtau_old > 0.)
+//         {
+//             n = findIntersectingLightcones (
+//                 sim.lightcone[i],
+//                 d - tau + (0.5 + LIGHTCONE_IDCHECK_ZONE) * dtau_old,
+//                 d - tau - 0.5 * dtau, domain, vertex);
+// 
+//             hdr.num_files = 1;
+//             hdr.Omega0 = cosmo.Omega_m;
+//             hdr.OmegaLambda = cosmo.Omega_Lambda;
+//             hdr.HubbleParam = cosmo.h;
+//             hdr.BoxSize = sim.boxsize / GADGET_LENGTH_CONVERSION;
+//             hdr.flag_sfr = 0;
+//             hdr.flag_cooling = 0;
+//             hdr.flag_feedback = 0;
+//             hdr.flag_age = 0;
+//             hdr.flag_metals = 0;
+//             for (p = 0; p < 256 - 6 * 4 - 6 * 8 - 2 * 8 - 2 * 4 - 6 * 4 - 2 * 4
+//                                 - 4 * 8 - 2 * 4 - 6 * 4;
+//                  p++)
+//                 hdr.fill[p] = 0;
+//             for (p = 0; p < 6; p++)
+//             {
+//                 hdr.npart[p] = 0;
+//                 hdr.npartTotal[p] = 0;
+//                 hdr.npartTotalHW[p] = 0;
+//                 hdr.mass[p] = 0.;
+//             }
+// 
+//             hdr.time = a;
+//             hdr.redshift = (1. / a) - 1.;
+// 
+//             if (sim.baryon_flag)
+//                 hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
+//                               * cosmo.Omega_cdm * sim.boxsize * sim.boxsize
+//                               * sim.boxsize / sim.numpcl[0]
+//                               / GADGET_MASS_CONVERSION;
+//             else
+//                 hdr.mass[1] = (double)sim.tracer_factor[0] * cosmo.C_RHO_CRIT
+//                               * (cosmo.Omega_cdm + cosmo.Omega_b) * sim.boxsize
+//                               * sim.boxsize * sim.boxsize / sim.numpcl[0]
+//                               / GADGET_MASS_CONVERSION;
+// 
+//             if (sim.num_lightcone > 1)
+//                 sprintf (filename, "%d_%04d", i, cycle);
+//             else
+//                 sprintf (filename, "_%04d", cycle);
+// 
+//             if (sim.tracer_factor[0] > 0)
+//                 pcls_cdm->saveGadget2 (h5filename + filename + "_cdm", hdr,
+//                                        sim.lightcone[i], d - tau, dtau,
+//                                        dtau_old, a * Hconf (a, cosmo),
+//                                        vertex, n, IDbacklog[0], IDprelog[0],
+//                                        phi, sim.tracer_factor[0]);
+// 
+//             if (sim.baryon_flag && sim.tracer_factor[1] > 0)
+//             {
+//                 hdr.mass[1] = (double)sim.tracer_factor[1] * cosmo.C_RHO_CRIT
+//                               * cosmo.Omega_b * sim.boxsize * sim.boxsize
+//                               * sim.boxsize / sim.numpcl[1]
+//                               / GADGET_MASS_CONVERSION;
+//                 pcls_b->saveGadget2 (h5filename + filename + "_b", hdr,
+//                                      sim.lightcone[i], d - tau, dtau, dtau_old,
+//                                      a * Hconf (a, cosmo), vertex, n,
+//                                      IDbacklog[1], IDprelog[1], phi,
+//                                      sim.tracer_factor[1]);
+//             }
+// 
+//             for (p = 0; p < cosmo.num_ncdm; p++)
+//             {
+//                 if (sim.numpcl[1 + sim.baryon_flag + p] == 0
+//                     || sim.tracer_factor[p + 1 + sim.baryon_flag] == 0)
+//                     continue;
+//                 sprintf (buffer, "_ncdm%d", p);
+//                 hdr.mass[1] = (double)sim.tracer_factor[p + 1 + sim.baryon_flag]
+//                               * cosmo.C_RHO_CRIT * cosmo.Omega_ncdm[p] * sim.boxsize
+//                               * sim.boxsize * sim.boxsize
+//                               / sim.numpcl[p + 1 + sim.baryon_flag]
+//                               / GADGET_MASS_CONVERSION;
+//                 pcls_ncdm[p].saveGadget2 (
+//                     h5filename + filename + buffer, hdr, sim.lightcone[i],
+//                     d - tau, dtau, dtau_old, a * Hconf (a, cosmo),
+//                     vertex, n, IDbacklog[p + 1 + sim.baryon_flag],
+//                     IDprelog[p + 1 + sim.baryon_flag], phi,
+//                     sim.tracer_factor[p + 1 + sim.baryon_flag]);
+//             }
+//         }
+//     }
+// 
+// #ifdef HAVE_HEALPIX
+//     delete[] outbuf;
+// #endif
+// 
+//     for (p = 0; p <= cosmo.num_ncdm + sim.baryon_flag; p++)
+//     {
+//         IDbacklog[p] = IDprelog[p];
+//         IDprelog[p].clear ();
+// 
+//         n = IDbacklog[p].size ();
+//         // dim 0 send/rec
+//         if (parallel.grid_rank ()[0] % 2 == 0)
+//         {
+//             parallel.send_dim0<int> (
+//                 n, (parallel.grid_size ()[0] + parallel.grid_rank ()[0] - 1)
+//                        % parallel.grid_size ()[0]);
+//             parallel.receive_dim0<int> (
+//                 i, (parallel.grid_size ()[0] + parallel.grid_rank ()[0] - 1)
+//                        % parallel.grid_size ()[0]);
+//             parallel.send_dim0<int> (n, (parallel.grid_rank ()[0] + 1)
+//                                             % parallel.grid_size ()[0]);
+//             parallel.receive_dim0<int> (j, (parallel.grid_rank ()[0] + 1)
+//                                                % parallel.grid_size ()[0]);
+//         }
+//         else
+//         {
+//             parallel.receive_dim0<int> (i, (parallel.grid_rank ()[0] + 1)
+//                                                % parallel.grid_size ()[0]);
+//             parallel.send_dim0<int> (n, (parallel.grid_rank ()[0] + 1)
+//                                             % parallel.grid_size ()[0]);
+//             parallel.receive_dim0<int> (
+//                 j, (parallel.grid_size ()[0] + parallel.grid_rank ()[0] - 1)
+//                        % parallel.grid_size ()[0]);
+//             parallel.send_dim0<int> (
+//                 n, (parallel.grid_size ()[0] + parallel.grid_rank ()[0] - 1)
+//                        % parallel.grid_size ()[0]);
+//         }
+// 
+//         if (n + i + j > 0)
+//         {
+//             IDcombuf = (long *)malloc ((n + i + j) * sizeof (long));
+// 
+//             n = 0;
+//             for (std::set<long>::iterator it = IDbacklog[p].begin ();
+//                  it != IDbacklog[p].end (); it++)
+//                 IDcombuf[n++] = *it;
+// 
+//             if (parallel.grid_rank ()[0] % 2 == 0)
+//             {
+//                 if (n > 0)
+//                     parallel.send_dim0<long> (IDcombuf, n,
+//                                               (parallel.grid_size ()[0]
+//                                                + parallel.grid_rank ()[0] - 1)
+//                                                   % parallel.grid_size ()[0]);
+//                 if (i > 0)
+//                     parallel.receive_dim0<long> (
+//                         IDcombuf + n, i,
+//                         (parallel.grid_size ()[0] + parallel.grid_rank ()[0]
+//                          - 1)
+//                             % parallel.grid_size ()[0]);
+//                 if (n > 0)
+//                     parallel.send_dim0<long> (IDcombuf, n,
+//                                               (parallel.grid_rank ()[0] + 1)
+//                                                   % parallel.grid_size ()[0]);
+//                 if (j > 0)
+//                     parallel.receive_dim0<long> (
+//                         IDcombuf + n + i, j,
+//                         (parallel.grid_rank ()[0] + 1)
+//                             % parallel.grid_size ()[0]);
+//             }
+//             else
+//             {
+//                 if (i > 0)
+//                     parallel.receive_dim0<long> (
+//                         IDcombuf + n, i,
+//                         (parallel.grid_rank ()[0] + 1)
+//                             % parallel.grid_size ()[0]);
+//                 if (n > 0)
+//                     parallel.send_dim0<long> (IDcombuf, n,
+//                                               (parallel.grid_rank ()[0] + 1)
+//                                                   % parallel.grid_size ()[0]);
+//                 if (j > 0)
+//                     parallel.receive_dim0<long> (
+//                         IDcombuf + n + i, j,
+//                         (parallel.grid_size ()[0] + parallel.grid_rank ()[0]
+//                          - 1)
+//                             % parallel.grid_size ()[0]);
+//                 if (n > 0)
+//                     parallel.send_dim0<long> (IDcombuf, n,
+//                                               (parallel.grid_size ()[0]
+//                                                + parallel.grid_rank ()[0] - 1)
+//                                                   % parallel.grid_size ()[0]);
+//             }
+// 
+//             n += i + j;
+// 
+//             for (i = IDbacklog[p].size (); i < n; i++)
+//                 IDbacklog[p].insert (IDcombuf[i]);
+//         }
+// 
+//         // dim 1 send/rec
+//         if (parallel.grid_rank ()[1] % 2 == 0)
+//         {
+//             parallel.send_dim1<int> (
+//                 n, (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
+//                        % parallel.grid_size ()[1]);
+//             parallel.receive_dim1<int> (
+//                 i, (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
+//                        % parallel.grid_size ()[1]);
+//             parallel.send_dim1<int> (n, (parallel.grid_rank ()[1] + 1)
+//                                             % parallel.grid_size ()[1]);
+//             parallel.receive_dim1<int> (j, (parallel.grid_rank ()[1] + 1)
+//                                                % parallel.grid_size ()[1]);
+// 
+//             if (n > 0)
+//                 parallel.send_dim1<long> (
+//                     IDcombuf, n,
+//                     (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
+//                         % parallel.grid_size ()[1]);
+// 
+//             if (i > 0)
+//             {
+//                 IDcombuf2 = (long *)malloc (i * sizeof (long));
+//                 parallel.receive_dim1<long> (
+//                     IDcombuf2, i,
+//                     (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
+//                         % parallel.grid_size ()[1]);
+//                 while (i > 0)
+//                     IDbacklog[p].insert (IDcombuf2[--i]);
+//                 free (IDcombuf2);
+//             }
+// 
+//             if (n > 0)
+//             {
+//                 parallel.send_dim1<long> (IDcombuf, n,
+//                                           (parallel.grid_rank ()[1] + 1)
+//                                               % parallel.grid_size ()[1]);
+//                 free (IDcombuf);
+//             }
+// 
+//             if (j > 0)
+//             {
+//                 IDcombuf2 = (long *)malloc (j * sizeof (long));
+//                 parallel.receive_dim1<long> (IDcombuf2, j,
+//                                              (parallel.grid_rank ()[1] + 1)
+//                                                  % parallel.grid_size ()[1]);
+//                 while (j > 0)
+//                     IDbacklog[p].insert (IDcombuf2[--j]);
+//                 free (IDcombuf2);
+//             }
+//         }
+//         else
+//         {
+//             parallel.receive_dim1<int> (i, (parallel.grid_rank ()[1] + 1)
+//                                                % parallel.grid_size ()[1]);
+//             parallel.send_dim1<int> (n, (parallel.grid_rank ()[1] + 1)
+//                                             % parallel.grid_size ()[1]);
+//             parallel.receive_dim1<int> (
+//                 j, (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
+//                        % parallel.grid_size ()[1]);
+//             parallel.send_dim1<int> (
+//                 n, (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
+//                        % parallel.grid_size ()[1]);
+// 
+//             if (i > 0)
+//             {
+//                 IDcombuf2 = (long *)malloc (i * sizeof (long));
+//                 parallel.receive_dim1<long> (IDcombuf2, i,
+//                                              (parallel.grid_rank ()[1] + 1)
+//                                                  % parallel.grid_size ()[1]);
+//                 while (i > 0)
+//                     IDbacklog[p].insert (IDcombuf2[--i]);
+//                 free (IDcombuf2);
+//             }
+// 
+//             if (n > 0)
+//                 parallel.send_dim1<long> (IDcombuf, n,
+//                                           (parallel.grid_rank ()[1] + 1)
+//                                               % parallel.grid_size ()[1]);
+// 
+//             if (j > 0)
+//             {
+//                 IDcombuf2 = (long *)malloc (j * sizeof (long));
+//                 parallel.receive_dim1<long> (
+//                     IDcombuf2, j,
+//                     (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
+//                         % parallel.grid_size ()[1]);
+//                 while (j > 0)
+//                     IDbacklog[p].insert (IDcombuf2[--j]);
+//                 free (IDcombuf2);
+//             }
+// 
+//             if (n > 0)
+//             {
+//                 parallel.send_dim1<long> (
+//                     IDcombuf, n,
+//                     (parallel.grid_size ()[1] + parallel.grid_rank ()[1] - 1)
+//                         % parallel.grid_size ()[1]);
+//                 free (IDcombuf);
+//             }
+//         }
+//     }
+// }
 
 //////////////////////////
 // writeSpectra

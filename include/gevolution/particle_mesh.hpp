@@ -265,6 +265,15 @@ class particle_mesh
         const std::array<real_type,3>& pos)const
     // First order CIC gradient
     // precondition: F has valid ghost cells
+    //
+    // returns: grad F * h = F_1 - F_0, that is just the difference in the field per unit of cell
+    // size. With this choice we don't need to specify a unit of length.
+    // This is like giving the gradient in units of [F] [cellsize]^-1
+    // grad F * L/N 
+    // 
+    // For instance: grad F = (F_1 - F_0)/(h) where h = L/N, gives the actual gradient in units
+    // of [F] [L]^-1
+    // numerically the same as grad F * L = (F_1 - F_0)/(1.0/N)
     {
         const int N = size();
         const real_type dx = 1.0 / N;
@@ -342,10 +351,11 @@ class particle_mesh
     template<std::size_t N_components = 1 >
     void save_field_power_spectrum(std::string fname, std::string suffix, 
         const complex_field_type& F,
-        const real_type normalization = 1.0)  const 
+        // FIXME: use this normalization
+        const real_type /* normalization */ = 1.0)  const 
     {
         auto power_F = power_spectrum<complex_field_type,N_components>(F);    
-        const int N_global = F.lattice().size(0);
+        // const int N_global = F.lattice().size(0);
         const auto& com = LATfield2::parallel.cartesian_communicator();
         if(com.rank()==0)
         {

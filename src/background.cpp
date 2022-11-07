@@ -129,6 +129,19 @@ double bg_ncdm (const double a, const cosmology cosmo)
 //////////////////////////
 // Description:
 //   computes the conformal Hubble rate at given scale factor
+// 
+// In gevolution units
+// 
+// Hconf = \frac{1}{a}\frac{d a}{d\tau}
+//       = \sqrt{ \frac{2M}{3L^3} (4\pi G) } \sqrt{\Omega_r/a^2 + \Omega_m/a + \Omega_{\lambda} a^2}
+// 
+// Where L is the unit of length (boxsize), M is the unit of mass, and G is the gravitational
+// constant.
+// 
+// tau is the conformal time in units of T = L/c
+// In gevolution the unit of mass is:
+// M = 3 H_o^2 L^3 / (8\pi G)
+// 
 //
 // Arguments:
 //   a          scale factor
@@ -183,6 +196,10 @@ double Omega_Lambda (const double a, const cosmology cosmo)
 // Description:
 //   integrates the Friedmann equation for the background model using a
 //   fourth-order Runge-Kutta method
+//
+//   da/dtau = a Hconf(a,cosmo)
+//   
+//   tau is the conformal time in units of T = L/c
 //
 // Arguments:
 //   a          scale factor (will be advanced by dtau)

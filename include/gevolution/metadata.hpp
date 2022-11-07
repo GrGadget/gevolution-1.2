@@ -302,5 +302,10 @@ struct cosmology
     static constexpr double C_RHO_CRIT = 2.77459457e11;    // critical density [M_sun h^2 / Mpc^3]
     static constexpr double C_FD_NORM = 1.80308535;        // Integral[q*q/(exp(q)+1), 0, infinity]
 };
+
+gadget2_header construct_gadget_header(
+    const cosmology cosmo, 
+    const double a, 
+    const double boxsize /* in units of kpc/h */);
 }
 #endif

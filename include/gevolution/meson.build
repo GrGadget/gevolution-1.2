@@ -25,5 +25,6 @@ gevolution_headers = files([
     'basic_types.hpp',
     'tools.hpp',
     'velocity.hpp',
-    'final_action.hpp'
+    'final_action.hpp',
+    'lightcone.hpp'
     ])

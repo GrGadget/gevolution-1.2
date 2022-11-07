@@ -20,6 +20,7 @@
 #include "LATfield2.hpp"
 #include "gevolution/basic_types.hpp"
 #include "gevolution/metadata.hpp"
+#include "gevolution/final_action.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <mpi.h>
@@ -103,13 +104,16 @@ class Particles_gevolution :
 
     void saveGadget2 (std::string filename, gadget2_header &hdr,
                       const int tracer_factor = 1) const ;
-    
+   
     template<typename selector_type>
     void saveGadget2 (
         const std::string filename, 
-        const gadget2_header hdr,
-        selector_type select_function)const
+        gadget2_header hdr,
+        selector_type select_function,
+        int const tracer_factor = 1)const
     // precondition: hdr must already contain cosmological data and number of particles=0
+    // FIXME: convert units from gevolution to gadget2
+    // FIXME: convert momentum to velocities. is this required at all?
     {
         // count the particles that meet the criteria
         int64_t npart = 0 ;
@@ -120,7 +124,7 @@ class Particles_gevolution :
             }
         );
         
-        const auto& cart_com = cartesian_communicator();
+        auto const & cart_com = cartesian_communicator();
         const int64_t total_npart 
             = ::boost::mpi::all_reduce(cart_com,npart,std::plus<decltype(npart)>());
         
@@ -142,7 +146,7 @@ class Particles_gevolution :
                        &outfile);
         
         auto close_mpi_file = finally([&](){
-            MPI_File_close(&output); 
+            MPI_File_close(&outfile); 
         });
         
         const MPI_Offset filesize = 
@@ -238,19 +242,19 @@ class Particles_gevolution :
             MPI_File_write_at(outfile,
                               this_pos_start,
                               posdata.data(),
-                              posdata.size()*sizeof(posdata::value_type),
+                              posdata.size()*sizeof(decltype(posdata)::value_type),
                               MPI_BYTE,&status);
             
             MPI_File_write_at(outfile,
                               this_vel_start,
                               veldata.data(),
-                              veldata.size()*sizeof(veldata::value_type),
+                              veldata.size()*sizeof(decltype(veldata)::value_type),
                               MPI_BYTE,&status);
             
             MPI_File_write_at(outfile,
                               this_ids_start,
                               IDs.data(),
-                              IDs.size()*sizeof(IDs::value_type),
+                              IDs.size()*sizeof(decltype(IDs)::value_type),
                               MPI_BYTE,&status);
             
             posdata.clear();
@@ -311,7 +315,12 @@ class Particles_gevolution :
             });
     }
     
-    const auto& communicator()const
+    auto const & communicator()const
+    {
+        return ::LATfield2::parallel.cartesian_communicator();
+    }
+    
+    auto const & cartesian_communicator()const
     {
         return ::LATfield2::parallel.cartesian_communicator();
     }
