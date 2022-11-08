@@ -41,6 +41,7 @@ struct healpix_header
 struct lightcone_geometry
 {
     // comoving position of the observer 
+    // in units of the boxsize [L]
     double vertex[3];
     
     // redshift of the observation event
@@ -201,12 +202,19 @@ class parallel_lightcone
             sqr(shell.direction[1]) +
             sqr(shell.direction[2]) );
         
+        
+        // cos(alpha) = pos_diff * direction / |pos_diff| / |direction|
+        // then alpha is the angle between the line of sight and the direction
+        // of the lightcone.
         const double cos_angle =  
             ( pos_diff[0]*shell.direction[0] + 
               pos_diff[1]*shell.direction[1] + 
               pos_diff[2]*shell.direction[2] )
             / dir_mod / dist;
         
+        // dist must be bounded by the shell inner and outer radii, while the
+        // angle alpha between the line of sight and the lightcone direction
+        // must not exceed the opening angle. Here cosines are compared.
         return dist >= shell.distance[0] && dist<shell.distance[1] && cos_angle >= shell.opening;
     }
     
@@ -240,6 +248,9 @@ class parallel_lightcone
         // at each time step we build a lightcone shell using the distance to the observer in the
         // current and the last time step.
         lightcone_geometry thin_shell{geometry};
+        
+        // this operation is the intersection of the total lightcone shell and
+        // the thin shell of this timestep.
         thin_shell.distance[0] = std::max(thin_shell.tau - tau, geometry.distance[0]);
         thin_shell.distance[1] = std::min(thin_shell.tau - last_tau, geometric.distance[1]);
         

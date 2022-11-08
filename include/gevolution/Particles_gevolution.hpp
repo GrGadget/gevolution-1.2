@@ -104,7 +104,11 @@ class Particles_gevolution :
 
     void saveGadget2 (std::string filename, gadget2_header &hdr,
                       const int tracer_factor = 1) const ;
-   
+    
+    /* Like the previous saveGadget2 function. But this one serializes only the
+     * subset of particles for which selector_type()==true. If the functor is
+     * always true, then this function should produce the same serialization as
+     * the first saveGadget2. */
     template<typename selector_type>
     void saveGadget2 (
         const std::string filename, 
@@ -145,6 +149,8 @@ class Particles_gevolution :
                        MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL,
                        &outfile);
         
+        // RAII at work here. On destruction this object will release the file
+        // resource.
         auto close_mpi_file = finally([&](){
             MPI_File_close(&outfile); 
         });

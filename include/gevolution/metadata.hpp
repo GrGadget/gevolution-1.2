@@ -303,9 +303,13 @@ struct cosmology
     static constexpr double C_FD_NORM = 1.80308535;        // Integral[q*q/(exp(q)+1), 0, infinity]
 };
 
+/*
+    This function builds a generic gadget header file, using the cosmology
+    information, scale factor and the boxsize.
+*/
 gadget2_header construct_gadget_header(
     const cosmology cosmo, 
-    const double a, 
+    const double a /* scale factor */, 
     const double boxsize /* in units of kpc/h */);
 }
 #endif
