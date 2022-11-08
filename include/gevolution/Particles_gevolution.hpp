@@ -119,6 +119,7 @@ class Particles_gevolution :
     // FIXME: convert units from gevolution to gadget2
     // FIXME: convert momentum to velocities. is this required at all?
     {
+    
         // count the particles that meet the criteria
         int64_t npart = 0 ;
         this->for_each(
@@ -157,7 +158,8 @@ class Particles_gevolution :
         
         const MPI_Offset filesize = 
         /* 3 positions + 3 velocities + 1 id per particle*/
-        total_npart*(3*sizeof(position_type)+3*sizeof(velocity_type)+sizeof(id_type)) 
+        total_npart*(3*sizeof(gadget_serialization::position_type)
+        +3*sizeof(gadget_serialization::velocity_type)+sizeof(gadget_serialization::id_type)) 
         /* header */
          +sizeof(hdr)
         /* the file consist of 4 blocks (HDR,POS,VEL,ID) each block has a begining and end flag of 4
@@ -169,32 +171,38 @@ class Particles_gevolution :
         const MPI_Offset pos_start = // first POS guard
                             sizeof(hdr) + 2*sizeof(int32_t),
                          this_pos_start = // local particles POS data
-                            pos_start + sizeof(int32_t) + 3*sizeof(position_type)*partial_count;
+                            pos_start + sizeof(int32_t) 
+                            + 3*sizeof(gadget_serialization::position_type)*partial_count;
                             
         const MPI_Offset pos_end = // last POS guard
-                            pos_start + sizeof(int32_t) + sizeof(position_type)*3*npart,
+                            pos_start + sizeof(int32_t) 
+                            + sizeof(gadget_serialization::position_type)*3*npart,
                          this_pos_end = // end of local particles POS data
-                            this_pos_start + 3*sizeof(position_type)*npart;
+                            this_pos_start + 3*sizeof(gadget_serialization::position_type)*npart;
         
         const MPI_Offset vel_start = // first VEL guard
                             pos_end + sizeof(int32_t),
                          this_vel_start = // local particles VEL data
-                            vel_start + sizeof(int32_t) + 3*sizeof(velocity_type)*partial_count;
+                            vel_start + sizeof(int32_t) 
+                            + 3*sizeof(gadget_serialization::velocity_type)*partial_count;
                          
         const MPI_Offset vel_end = // last VEL guard
-                            vel_start + sizeof(int32_t) + sizeof(velocity_type)*3*npart,
+                            vel_start + sizeof(int32_t) 
+                            + sizeof(gadget_serialization::velocity_type)*3*npart,
                          this_vel_end = // end of local particles VEL data
-                            this_vel_start + 3*sizeof(velocity_type)*npart;
+                            this_vel_start + 3*sizeof(gadget_serialization::velocity_type)*npart;
         
         const MPI_Offset ids_start = // first IDS guard
                             vel_end + sizeof(int32_t),
                          this_ids_start = // local particles IDS data
-                            ids_start + sizeof(int32_t) + sizeof(id_type)*partial_count;
+                            ids_start + sizeof(int32_t) 
+                            + sizeof(gadget_serialization::id_type)*partial_count;
                          
         const MPI_Offset ids_end = // last IDS guard
-                            ids_start + sizeof(int32_t) + sizeof(id_type)*npart,
+                            ids_start + sizeof(int32_t) 
+                            + sizeof(gadget_serialization::id_type)*npart,
                          this_ids_end = // end of local particles IDS data
-                            this_ids_start + sizeof(id_type)*npart;
+                            this_ids_start + sizeof(gadget_serialization::id_type)*npart;
         
         if(cart_com.rank()==0)
         {
@@ -216,30 +224,30 @@ class Particles_gevolution :
             // 2^32-1
             
             // write pos guards
-            blocksize = 3 * sizeof (position_type) * hdr.npart[1];
+            blocksize = 3 * sizeof (gadget_serialization::position_type) * hdr.npart[1];
             MPI_File_write_at (outfile, pos_start,
                                &blocksize, 1, MPI_UNSIGNED, &status);
             MPI_File_write_at (outfile, pos_end,
                                &blocksize, 1, MPI_UNSIGNED, &status);
             
             // write vel guards
-            blocksize = 3 * sizeof (velocity_type) * hdr.npart[1];
+            blocksize = 3 * sizeof (gadget_serialization::velocity_type) * hdr.npart[1];
             MPI_File_write_at (outfile, vel_start,
                                &blocksize, 1, MPI_UNSIGNED, &status);
             MPI_File_write_at (outfile, vel_end,
                                &blocksize, 1, MPI_UNSIGNED, &status);
             
             // write ids guards
-            blocksize = sizeof(id_type) * hdr.npart[1];
+            blocksize = sizeof(gadget_serialization::id_type) * hdr.npart[1];
             MPI_File_write_at (outfile, ids_start,
                                &blocksize, 1, MPI_UNSIGNED, &status);
             MPI_File_write_at (outfile, ids_end,
                                &blocksize, 1, MPI_UNSIGNED, &status);
         }
         
-        std::vector<position_type> posdata;
-        std::vector<velocity_type> veldata;
-        std::vector<id_type> IDs;
+        std::vector<gadget_serialization::position_type> posdata;
+        std::vector<gadget_serialization::velocity_type> veldata;
+        std::vector<gadget_serialization::id_type> IDs;
         
         auto flush_to_file = [&]()
         {
