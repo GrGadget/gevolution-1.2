@@ -16,7 +16,6 @@ gevolution_sources = files([
     'radiation.cpp',
     'tools.cpp',
     'velocity.cpp',
-    'metadata.cpp',
-    'lightcone.cpp'
+    'metadata.cpp'
     ])
 
