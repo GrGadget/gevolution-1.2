@@ -133,7 +133,7 @@ class parallel_lightcone
     distributed_database<id_type,bool,destination_func> db;
     
     // value of the conformal time (cosmic clock) when the lightcone was called
-    double last_tau; 
+    double last_tau{0}; 
     
     static double sqr(double x){return x*x;}
     
