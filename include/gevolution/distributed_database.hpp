@@ -25,7 +25,10 @@ class distributed_database
     std::map<key_type,value_type> my_values;
     
     public:
-    distributed_database(const mpi::communicator& in_com,const destination_func_type dest):
+    distributed_database(
+        ::boost::mpi::communicator const & in_com,
+        destination_func_type const dest):
+        
         com{in_com}, destination{dest}
     {}
     
@@ -50,7 +53,7 @@ class distributed_database
             send[proc].push_back(data);
         }
         
-        mpi::all_to_all(com,send,recv);
+        ::boost::mpi::all_to_all(com,send,recv);
         
         for(const auto & v: recv)
             for(const auto &data : v)
@@ -68,7 +71,7 @@ class distributed_database
                 sendrecv_query[proc].push_back(data);
             }
             
-            mpi::all_to_all(com,sendrecv_query,sendrecv_query);
+            ::boost::mpi::all_to_all(com,sendrecv_query,sendrecv_query);
             
            for(int proc=0;proc<com.size();++proc)
                for(const auto &key : sendrecv_query[proc])
@@ -76,7 +79,7 @@ class distributed_database
                    sendrecv_result[proc].push_back( {key,local_query(key)} );
                }
            
-           mpi::all_to_all(com,sendrecv_result,sendrecv_result);
+           ::boost::mpi::all_to_all(com,sendrecv_result,sendrecv_result);
             
         } // clean sendrecv_query
         

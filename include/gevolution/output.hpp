@@ -28,6 +28,7 @@
 #include "gevolution/gevolution.hpp"
 #include "gevolution/metadata.hpp"
 #include "gevolution/tools.hpp"
+#include "gevolution/lightcone.hpp"
 
 namespace gevolution
 {
@@ -147,26 +148,29 @@ void writeLightcones (
     Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_Bi,
     PlanFFT<Cplx> *plan_Sij, int &done_hij, std::set<long> *IDbacklog);
 
-void writeLightcone_shell(
-    const std::string filename,
-    const gadget2_header hdr,
-    const lightcone_geometry lc,
-    const Particles_gevolution &Pcdm)
-// Notice that lc describes the lightcone shell we want to save. The caller of this function is the
-// one responsible to split a full lightcone into thin lightcone shells as well as construct the
-// snapshot header template.
-{
-    auto particles_in_lightcone = [&](const gevolution::particle&, const LATfield2::Site&)
-    {
-        // FIXME: select the particles that lie in the lightcone
-        return false;
-    };
-    
-    Pcdm.saveGadget2 (
-        filename, 
-        hdr,
-        particles_in_lightcone);
-}
+/* This is just legacy code I wrote because of a previous idea about
+ * serializing lightcones. Now all of that job is performed by the
+ * parallel_lightcone data structure. */
+// void writeLightcone_shell(
+//     const std::string filename,
+//     const gadget2_header hdr,
+//     const lightcone_geometry lc,
+//     const Particles_gevolution &Pcdm)
+// // Notice that lc describes the lightcone shell we want to save. The caller of this function is the
+// // one responsible to split a full lightcone into thin lightcone shells as well as construct the
+// // snapshot header template.
+// {
+//     auto particles_in_lightcone = [&](const gevolution::particle&, const LATfield2::Site&)
+//     {
+//         // FIXME: select the particles that lie in the lightcone
+//         return false;
+//     };
+//     
+//     Pcdm.saveGadget2 (
+//         filename, 
+//         hdr,
+//         particles_in_lightcone);
+// }
 
 //////////////////////////
 // writeSpectra

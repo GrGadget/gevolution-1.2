@@ -39,6 +39,25 @@ struct healpix_header
 };
 #endif
 
+struct lightcone_data
+{
+    // comoving position of the observer 
+    // in units of the boxsize [L]
+    double vertex[3];
+    
+    // redshift of the observation event
+    double redshift_observer;
+    
+    // direction of the axis of the lightcone
+    double direction[3];
+    
+    // cosine of the angular opening of the geometric lightcone
+    double cos_opening;
+    
+    // redshift interval of observation
+    double redshift[2]; 
+};
+
 struct lightcone_geometry
 {
     // comoving position of the observer 
@@ -46,20 +65,29 @@ struct lightcone_geometry
     double vertex[3];
     
     // redshift of the observation event
-    double z;
+    // double z;
     
     // conformal time of the observation event 
-    // double tau;
+    double tau;
     
     // direction of the axis of the lightcone
     double direction[3];
     
     // cosine of the angular opening of the geometric lightcone
-    double opening;
+    double cos_opening;
     
     // comoving radius of the lightcone shell
-    // distance[0] < distance[1]
-    double distance[2]; 
+    // r_low < r_high
+    // an event that occured at conformal time t_e is observed at comoving
+    // distance r_e = t_o - t_e, where t_o is the conformal time of the
+    // observation. Therefore we could have simply encoded the observation
+    // events in conformal time as 
+    // t_early = t_o - r_low 
+    // t_latest = t_o - r_high
+    // then only events happening in conformal time t, with 
+    // t_early <= t <= t_latest
+    // will be observed within this lightcone.
+    double r_low, r_high; 
     
     template<class Archive>
     void serialize(Archive & ar, const unsigned int /*version*/)
@@ -67,20 +95,21 @@ struct lightcone_geometry
     // needed in order to broadcast this data using MPI
     {
         ar & vertex;
-        ar & z;
+        ar & tau;
         ar & direction;
-        ar & opening;
-        ar & distance;
+        ar & cos_opening;
+        ar & r_low & r_high;
     }
 };
 
 class parallel_lightcone
 {
+    typedef gadget_serialization::id_type id_type;
     ::boost::mpi::communicator com;
     
     // geometry of the full lightcone
     // FIXME: initialize this geometry
-    lightcone_geometry geometry
+    lightcone_geometry geometry;
 
     
     // in this way we decide where to store the information relative to each particle in the
@@ -91,7 +120,11 @@ class parallel_lightcone
         
         public:
         
-        int operator()(const id_type I)
+        destination_func(::boost::mpi::communicator const & com): 
+            c{com} 
+        {}
+        
+        int operator()(const id_type I) const
         {
             return I % c.size();
         }
@@ -143,18 +176,18 @@ class parallel_lightcone
         // dist must be bounded by the shell inner and outer radii, while the
         // angle alpha between the line of sight and the lightcone direction
         // must not exceed the opening angle. Here cosines are compared.
-        return dist >= shell.distance[0] && dist<shell.distance[1] && cos_angle >= shell.opening;
+        return dist >= shell.r_low && dist<shell.r_high 
+            && cos_angle >= shell.cos_opening;
     }
     
     public:
     parallel_lightcone(
           const ::boost::mpi::communicator& in_com, 
-          lightcone_geometry lc, 
-          std::string fname):
+          lightcone_geometry lc):
         com{in_com}, geometry{lc}, db(com,destination_func{com}),
         
         // initialized to the mininum value possible of the tau (cosmic time) for an observed event
-        last_tau{std::max(0.0,geometry.tau - geometry.distance[1])}
+        last_tau{std::max(0.0,geometry.tau - geometry.r_high)}
     {}
    
     // we use the conformal time (tau) as the cosmic clock, this is because tau*c is the comoving
@@ -164,6 +197,7 @@ class parallel_lightcone
     void saveLightcone(const Particles_gevolution& pcdm, 
                        const double a /* scale factor */,
                        const cosmology cosmo,
+                       const double boxsize /* boxsize in kpc/h */, 
                        const std::string fname)
     {
         const double tau = particleHorizon(a,cosmo);
@@ -179,10 +213,10 @@ class parallel_lightcone
         
         // this operation is the intersection of the total lightcone shell and
         // the thin shell of this timestep.
-        thin_shell.distance[0] = std::max(thin_shell.tau - tau, geometry.distance[0]);
-        thin_shell.distance[1] = std::min(thin_shell.tau - last_tau, geometric.distance[1]);
+        thin_shell.r_low = std::max(thin_shell.tau - tau, geometry.r_low);
+        thin_shell.r_high = std::min(thin_shell.tau - last_tau, geometry.r_high);
         
-        if(thin_shell.distance[0]>=thin_shell.distance[1])
+        if(thin_shell.r_low>=thin_shell.r_high)
         // the intersection of the shell with the full lightcone is null
             return;
        
@@ -198,27 +232,56 @@ class parallel_lightcone
         });
         
         // query which particles are already stored in the lightcone, this is a boolean answer.
-        auto in_past_lightcone = db.query(my_particles);
+        std::vector< std::pair<id_type,bool> > query_result = db.query(my_particles);
+       
+        auto cmp_function =
+            [](
+                const std::pair<id_type,bool>& a, 
+                const std::pair<id_type,bool>& b)
+            {
+                return a.first < b.first;
+            };
+       
+        // we are going to use this vector to query particle by id, so lets
+        // order it by id and the search will be O(log n) with binary search
+        std::sort(query_result.begin(),query_result.end(),cmp_function);
         
-        const auto hdr = construct_gadget_header(a);
+        auto position_in_query = [&](id_type const id)
+        {
+            // search in the query array
+            auto it =
+            std::lower_bound(query_result.begin(),query_result.end(),std::make_pair(id,false),cmp_function);
+            if (it == query_result.end())
+                throw std::runtime_error("parallel_lightcone::saveLightcone id not found in query_result");
+            
+            return std::distance(query_result.begin(),it);
+        };
+        
+        auto in_past_lightcone = [&](id_type const id)
+        {
+            return query_result.at( position_in_query(id) ).second;
+        };
+        
+        
+        const auto hdr = construct_gadget_header(cosmo,a,boxsize);
         
         // pcdm save snapshot, condition particles are inside the thin shell and not already stored
         // in the lightcone
         pcdm.saveGadget2(fname,hdr,
             [&](const particle& part, const LATfield2::Site&)
             {
-                return !in_past_lightcone.at(part.ID) && inside_shell(part,thin_shell);
+                return !in_past_lightcone(part.ID) && inside_shell(part,thin_shell);
             });
         
         // for each local particle that lies inside the shell, set in lightcone
         pcdm.for_each([&](const particle& part, const LATfield2::Site&)
         {
             if(inside_shell(part,thin_shell))
-                in_past_lightcone[part.ID] = true;
+                query_result.at ( position_in_query(part.ID)).second = true;
         });
         
         // update the distributed database
-        db.insert(in_past_lightcone);
+        db.insert(query_result);
     }
 };
 

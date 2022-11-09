@@ -191,7 +191,8 @@ struct healpix_header
 };
 #endif
 
-struct lightcone_geometry
+// To avoid breaking the legacy gevolution tools.
+struct lightcone_geometry_legacy
 {
     double vertex[3];
     double z;
@@ -241,7 +242,7 @@ struct metadata
     double z_switch_linearchi;
     double z_switch_deltancdm[MAX_PCL_SPECIES - 2];
     double z_switch_Bncdm[MAX_PCL_SPECIES - 2];
-    lightcone_geometry lightcone[MAX_OUTPUTS];
+    lightcone_geometry_legacy lightcone[MAX_OUTPUTS];
     char basename_lightcone[PARAM_MAX_LENGTH];
     char basename_snapshot[PARAM_MAX_LENGTH];
     char basename_pk[PARAM_MAX_LENGTH];
