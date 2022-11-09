@@ -108,6 +108,9 @@ class parallel_lightcone
     // returns true if the particle part lies inside the lightcone shell
     {
         // comoving position difference
+        // it is better to avoid confusing unit conversion here, so we decide to
+        // express the coordinates of the vertex in the same units as the
+        // particle position.
         const std::array<double,3> pos_diff{
             part.pos[0]-shell.vertex[0],
             part.pos[1]-shell.vertex[1],
