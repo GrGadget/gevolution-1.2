@@ -113,8 +113,7 @@ class Particles_gevolution :
     void saveGadget2 (
         const std::string filename, 
         gadget2_header hdr,
-        selector_type select_function,
-        int const tracer_factor = 1)const
+        selector_type select_function) const
     // precondition: hdr must already contain cosmological data and number of particles=0
     // FIXME: convert units from gevolution to gadget2
     // FIXME: convert momentum to velocities. is this required at all?
@@ -125,7 +124,7 @@ class Particles_gevolution :
         this->for_each(
             [&](const particle& part, const LATfield2::Site& x)
             {
-                npart += (part.ID % tracer_factor == 0 && select_function(part,x)) ? 1 : 0;
+                npart += (select_function(part,x)) ? 1 : 0;
             }
         );
         
@@ -283,7 +282,7 @@ class Particles_gevolution :
         this->for_each(
             [&](const particle& part, const LATfield2::Site& x)
             {
-                if(part.ID % tracer_factor == 0 && select_function(part,x))
+                if(select_function(part,x))
                 {
                     // save selected particles into buffer
                     std::copy(std::begin(part.pos),
