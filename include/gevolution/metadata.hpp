@@ -153,14 +153,14 @@ struct gadget2_header
 {
     std::uint32_t npart[6];
     double mass[6];
-    double time;
+    double time; // scale factor
     double redshift;
     int32_t flag_sfr;
     int32_t flag_feedback;
     uint32_t npartTotal[6];
     int32_t flag_cooling;
     int32_t num_files;
-    double BoxSize;
+    double BoxSize; // Boxsize in kpc/h
     double Omega0;
     double OmegaLambda;
     double HubbleParam;

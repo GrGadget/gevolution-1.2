@@ -115,8 +115,6 @@ class Particles_gevolution :
         gadget2_header hdr,
         selector_type select_function) const
     // precondition: hdr must already contain cosmological data and number of particles=0
-    // FIXME: convert units from gevolution to gadget2
-    // FIXME: convert momentum to velocities. is this required at all?
     {
     
         // count the particles that meet the criteria
@@ -248,10 +246,32 @@ class Particles_gevolution :
         std::vector<gadget_serialization::velocity_type> veldata;
         std::vector<gadget_serialization::id_type> IDs;
         
+        
         auto flush_to_file = [&]()
         {
+            const double inverse_a = 1.0 / hdr.time;
+            
             MPI_Status status;
             
+            // convert the positions from [Boxsize] to [kpc/h]
+            for(auto & pos : posdata)
+                pos *= hdr.BoxSize;
+            
+            // convert the positions from [Boxsize] to [kpc/h]
+            // FIXME: vel is not actually velocity, neither momentum, it becomes
+            // momentum per unit of mass divided by the scale factor:
+            // vel (snapshot) = momentum / mass / a
+            for(auto & vel : veldata)
+            {
+                vel *= cosmology::C_SPEED_OF_LIGHT;
+                
+                // if we want to save the momentum/mass for particles we comment
+                // this line. In an homogeneous universe for non-relativistic
+                // species this momentum/mass/a is equal to dx/dtau where x is
+                // comoving position and tau is conformal time.
+                vel *= inverse_a;
+                    
+            }
             MPI_File_write_at(outfile,
                               this_pos_start,
                               posdata.data(),
