@@ -143,10 +143,17 @@ class Particles_gevolution :
         hdr.npartTotalHW[1] = static_cast<uint32_t>(total_npart / (1LL<<32));
     
         MPI_File outfile;
-        MPI_File_open (cart_com, filename.c_str(),
+        int err = MPI_File_open (cart_com, filename.c_str(),
                        MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL,
                        &outfile);
         
+        if(err)
+        {
+            throw std::runtime_error(
+                "Particles_gevolution::saveGadget2 "
+                "unexpected error " + std::to_string(err) + " "
+                "trying to open create file " + filename);
+        }
         // RAII at work here. On destruction this object will release the file
         // resource.
         auto close_mpi_file = finally([&](){
