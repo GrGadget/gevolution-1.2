@@ -102,6 +102,21 @@ class Particles_gevolution :
     
     using value_type = particle; // helper attribute used in containers for metaprogramming
 
+    void legacy_saveGadget2(
+        std::string filename, 
+        gadget2_header & hdr, 
+        lightcone_geometry_legacy & lightcone, 
+        double dist, 
+        double dtau, 
+        double dtau_old, 
+        double dadtau, 
+        double vertex[MAX_INTERSECTS][3], 
+        const int vertexcount, 
+        std::set<long> & IDbacklog, 
+        std::set<long> & IDprelog, 
+        Field<Real> * phi, 
+        const int tracer_factor);
+
     void saveGadget2 (std::string filename, gadget2_header &hdr,
                       const int tracer_factor = 1) const ;
     

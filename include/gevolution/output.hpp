@@ -137,6 +137,49 @@ void write_snapshot (
 //
 //////////////////////////
 
+void legacy_writeLightcones(
+    metadata & sim, 
+    cosmology & cosmo, 
+    
+    // const double fourpiG, // fourpiG is now inside cosmo
+    
+    const double a, 
+    const double tau, 
+    const double dtau, 
+    const double dtau_old, 
+    
+    // const double maxvel, // not used at all
+    
+    const int cycle, 
+    
+    std::string h5filename, 
+    
+    Particles_gevolution * pcls_cdm, 
+    
+    // only used if sim.baryon_flag == 1
+    Particles_gevolution * pcls_b, 
+    
+    // only used if cosmo.num_ncdm > 0
+    Particles_gevolution * pcls_ncdm, 
+    
+    Field<Real> * phi, 
+    Field<Real> * chi, 
+    Field<Real> * Bi, 
+   
+    // only used if ( sim.out_lightcone[i] & MASK_HIJ ) 
+    Field<Real> * Sij, 
+    
+    // Field<Cplx> * BiFT, // not used at all
+    // Field<Cplx> * SijFT, // not used anymore
+    
+    // PlanFFT<Cplx> * plan_Bi, // we don't do FFT here
+    // PlanFFT<Cplx> * plan_Sij, // we don't do FFT here
+    
+    // int & done_hij, // we don't do FFT here
+    
+    std::set<long> * IDbacklog
+    );
+
 void writeLightcones (
     metadata &sim, const cosmology cosmo, const double a,
     const double tau, const double dtau, const double dtau_old,
