@@ -20,7 +20,7 @@
 
 #include "gevolution/config.h"
 #include "LATfield2.hpp"
-#include "gevolution/real_type.hpp"
+#include "gevolution/basic_types.hpp"
 #include "gevolution/tools.hpp"
 namespace gevolution
 {

@@ -123,7 +123,7 @@ namespace gevolution
                 }
             });
         
-        const boost::mpi::communicator& com = LATfield2::parallel.my_comm;
+        const auto& com = LATfield2::parallel.cartesian_communicator();
         ::boost::mpi::all_reduce(com,
             ::boost::mpi::inplace_t< std::pair<int, data_type >* >(pw.data()),pw.size(),
             detail::my_pair_sum<int, data_type>());

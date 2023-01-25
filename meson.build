@@ -71,5 +71,6 @@ gevolution_test = executable('gevolution_test',
     dependencies: deps,
     include_directories: include)
     
+subdir('tests')
 
 libgevolution_dep = declare_dependency(include_directories: include, link_with: libgevolution)

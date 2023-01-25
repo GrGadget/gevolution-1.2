@@ -320,6 +320,9 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     void compute_forces(particle_container& pcls, 
         double /* fourpiG */, 
         double a,
+        
+        /* force reduction is a quick fix to a design problem of this class. PM forces are computed
+         * but then should they be assigned or added to the force variable in the particle data? */
         force_reduction reduct = force_reduction::assign) const override
     {
         // const int N = size();
@@ -332,11 +335,13 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
             {
                 std::array<real_type,3> pos{part.pos[0],part.pos[1],part.pos[2]};
                 std::array<real_type,3> 
-                    gradphi = gradient(phi,xpart,pos), 
+                    gradphi = gradient(phi,xpart,pos), // this returns dPhi/dx * L/N
                     gradchi = gradient(chi,xpart,pos), 
                     pgradB{0,0,0};
                     //pgradB  = gradient_vector( Bi,momentum,xpart,pos );
-                    
+                
+                
+                // momentum[] = p/m, that is physical momentum per unit of mass of the particle
                 real_type p2 =   part.momentum[0] * part.momentum[0] 
                           + part.momentum[1] * part.momentum[1] 
                           + part.momentum[2] * part.momentum[2];
@@ -432,7 +437,15 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
                              * part.momentum[2];
                 
                 std::array<real_type,3> force;
+               
+                // at this point:
+                // gradphi[] = grad Phi * L/N
+                // gradchi[] = grad Chi * L/N
                 
+                // hence
+                // force[] = d (p/m) / d tau, where p is the physical momentum and m is the rest
+                // mass of the particle
+               
                 for(int i=0;i<3;++i)
                 {
                     force[i] = (gradchi[i]*e2 - gradphi[i] * (e2 + p2/e2) 
@@ -639,9 +652,9 @@ class relativistic_pm : public particle_mesh<complex_type,particle_container>
     }
     virtual void save_power_spectrum(std::string fname) const override
     {
-        real_type phi_mean=show_mean(phi),
-                  chi_mean = show_mean(chi),
-                  T00_mean = show_mean(T00);
+        // real_type phi_mean=show_mean(phi);
+        // real_type chi_mean = show_mean(chi);
+        real_type T00_mean = show_mean(T00);
         
         base_type::save_field_power_spectrum(fname,"_phi.txt",phi_FT);
         base_type::save_field_power_spectrum(fname,"_chi.txt",chi_FT);

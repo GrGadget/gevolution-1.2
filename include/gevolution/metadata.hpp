@@ -153,14 +153,14 @@ struct gadget2_header
 {
     std::uint32_t npart[6];
     double mass[6];
-    double time;
+    double time; // scale factor
     double redshift;
     int32_t flag_sfr;
     int32_t flag_feedback;
     uint32_t npartTotal[6];
     int32_t flag_cooling;
     int32_t num_files;
-    double BoxSize;
+    double BoxSize; // Boxsize in kpc/h
     double Omega0;
     double OmegaLambda;
     double HubbleParam;
@@ -191,7 +191,8 @@ struct healpix_header
 };
 #endif
 
-struct lightcone_geometry
+// To avoid breaking the legacy gevolution tools.
+struct lightcone_geometry_legacy
 {
     double vertex[3];
     double z;
@@ -241,7 +242,7 @@ struct metadata
     double z_switch_linearchi;
     double z_switch_deltancdm[MAX_PCL_SPECIES - 2];
     double z_switch_Bncdm[MAX_PCL_SPECIES - 2];
-    lightcone_geometry lightcone[MAX_OUTPUTS];
+    lightcone_geometry_legacy lightcone[MAX_OUTPUTS];
     char basename_lightcone[PARAM_MAX_LENGTH];
     char basename_snapshot[PARAM_MAX_LENGTH];
     char basename_pk[PARAM_MAX_LENGTH];
@@ -302,5 +303,14 @@ struct cosmology
     static constexpr double C_RHO_CRIT = 2.77459457e11;    // critical density [M_sun h^2 / Mpc^3]
     static constexpr double C_FD_NORM = 1.80308535;        // Integral[q*q/(exp(q)+1), 0, infinity]
 };
+
+/*
+    This function builds a generic gadget header file, using the cosmology
+    information, scale factor and the boxsize.
+*/
+gadget2_header construct_gadget_header(
+    const cosmology cosmo, 
+    const double a /* scale factor */, 
+    const double boxsize /* in units of kpc/h */);
 }
 #endif

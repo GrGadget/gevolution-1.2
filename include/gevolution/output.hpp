@@ -22,12 +22,13 @@
 
 #include "gevolution/config.h"
 #include "LATfield2.hpp"
-#include "gevolution/real_type.hpp"
+#include "gevolution/basic_types.hpp"
 #include "gevolution/Particles_gevolution.hpp"
 #include "gevolution/background.hpp"
 #include "gevolution/gevolution.hpp"
 #include "gevolution/metadata.hpp"
 #include "gevolution/tools.hpp"
+#include "gevolution/lightcone.hpp"
 
 namespace gevolution
 {
@@ -136,6 +137,49 @@ void write_snapshot (
 //
 //////////////////////////
 
+void legacy_writeLightcones(
+    metadata & sim, 
+    cosmology & cosmo, 
+    
+    // const double fourpiG, // fourpiG is now inside cosmo
+    
+    const double a, 
+    const double tau, 
+    const double dtau, 
+    const double dtau_old, 
+    
+    // const double maxvel, // not used at all
+    
+    const int cycle, 
+    
+    std::string h5filename, 
+    
+    Particles_gevolution * pcls_cdm, 
+    
+    // only used if sim.baryon_flag == 1
+    Particles_gevolution * pcls_b, 
+    
+    // only used if cosmo.num_ncdm > 0
+    Particles_gevolution * pcls_ncdm, 
+    
+    Field<Real> * phi, 
+    Field<Real> * chi, 
+    Field<Real> * Bi, 
+   
+    // only used if ( sim.out_lightcone[i] & MASK_HIJ ) 
+    Field<Real> * Sij, 
+    
+    // Field<Cplx> * BiFT, // not used at all
+    // Field<Cplx> * SijFT, // not used anymore
+    
+    // PlanFFT<Cplx> * plan_Bi, // we don't do FFT here
+    // PlanFFT<Cplx> * plan_Sij, // we don't do FFT here
+    
+    // int & done_hij, // we don't do FFT here
+    
+    std::set<long> * IDbacklog
+    );
+
 void writeLightcones (
     metadata &sim, const cosmology cosmo, const double a,
     const double tau, const double dtau, const double dtau_old,
@@ -146,6 +190,30 @@ void writeLightcones (
     Field<Real> *phi, Field<Real> *chi, Field<Real> *Bi, Field<Real> *Sij,
     Field<Cplx> *BiFT, Field<Cplx> *SijFT, PlanFFT<Cplx> *plan_Bi,
     PlanFFT<Cplx> *plan_Sij, int &done_hij, std::set<long> *IDbacklog);
+
+/* This is just legacy code I wrote because of a previous idea about
+ * serializing lightcones. Now all of that job is performed by the
+ * parallel_lightcone data structure. */
+// void writeLightcone_shell(
+//     const std::string filename,
+//     const gadget2_header hdr,
+//     const lightcone_geometry lc,
+//     const Particles_gevolution &Pcdm)
+// // Notice that lc describes the lightcone shell we want to save. The caller of this function is the
+// // one responsible to split a full lightcone into thin lightcone shells as well as construct the
+// // snapshot header template.
+// {
+//     auto particles_in_lightcone = [&](const gevolution::particle&, const LATfield2::Site&)
+//     {
+//         // FIXME: select the particles that lie in the lightcone
+//         return false;
+//     };
+//     
+//     Pcdm.saveGadget2 (
+//         filename, 
+//         hdr,
+//         particles_in_lightcone);
+// }
 
 //////////////////////////
 // writeSpectra

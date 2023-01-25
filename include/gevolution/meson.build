@@ -22,7 +22,10 @@ gevolution_headers = files([
     'power.hpp',
     'prng_engine.hpp',
     'radiation.hpp',
-    'real_type.hpp',
+    'basic_types.hpp',
     'tools.hpp',
-    'velocity.hpp'
+    'velocity.hpp',
+    'final_action.hpp',
+    'lightcone.hpp',
+    'distributed_database.hpp'
     ])

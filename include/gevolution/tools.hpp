@@ -16,7 +16,7 @@
 
 #include "gevolution/config.h"
 #include "LATfield2.hpp"
-#include "gevolution/real_type.hpp"
+#include "gevolution/basic_types.hpp"
 #include "gevolution/metadata.hpp"
 #include <iostream>
 #include <string>
@@ -179,7 +179,7 @@ void computeTensorDiagnostics (Field<Real> &hij, Real &mdivh, Real &mtraceh,
 //
 //////////////////////////
 
-int findIntersectingLightcones (lightcone_geometry &lightcone, double outer,
+int findIntersectingLightcones (lightcone_geometry_legacy &lightcone, double outer,
                                 double inner, double *domain,
                                 double vertex[MAX_INTERSECTS][3]);
 
